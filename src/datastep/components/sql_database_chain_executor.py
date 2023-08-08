@@ -8,10 +8,10 @@ from langchain.callbacks import StdOutCallbackHandler
 from langchain.chat_models import ChatOpenAI
 from langchain_experimental.sql import SQLDatabaseChain
 
-from components.chain import get_sql_database_chain_patched
-from components.patched_database_class import SQLDatabasePatched
-from components.custom_memory import CustomMemory, HumanMessage, AiMessage, custom_memory
-from models.intermediate_steps import IntermediateSteps
+from datastep.components.chain import get_sql_database_chain_patched
+from datastep.components.patched_database_class import SQLDatabasePatched
+from datastep.components.custom_memory import CustomMemory, HumanMessage, AiMessage, custom_memory
+from datastep.models.intermediate_steps import IntermediateSteps
 
 from datastep.components.chain import get_db, get_llm
 from datastep.components.message import SimpleText, Table, SqlCode
