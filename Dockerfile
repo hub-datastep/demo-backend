@@ -1,13 +1,12 @@
-FROM ubuntu:latest
-LABEL authors="bleschunov"
-WORKDIR app
+FROM python:3
 
-RUN apt-get update && apt-get install -y python3 pip
+RUN pip install poetry
+ENV PATH="${PATH}:/root/.local/bin"
 
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements. txt
+WORKDIR /app
 
-COPY . .
+COPY poetry.lock pyproject.toml ./
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-root
 
-RUN cd src
-CMD ["python3", "src/app. py"]
+CMD ["python3", "src/app.py"]

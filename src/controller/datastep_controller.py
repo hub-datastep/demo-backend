@@ -13,3 +13,8 @@ router = APIRouter(
 @router.post("/prediction")
 def get_prediction(body: QueryDto) -> DatastepPrediction:
     return datastep_model.get_prediction(body)
+
+
+@router.get("/reset")
+def get_prediction() -> None:
+    return datastep_model.reset()
