@@ -9,4 +9,6 @@ COPY poetry.lock pyproject.toml ./
 RUN poetry config virtualenvs.create false \
     && poetry install --no-root
 
-CMD ["python3", "src/app.py"]
+COPY src ./
+
+CMD ["python3", "app.py"]
