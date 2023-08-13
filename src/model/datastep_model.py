@@ -30,7 +30,7 @@ mock_prediction = DatastepPrediction(
 
 
 def get_prediction(body: QueryDto) -> DatastepPrediction:
-    if bool(os.getenv("MOCK_PREDICTION")):
+    if os.getenv("MOCK_PREDICTION") == "True":
         sleep(2)
         return mock_prediction
     return datastep_service.run(body.query)
