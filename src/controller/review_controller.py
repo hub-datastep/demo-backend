@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from dto.review_dto import ReviewOutDto, ReviewCreateDto
 from repository.review_repository import review_repository
@@ -10,12 +10,5 @@ router = APIRouter(
 
 
 @router.post("/", response_model=ReviewOutDto)
-async def update_or_create_review(body: ReviewCreateDto):
-    try:
-        review_repository.get_by_message_id(body)
-        review_repository.update(body)
-    except HTTPException as e:
-        if e.status_code == 404:
-            review_repository.create(body)
-        else:
-            raise e
+async def create_review(body: ReviewCreateDto):
+    return review_repository.create(body)

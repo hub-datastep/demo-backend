@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+from dto.mark_dto import MarkOutDto
 from dto.review_dto import ReviewOutDto
 
 
@@ -18,3 +19,4 @@ class MessageOutDto(MessageCreateDto):
     id: int
     created_at: datetime
     review: list[ReviewOutDto] | None = None
+    mark: MarkOutDto | None = None
