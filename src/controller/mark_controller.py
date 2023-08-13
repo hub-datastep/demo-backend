@@ -9,7 +9,7 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=MarkOutDto)
+@router.post("", response_model=MarkOutDto)
 async def create_mark(body: MarkCreateDto):
     return mark_repository.create(body)
 

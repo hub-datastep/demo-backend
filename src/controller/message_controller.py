@@ -9,6 +9,6 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=MessageOutDto)
+@router.post("", response_model=MessageOutDto)
 async def create_message(body: MessageCreateDto):
     return message_repository.create(body)

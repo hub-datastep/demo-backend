@@ -9,6 +9,6 @@ router = APIRouter(
 )
 
 
-@router.post("/", response_model=ReviewOutDto)
+@router.post("", response_model=ReviewOutDto)
 async def create_review(body: ReviewCreateDto):
     return review_repository.create(body)

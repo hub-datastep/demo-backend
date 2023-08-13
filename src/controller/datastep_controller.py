@@ -5,8 +5,8 @@ from dto.query_dto import QueryDto
 from model import datastep_model
 
 router = APIRouter(
-    prefix="/datastep",
-    tags=["datastep"],
+    prefix="/assistant",
+    tags=["assistant"],
 )
 
 

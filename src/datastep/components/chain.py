@@ -1,11 +1,14 @@
 import os
+
+from dotenv import load_dotenv
 from langchain.chat_models import ChatOpenAI
 from langchain_experimental.sql import SQLDatabaseChain
 
 from datastep.components.custom_prompt import custom_prompt
-from datastep.components.patched_sql_chain import SQLDatabaseChainPatched
 from datastep.components.patched_database_class import SQLDatabasePatched
+from datastep.components.patched_sql_chain import SQLDatabaseChainPatched
 
+load_dotenv()
 
 def get_db(tables: list[str] = None) -> SQLDatabasePatched:
     # Создаём подключение к БД

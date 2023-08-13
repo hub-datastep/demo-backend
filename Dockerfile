@@ -31,12 +31,14 @@ RUN apt-get install libgssapi-krb5-2 -y
 
 WORKDIR /app
 
-COPY poetry.lock pyproject.toml ./
+COPY poetry.lock pyproject.toml /app/
 RUN poetry config virtualenvs.create false \
     && poetry install --no-root
 
-COPY langchain-with-pydantic-v2 ./langchain-with-pydantic-v2
-RUN chmod +x langchain-with-pydantic-v2/install.sh \
-    && ./langchain-with-pydantic-v2/install.sh
+COPY langchain-with-pydantic-v2 /app/langchain-with-pydantic-v2
+RUN chmod +x /app/langchain-with-pydantic-v2/install.sh \
+    && /app/langchain-with-pydantic-v2/install.sh
 
-CMD ["python3", "src/app.py"]
+COPY ./src /app/src
+
+CMD ["python3", "/app/src/app.py"]

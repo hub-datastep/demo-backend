@@ -19,4 +19,4 @@ class MessageOutDto(MessageCreateDto):
     id: int
     created_at: datetime
     review: list[ReviewOutDto] | None = None
-    mark: MarkOutDto | None = None
+    mark: list[MarkOutDto] | None = None
