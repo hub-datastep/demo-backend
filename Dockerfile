@@ -36,8 +36,8 @@ RUN poetry config virtualenvs.create false \
     && poetry install --no-root
 
 COPY langchain-with-pydantic-v2 /app/langchain-with-pydantic-v2
-RUN chmod +x /app/langchain-with-pydantic-v2/install.sh \
-    && /app/langchain-with-pydantic-v2/install.sh
+RUN chmod +x /app/langchain-with-pydantic-v2/install_linux.sh \
+    && /app/langchain-with-pydantic-v2/install_linux.sh
 
 COPY ./src /app/src
 
