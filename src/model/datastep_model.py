@@ -1,11 +1,11 @@
 import os
 from time import sleep
 
-from datastep.components.datastep_prediction import DatastepPrediction
+from datastep.components.datastep_prediction import DatastepPrediction, DatastepPredictionDto
 from dto.query_dto import QueryDto
 from service.datastep_service import datastep_service
 
-mock_prediction = DatastepPrediction(
+mock_prediction = DatastepPredictionDto(
             answer="""Топ 5 компаний по чистой прибыли за 2023 год:
                 1. None - Чистая прибыль: 14,216,107,656.10
                 2. ФСК ДЕВЕЛОПМЕНТ ООО - Чистая прибыль: 9,073,095,523.76
@@ -29,7 +29,7 @@ mock_prediction = DatastepPrediction(
             )
 
 
-def get_prediction(body: QueryDto) -> DatastepPrediction:
+def get_prediction(body: QueryDto) -> DatastepPredictionDto:
     if os.getenv("MOCK_PREDICTION") == "True":
         sleep(2)
         return mock_prediction

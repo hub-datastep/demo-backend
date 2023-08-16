@@ -15,7 +15,7 @@ from datastep.models.intermediate_steps import IntermediateSteps
 
 from datastep.components.chain import get_db, get_llm
 from datastep.components.message import SimpleText, Table, SqlCode
-from datastep.components.datastep_prediction import DatastepPrediction
+from datastep.components.datastep_prediction import DatastepPrediction, DatastepPredictionDto
 
 
 @dataclasses.dataclass
@@ -34,7 +34,7 @@ class SQLDatabaseChainExecutor:
         self.db_chain.verbose = self.verbose
         self.db_chain.return_intermediate_steps = self.return_intermediate_steps
 
-    def run(self, query) -> DatastepPrediction:
+    def run(self, query) -> DatastepPredictionDto:
         query_with_chat_history = self.memory.get_memory() + query
 
         callbacks = []
@@ -79,7 +79,7 @@ class SQLDatabaseChainExecutor:
         intermediate_steps = self.get_last_intermediate_steps()
         df = self.get_df()
 
-        return DatastepPrediction(
+        return DatastepPredictionDto(
             answer=SimpleText(answer).get(),
             sql=SqlCode(intermediate_steps.sql_query).get(),
             table=Table(df).get(),
