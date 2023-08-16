@@ -1,4 +1,3 @@
-import os
 import traceback
 
 import uvicorn as uvicorn
@@ -41,8 +40,8 @@ async def catch_exceptions_middleware(request: Request, call_next):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("FRONTEND_URI")],
-    allow_methods=["POST", "GET"],
+    allow_origins=["https://msu-frontend.fly.dev", "http://localhost:3000"],
+    allow_methods=["POST", "GET", "PUT", "DELETE"],
 )
 
 if __name__ == "__main__":

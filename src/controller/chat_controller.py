@@ -14,6 +14,6 @@ async def get_chat(user_id: str):
     return chat_repository.fetch_by_user_id(user_id)
 
 
-@router.post("/", response_model=ChatOutDto)
+@router.post("", response_model=ChatOutDto)
 async def create_chat(body: ChatCreateDto):
     return chat_repository.create(body)

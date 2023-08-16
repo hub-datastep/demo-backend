@@ -1,14 +1,19 @@
 from fastapi import HTTPException
 
 from dto.chat_dto import ChatOutDto, ChatCreateDto
+from dto.message_dto import MessageCreateDto
 from infra.supabase import supabase
+from repository.message_repository import message_repository
 
 
 class ChatRepository:
     @classmethod
     def create(cls, body: ChatCreateDto) -> ChatOutDto:
         (_, [chat]), _ = supabase.table("chat").insert(body.model_dump()).execute()
-        return ChatOutDto(**chat)
+
+        message_repository.create(MessageCreateDto(chat_id=chat["id"], answer="Какой у вас вопрос?"))
+
+        return ChatRepository.fetch_by_user_id(body.user_id)
 
     @classmethod
     def fetch_by_user_id(cls, user_id: str) -> ChatOutDto:
