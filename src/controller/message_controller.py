@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from fastapi_versioning import version
 
 from dto.message_dto import MessageOutDto, MessageCreateDto
 from repository.message_repository import message_repository
@@ -10,5 +11,6 @@ router = APIRouter(
 
 
 @router.post("", response_model=MessageOutDto)
+@version(1)
 async def create_message(body: MessageCreateDto):
     return message_repository.create(body)

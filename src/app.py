@@ -3,6 +3,7 @@ import traceback
 import uvicorn as uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi_versioning import VersionedFastAPI
 from requests import Request
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
@@ -42,6 +43,12 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["https://msu-frontend.fly.dev", "http://localhost:3000"],
     allow_methods=["POST", "GET", "PUT", "DELETE"],
+)
+
+app = VersionedFastAPI(
+    app,
+    version_format='{major}',
+    prefix_format='/v{major}'
 )
 
 if __name__ == "__main__":
