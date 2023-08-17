@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi_versioning import VersionedFastAPI
 from requests import Request
+from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
@@ -38,17 +39,17 @@ async def catch_exceptions_middleware(request: Request, call_next):
             },
         )
 
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://msu-frontend.fly.dev", "http://localhost:3000"],
-    allow_methods=["POST", "GET", "PUT", "DELETE"],
-)
-
 app = VersionedFastAPI(
     app,
     version_format='{major}',
-    prefix_format='/v{major}'
+    prefix_format='/api/v{major}',
+    middleware=[
+        Middleware(
+            CORSMiddleware,
+            allow_origins=["https://msu-frontend.fly.dev", "http://localhost:3000"],
+            allow_methods=["POST", "GET", "PUT", "DELETE"],
+        )
+    ]
 )
 
 if __name__ == "__main__":
