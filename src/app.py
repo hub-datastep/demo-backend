@@ -47,8 +47,13 @@ app = VersionedFastAPI(
     middleware=[
         Middleware(
             CORSMiddleware,
-            allow_origins=["https://msu-frontend.fly.dev", "http://localhost:3000"],
+            allow_origins=[
+                "https://msu-frontend.fly.dev",
+                "https://msu-frontend-dev.fly.dev",
+                "http://localhost:3000"
+            ],
             allow_methods=["POST", "GET", "PUT", "DELETE"],
+            allow_headers=["*"],
         )
     ]
 )
