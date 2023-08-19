@@ -40,6 +40,6 @@ Run app.py in src folder.
 
 ## Usage
 
-You can find Swagger on http://0.0.0.0:8080/docs
+You can find Swagger on http://0.0.0.0:8080/api/v1/docs
 
 Server will reload on every changes
