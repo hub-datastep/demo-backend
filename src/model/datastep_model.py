@@ -1,8 +1,13 @@
 import os
 from time import sleep
 
+from langchain.schema import BaseMessage, HumanMessage, AIMessage, SystemMessage
+
+from datastep.components.datastep_memory_chain import DatastepMemoryChain
 from datastep.components.datastep_prediction import DatastepPrediction, DatastepPredictionDto
+from dto.message_dto import MessageOutDto
 from dto.query_dto import QueryDto
+from repository.message_repository import message_repository
 from service.datastep_service import datastep_service
 
 mock_prediction = DatastepPredictionDto(
@@ -29,11 +34,32 @@ mock_prediction = DatastepPredictionDto(
             )
 
 
+def message_dto_to_langchain_message(message_dtos: list[MessageOutDto]) -> SystemMessage:
+    result = "Chat history:\n"
+    for message_dto in message_dtos:
+        if message_dto.query:
+            result += f"Human:\n{message_dto.query}\n"
+        elif message_dto.answer:
+            result += f"AI:\n{message_dto.answer}\n"
+
+    return SystemMessage(content=result)
+
+
 def get_prediction(body: QueryDto) -> DatastepPredictionDto:
     if os.getenv("MOCK_PREDICTION") == "True":
         sleep(2)
         return mock_prediction
-    return datastep_service.run(body.query)
+
+    message_dtos = message_repository.fetch_last_n_by_chat_id(body.chat_id, 5)
+    messages = [message_dto_to_langchain_message(message_dtos), HumanMessage(content=body.query)]
+
+    memory_chain_response = DatastepMemoryChain.run(messages)
+    if memory_chain_response:
+        print("1")
+        return DatastepPredictionDto(answer=memory_chain_response)
+    else:
+        print("2")
+        return datastep_service.run(body.query)
 
 
 def reset() -> None:
