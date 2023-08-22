@@ -15,13 +15,14 @@ from datastep.models.intermediate_steps import IntermediateSteps
 
 from datastep.components.chain import get_db, get_llm
 from datastep.components.message import SimpleText, Table, SqlCode
-from datastep.components.datastep_prediction import DatastepPrediction, DatastepPredictionDto
+from datastep.components.datastep_prediction import DatastepPredictionDto
 
 
 @dataclasses.dataclass
 class SQLDatabaseChainExecutor:
     db_chain: SQLDatabaseChain
     memory: CustomMemory
+    use_memory: bool
     chain_answer: any = dataclasses.field(default_factory=dict)
     debug: bool = False
     langchain_debug: bool = False
@@ -35,7 +36,10 @@ class SQLDatabaseChainExecutor:
         self.db_chain.return_intermediate_steps = self.return_intermediate_steps
 
     def run(self, query) -> DatastepPredictionDto:
-        query_with_chat_history = self.memory.get_memory() + query
+        if self.use_memory:
+            final_query = self.memory.get_memory() + query
+        else:
+            final_query = query
 
         callbacks = []
         if self.debug:
@@ -43,14 +47,14 @@ class SQLDatabaseChainExecutor:
 
         try:
             if self.return_intermediate_steps:
-                db_chain_response = self.db_chain(query_with_chat_history, callbacks=callbacks)
+                db_chain_response = self.db_chain(final_query, callbacks=callbacks)
                 chain_answer = db_chain_response.get("result", None)
                 self.last_intermediate_steps = IntermediateSteps.from_chain_steps(
                     db_chain_response.get("intermediate_steps", None)
                 )
             else:
                 chain_answer = self.db_chain.run(
-                    query_with_chat_history,
+                    final_query,
                     callbacks=callbacks
                 )
         except Exception as e:
@@ -58,7 +62,7 @@ class SQLDatabaseChainExecutor:
             chain_answer = "Произошла ошибка"
 
         if self.debug:
-            print("Final query:\n" + query_with_chat_history)
+            print("Final query:\n" + final_query)
             print("\n=====\n")
             print(f"Chat history size: {self.get_chat_history_size()} tokens")
             print("\n=====\n")
@@ -119,14 +123,15 @@ class SQLDatabaseChainExecutor:
 def get_sql_database_chain_executor(
     db: SQLDatabasePatched,
     llm: ChatOpenAI,
-    debug=False,
-    return_intermediate_steps=True
+    use_memory: bool = True,
+    debug: bool = False,
 ) -> SQLDatabaseChainExecutor:
     return SQLDatabaseChainExecutor(
         get_sql_database_chain_patched(db, llm),
         custom_memory,
+        use_memory,
         debug=debug,
-        return_intermediate_steps=return_intermediate_steps
+        return_intermediate_steps=True
     )
 
 
@@ -138,5 +143,4 @@ def get_datastep(table_names: list[str] | None, model_name: str | None = "gpt-3.
         get_db(tables=table_names),
         get_llm(model_name=model_name),
         debug=True,
-        return_intermediate_steps=True
     )

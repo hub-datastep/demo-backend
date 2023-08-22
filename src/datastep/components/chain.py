@@ -13,7 +13,7 @@ load_dotenv()
 def get_db(tables: list[str] = None) -> SQLDatabasePatched:
     # Создаём подключение к БД
     # include_tables используем для указания таблиц, с которыми хотим работать
-    return SQLDatabasePatched.from_uri(os.getenv("DB_URI"), include_tables=tables)
+    return SQLDatabasePatched.from_uri(os.getenv("DB_URI"), include_tables=tables, view_support=True)
 
 
 def get_llm(model_name: str = "gpt-3.5-turbo-16k") -> ChatOpenAI:
