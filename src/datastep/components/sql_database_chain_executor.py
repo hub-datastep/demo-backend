@@ -5,11 +5,13 @@ import dataclasses
 from dotenv import load_dotenv
 from langchain.callbacks import StdOutCallbackHandler
 from langchain.chat_models import ChatOpenAI
-from langchain_experimental.sql import SQLDatabaseChain
+from openai import OpenAIError
+from sqlalchemy.exc import SQLAlchemyError
 
 from datastep.components.chain import get_sql_database_chain_patched
 from datastep.components.custom_prompt import custom_prompt
 from datastep.components.patched_database_class import SQLDatabasePatched
+from datastep.components.patched_sql_chain import SQLDatabaseChainPatched
 from datastep.models.intermediate_steps import IntermediateSteps
 from datastep.utils.logger import logging
 
@@ -21,12 +23,10 @@ load_dotenv()
 
 @dataclasses.dataclass
 class SQLDatabaseChainExecutor:
-    db_chain: SQLDatabaseChain
-    chain_answer: str | None = ""
+    db_chain: SQLDatabaseChainPatched
     debug: bool = False
     verbose: bool = False
     langchain_debug: bool = False
-    last_intermediate_steps: IntermediateSteps = None
 
     def __post_init__(self):
         langchain.debug = self.langchain_debug
@@ -36,36 +36,48 @@ class SQLDatabaseChainExecutor:
 
         try:
             db_chain_response = self.db_chain(query, callbacks=callbacks)
-            self.chain_answer = db_chain_response["result"]
-            self.last_intermediate_steps = IntermediateSteps.from_chain_steps(
-                db_chain_response["intermediate_steps"]
+        except OpenAIError as e:
+            logging.error(f"[{e}]")
+            return DatastepPredictionDto(
+                answer=str(e),
+                sql=None,
+                table=None,
+                is_exception=True
             )
-        except Exception as e:
-            self.chain_answer = str(e)
+        except SQLAlchemyError as e:
+            logging.error(f"[{e}]")
 
-        if self.debug:
-            self.print_logs(query)
+            intermediate_steps = e.intermediate_steps
+            intermediate_steps = IntermediateSteps.from_chain_steps(intermediate_steps)
 
-        return self.get_datastep_prediction_dto()
+            return DatastepPredictionDto(
+                answer=str(e),
+                sql=intermediate_steps.sql_query,
+                table=None,
+                is_exception=True
+            )
 
-    def get_datastep_prediction_dto(self):
+        chain_answer = db_chain_response["result"]
+        intermediate_steps = db_chain_response["intermediate_steps"]
+        intermediate_steps = IntermediateSteps.from_chain_steps(intermediate_steps)
+        sql_query = intermediate_steps.sql_query
+        sql_result = intermediate_steps.sql_result
+
         return DatastepPredictionDto(
-            answer=self.get_answer(),
-            sql=self.get_sql_markdown(),
-            table=self.get_table_markdown()
+            answer=chain_answer,
+            sql=sql_query,
+            table=self.get_table_markdown(sql_result),
+            is_exception=False
         )
 
-    def get_answer(self) -> str:
-        return self.chain_answer
-
-    def get_sql_markdown(self) -> str:
-        sql_result = self.last_intermediate_steps.sql_result
+    @classmethod
+    def get_sql_markdown(cls, sql_result) -> str:
         if sql_result:
             return f"~~~sql\n{sql_result}\n~~~"
         return ""
 
-    def get_table_markdown(self) -> str:
-        sql_result = self.last_intermediate_steps.sql_result
+    @classmethod
+    def get_table_markdown(cls, sql_result) -> str:
         data_frame = pd.DataFrame(sql_result)
 
         if data_frame is not None and any(data_frame):
@@ -80,15 +92,6 @@ class SQLDatabaseChainExecutor:
 
         return callbacks
 
-    def print_logs(self, query):
-        logging.info(f"""Final query:
-{query}
-
-{self.chain_answer}
-
-{self.last_intermediate_steps.sql_query}
-"""
-        )
 
 def get_sql_database_chain_executor(
     db: SQLDatabasePatched,

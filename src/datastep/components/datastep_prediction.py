@@ -9,5 +9,6 @@ class DatastepPrediction(BaseModel):
 
 class DatastepPredictionDto(BaseModel):
     answer: str
-    sql: str
-    table: str
+    sql: str | None
+    table: str | None
+    is_exception: bool

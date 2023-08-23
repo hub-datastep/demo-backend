@@ -1,3 +1,5 @@
+import logging
+
 from datastep.components.chain import get_db, get_llm
 from datastep.components.sql_database_chain_executor import get_sql_database_chain_executor
 
@@ -22,4 +24,7 @@ questions = get_questions("../data/questions.txt")
 
 for i, q in enumerate(questions):
     print_current_progress(i, len(questions))
-    datastep_service.run(q)
+    result = datastep_service.run(q)
+
+    if not result.is_exception:
+        logging.info(f"[Query][{q}][Answer][{result.answer}][SQL][{result.sql}]")

@@ -35,7 +35,7 @@ def get_sql_database_chain_patched(
     db: SQLDatabasePatched,
     llm: ChatOpenAI,
     prompt: PromptTemplate
-) -> SQLDatabaseChain:
+) -> SQLDatabaseChainPatched:
     # Создаём цепочку для работы с SQL
     # use_query_checker используем для обработки неправильно составленных SQL запросов
     # use_query_checker=False, потому что True с моделью на 16К токенов ломает чейн
