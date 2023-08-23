@@ -13,7 +13,6 @@ from datastep.components.patched_database_class import SQLDatabasePatched
 from datastep.models.intermediate_steps import IntermediateSteps
 from datastep.utils.logger import logging
 
-from datastep.components.chain import get_db, get_llm
 from datastep.components.datastep_prediction import DatastepPredictionDto
 
 
@@ -82,9 +81,14 @@ class SQLDatabaseChainExecutor:
         return callbacks
 
     def print_logs(self, query):
-        logging.info("Final query:\n" + query)
-        logging.info("Final answer:\n" + self.chain_answer)
+        logging.info(f"""Final query:
+{query}
 
+{self.chain_answer}
+
+{self.last_intermediate_steps.sql_query}
+"""
+        )
 
 def get_sql_database_chain_executor(
     db: SQLDatabasePatched,

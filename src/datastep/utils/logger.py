@@ -5,7 +5,7 @@ today = datetime.now().strftime("%m-%d-%Y")
 
 logging.basicConfig(
     level=logging.INFO,
-    filename=f"{today}.log",
+    filename=f"../logs/{today}.log",
     filemode="a",
     format="%(asctime)s %(levelname)s %(message)s"
 )
