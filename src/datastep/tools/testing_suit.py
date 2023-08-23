@@ -1,5 +1,4 @@
-import logging
-
+from datastep.utils.logger import logging
 from datastep.components.chain import get_db, get_llm
 from datastep.components.sql_database_chain_executor import get_sql_database_chain_executor
 
@@ -28,3 +27,5 @@ for i, q in enumerate(questions):
 
     if not result.is_exception:
         logging.info(f"[Query][{q}][Answer][{result.answer}][SQL][{result.sql}]")
+    else:
+        logging.error(f"[Query][{q}][Answer][{result.answer}][SQL][{result.sql}]")

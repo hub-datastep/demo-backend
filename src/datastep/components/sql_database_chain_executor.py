@@ -13,10 +13,8 @@ from datastep.components.custom_prompt import custom_prompt
 from datastep.components.patched_database_class import SQLDatabasePatched
 from datastep.components.patched_sql_chain import SQLDatabaseChainPatched
 from datastep.models.intermediate_steps import IntermediateSteps
-from datastep.utils.logger import logging
 
-from datastep.components.datastep_prediction import DatastepPredictionDto
-
+from datastep.components.datastep_prediction import DatastepPrediction
 
 load_dotenv()
 
@@ -31,28 +29,25 @@ class SQLDatabaseChainExecutor:
     def __post_init__(self):
         langchain.debug = self.langchain_debug
 
-    def run(self, query) -> DatastepPredictionDto:
+    def run(self, query) -> DatastepPrediction:
         callbacks = self.get_callbacks()
 
         try:
             db_chain_response = self.db_chain(query, callbacks=callbacks)
         except OpenAIError as e:
-            logging.error(f"[{e}]")
-            return DatastepPredictionDto(
+            return DatastepPrediction(
                 answer=str(e),
                 sql=None,
                 table=None,
                 is_exception=True
             )
         except SQLAlchemyError as e:
-            logging.error(f"[{e}]")
-
             intermediate_steps = e.intermediate_steps
             intermediate_steps = IntermediateSteps.from_chain_steps(intermediate_steps)
 
-            return DatastepPredictionDto(
+            return DatastepPrediction(
                 answer=str(e),
-                sql=intermediate_steps.sql_query,
+                sql=self.get_sql_markdown(intermediate_steps.sql_query),
                 table=None,
                 is_exception=True
             )
@@ -63,9 +58,9 @@ class SQLDatabaseChainExecutor:
         sql_query = intermediate_steps.sql_query
         sql_result = intermediate_steps.sql_result
 
-        return DatastepPredictionDto(
+        return DatastepPrediction(
             answer=chain_answer,
-            sql=sql_query,
+            sql=self.get_sql_markdown(sql_result),
             table=self.get_table_markdown(sql_result),
             is_exception=False
         )
