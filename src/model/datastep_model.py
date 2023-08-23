@@ -1,10 +1,8 @@
 import os
 from time import sleep
 
-from langchain.schema import BaseMessage, HumanMessage, AIMessage, SystemMessage
-
-from datastep.components.datastep_memory_chain import DatastepMemoryChain
-from datastep.components.datastep_prediction import DatastepPrediction, DatastepPredictionDto
+from datastep.components.custom_memory import HumanMessage, AiMessage
+from datastep.components.datastep_prediction import DatastepPredictionDto
 from dto.message_dto import MessageOutDto
 from dto.query_dto import QueryDto
 from repository.message_repository import message_repository
@@ -34,15 +32,15 @@ mock_prediction = DatastepPredictionDto(
             )
 
 
-def message_dto_to_langchain_message(message_dtos: list[MessageOutDto]) -> SystemMessage:
+def message_dto_to_langchain_message(message_dtos: list[MessageOutDto]) -> str:
     result = "Chat history:\n"
     for message_dto in message_dtos:
         if message_dto.query:
-            result += f"Human:\n{message_dto.query}\n"
+            result += HumanMessage(message_dto.query).get_message()
         elif message_dto.answer:
-            result += f"AI:\n{message_dto.answer}\n"
+            result += AiMessage(message_dto.answer).get_message()
 
-    return SystemMessage(content=result)
+    return result
 
 
 def get_prediction(body: QueryDto) -> DatastepPredictionDto:
@@ -51,15 +49,9 @@ def get_prediction(body: QueryDto) -> DatastepPredictionDto:
         return mock_prediction
 
     message_dtos = message_repository.fetch_last_n_by_chat_id(body.chat_id, 5)
-    messages = [message_dto_to_langchain_message(message_dtos), HumanMessage(content=body.query)]
+    messages = message_dto_to_langchain_message(message_dtos)
 
-    memory_chain_response = DatastepMemoryChain.run(messages)
-    if memory_chain_response:
-        print("1")
-        return DatastepPredictionDto(answer=memory_chain_response)
-    else:
-        print("2")
-        return datastep_service.run(body.query)
+    return datastep_service.run(body.query, messages)
 
 
 def reset() -> None:

@@ -22,7 +22,7 @@ from datastep.components.datastep_prediction import DatastepPredictionDto
 class SQLDatabaseChainExecutor:
     db_chain: SQLDatabaseChain
     memory: CustomMemory
-    use_memory: bool
+    use_memory: bool | str
     chain_answer: any = dataclasses.field(default_factory=dict)
     debug: bool = False
     langchain_debug: bool = False
@@ -35,9 +35,12 @@ class SQLDatabaseChainExecutor:
         self.db_chain.verbose = self.verbose
         self.db_chain.return_intermediate_steps = self.return_intermediate_steps
 
-    def run(self, query) -> DatastepPredictionDto:
-        if self.use_memory:
-            final_query = self.memory.get_memory() + query
+    def run(self, query, memory: str) -> DatastepPredictionDto:
+        if self.use_memory in (True, "True"):
+            if memory:
+                final_query = memory + query
+            else:
+                final_query = self.memory.get_memory() + query
         else:
             final_query = query
 
@@ -123,7 +126,7 @@ class SQLDatabaseChainExecutor:
 def get_sql_database_chain_executor(
     db: SQLDatabasePatched,
     llm: ChatOpenAI,
-    use_memory: bool = True,
+    use_memory: bool | str = True,
     debug: bool = False,
 ) -> SQLDatabaseChainExecutor:
     return SQLDatabaseChainExecutor(
