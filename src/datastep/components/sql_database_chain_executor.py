@@ -1,146 +1,97 @@
-import json
-import logging
 import pandas as pd
 import langchain
 import dataclasses
 
+from dotenv import load_dotenv
 from langchain.callbacks import StdOutCallbackHandler
 from langchain.chat_models import ChatOpenAI
 from langchain_experimental.sql import SQLDatabaseChain
 
 from datastep.components.chain import get_sql_database_chain_patched
+from datastep.components.custom_prompt import custom_prompt
 from datastep.components.patched_database_class import SQLDatabasePatched
-from datastep.components.custom_memory import CustomMemory, HumanMessage, AiMessage, custom_memory
 from datastep.models.intermediate_steps import IntermediateSteps
+from datastep.utils.logger import logging
 
 from datastep.components.chain import get_db, get_llm
-from datastep.components.message import SimpleText, Table, SqlCode
 from datastep.components.datastep_prediction import DatastepPredictionDto
+
+
+load_dotenv()
 
 
 @dataclasses.dataclass
 class SQLDatabaseChainExecutor:
     db_chain: SQLDatabaseChain
-    memory: CustomMemory
-    use_memory: bool
-    chain_answer: any = dataclasses.field(default_factory=dict)
+    chain_answer: str | None = ""
     debug: bool = False
-    langchain_debug: bool = False
     verbose: bool = False
-    return_intermediate_steps: bool = False
+    langchain_debug: bool = False
     last_intermediate_steps: IntermediateSteps = None
 
     def __post_init__(self):
         langchain.debug = self.langchain_debug
-        self.db_chain.verbose = self.verbose
-        self.db_chain.return_intermediate_steps = self.return_intermediate_steps
 
     def run(self, query) -> DatastepPredictionDto:
-        if self.use_memory:
-            final_query = self.memory.get_memory() + query
-        else:
-            final_query = query
-
-        callbacks = []
-        if self.debug:
-            callbacks.append(StdOutCallbackHandler())
+        callbacks = self.get_callbacks()
 
         try:
-            if self.return_intermediate_steps:
-                db_chain_response = self.db_chain(final_query, callbacks=callbacks)
-                chain_answer = db_chain_response.get("result", None)
-                self.last_intermediate_steps = IntermediateSteps.from_chain_steps(
-                    db_chain_response.get("intermediate_steps", None)
-                )
-            else:
-                chain_answer = self.db_chain.run(
-                    final_query,
-                    callbacks=callbacks
-                )
+            db_chain_response = self.db_chain(query, callbacks=callbacks)
+            self.chain_answer = db_chain_response["result"]
+            self.last_intermediate_steps = IntermediateSteps.from_chain_steps(
+                db_chain_response["intermediate_steps"]
+            )
         except Exception as e:
-            logging.error(e)
-            chain_answer = "Произошла ошибка"
+            self.chain_answer = str(e)
 
         if self.debug:
-            print("Final query:\n" + final_query)
-            print("\n=====\n")
-            print(f"Chat history size: {self.get_chat_history_size()} tokens")
-            print("\n=====\n")
-            print("Final answer:\n" + chain_answer)
-            print("\n=====\n")
+            self.print_logs(query)
 
-        self.memory.add_message(HumanMessage(query)).add_message(
-            AiMessage(chain_answer)
-        )
-        try:
-            self.chain_answer = json.loads(chain_answer)
-        except json.JSONDecodeError:
-            self.chain_answer = {
-                "Answer": chain_answer if isinstance(chain_answer, str) else None
-            }
+        return self.get_datastep_prediction_dto()
 
-        answer = self.get_answer()
-        intermediate_steps = self.get_last_intermediate_steps()
-        df = self.get_df()
-
+    def get_datastep_prediction_dto(self):
         return DatastepPredictionDto(
-            answer=SimpleText(answer).get(),
-            sql=SqlCode(intermediate_steps.sql_query).get(),
-            table=Table(df).get(),
+            answer=self.get_answer(),
+            sql=self.get_sql_markdown(),
+            table=self.get_table_markdown()
         )
 
     def get_answer(self) -> str:
-        if isinstance(self.chain_answer, dict):
-            return str(self.chain_answer.get("Answer"))
-        else:
-            return self.chain_answer
+        return self.chain_answer
 
-    def get_sql(self) -> str:
-        return self.get_last_intermediate_steps().sql_result
+    def get_sql_markdown(self) -> str:
+        sql_result = self.last_intermediate_steps.sql_result
+        if sql_result:
+            return f"~~~sql\n{sql_result}\n~~~"
+        return ""
 
-    def get_df(self) -> pd.DataFrame | None:
-        steps = self.get_last_intermediate_steps()
-        df = pd.DataFrame(
-            steps.sql_result,
-            columns=steps.sql_result[0].keys() if steps.sql_result else None,
-        )
+    def get_table_markdown(self) -> str:
+        sql_result = self.last_intermediate_steps.sql_result
+        data_frame = pd.DataFrame(sql_result)
 
-        return df
+        if data_frame is not None and any(data_frame):
+            return data_frame.to_markdown(index=False, floatfmt=".3f")
 
-    def get_all(self) -> tuple[str, pd.DataFrame | None]:
-        return self.get_answer(), self.get_df()
+        return ""
 
-    def get_chat_history_size(self) -> int:
-        return self.db_chain.llm_chain.llm.get_num_tokens(self.memory.get_memory())
+    def get_callbacks(self):
+        callbacks = []
+        if self.verbose:
+            callbacks.append(StdOutCallbackHandler())
 
-    def get_last_intermediate_steps(self) -> IntermediateSteps:
-        return self.last_intermediate_steps
+        return callbacks
 
-    def reset(self) -> None:
-        self.memory.reset()
+    def print_logs(self, query):
+        logging.info("Final query:\n" + query)
+        logging.info("Final answer:\n" + self.chain_answer)
 
 
 def get_sql_database_chain_executor(
     db: SQLDatabasePatched,
     llm: ChatOpenAI,
-    use_memory: bool = True,
     debug: bool = False,
 ) -> SQLDatabaseChainExecutor:
     return SQLDatabaseChainExecutor(
-        get_sql_database_chain_patched(db, llm),
-        custom_memory,
-        use_memory,
+        db_chain=get_sql_database_chain_patched(db, llm, custom_prompt),
         debug=debug,
-        return_intermediate_steps=True
-    )
-
-
-def get_datastep(table_names: list[str] | None, model_name: str | None = "gpt-3.5-turbo-16k"):
-    if table_names is None:
-        table_names = ["test"]
-
-    return get_sql_database_chain_executor(
-        get_db(tables=table_names),
-        get_llm(model_name=model_name),
-        debug=True,
     )
