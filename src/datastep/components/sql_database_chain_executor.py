@@ -1,5 +1,7 @@
 import json
 import logging
+from datetime import datetime
+
 import pandas as pd
 import langchain
 import dataclasses
@@ -17,6 +19,15 @@ from datastep.components.chain import get_db, get_llm
 from datastep.components.message import SimpleText, Table, SqlCode
 from datastep.components.datastep_prediction import DatastepPredictionDto
 
+today = datetime.now().strftime("%d-%m-%Y")
+
+logging.basicConfig(
+    level=logging.ERROR,
+    filename=f"datastep/log/{today}.log",
+    filemode="a",
+    format="[%(asctime)s][%(levelname)s][%(message)s]"
+)
+
 
 @dataclasses.dataclass
 class SQLDatabaseChainExecutor:
@@ -28,7 +39,7 @@ class SQLDatabaseChainExecutor:
     langchain_debug: bool = False
     verbose: bool = False
     return_intermediate_steps: bool = False
-    last_intermediate_steps: IntermediateSteps = None
+    last_intermediate_steps: IntermediateSteps | None = None
 
     def __post_init__(self):
         langchain.debug = self.langchain_debug
@@ -59,7 +70,8 @@ class SQLDatabaseChainExecutor:
                 )
         except Exception as e:
             logging.error(e)
-            chain_answer = "Произошла ошибка"
+            chain_answer = "Произошла ошибка. Попробуйте другой запрос."
+            self.last_intermediate_steps = None
 
         if self.debug:
             print("Final query:\n" + final_query)
