@@ -60,7 +60,7 @@ class SQLDatabaseChainExecutor:
 
         return DatastepPrediction(
             answer=chain_answer,
-            sql=self.get_sql_markdown(sql_result),
+            sql=self.get_sql_markdown(sql_query),
             table=self.get_table_markdown(sql_result),
             is_exception=False
         )
