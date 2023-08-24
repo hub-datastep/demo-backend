@@ -23,7 +23,7 @@ today = datetime.now().strftime("%d-%m-%Y")
 
 logging.basicConfig(
     level=logging.ERROR,
-    filename=f"datastep/log/{today}.log",
+    filename=f"src/datastep/log/{today}.log",
     filemode="a",
     format="[%(asctime)s][%(levelname)s][%(message)s]"
 )
