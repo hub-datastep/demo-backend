@@ -34,7 +34,8 @@ def get_llm(model_name: str = "gpt-3.5-turbo-16k") -> ChatOpenAI:
 def get_sql_database_chain_patched(
     db: SQLDatabasePatched,
     llm: ChatOpenAI,
-    prompt: PromptTemplate
+    prompt: PromptTemplate,
+    verbose_answer: bool = False
 ) -> SQLDatabaseChainPatched:
     # Создаём цепочку для работы с SQL
     # use_query_checker используем для обработки неправильно составленных SQL запросов
@@ -45,6 +46,6 @@ def get_sql_database_chain_patched(
         db=db,
         prompt=prompt,
         use_query_checker=False,
-        return_direct=False,
+        return_direct=not verbose_answer,
         return_intermediate_steps=True
     )

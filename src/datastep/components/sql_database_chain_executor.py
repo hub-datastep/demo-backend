@@ -24,6 +24,7 @@ class SQLDatabaseChainExecutor:
     db_chain: SQLDatabaseChainPatched
     debug: bool = False
     verbose: bool = False
+    verbose_answer: bool = False
     langchain_debug: bool = False
 
     def __post_init__(self):
@@ -52,7 +53,11 @@ class SQLDatabaseChainExecutor:
                 is_exception=True
             )
 
-        chain_answer = db_chain_response["result"]
+        if self.verbose_answer:
+            chain_answer = db_chain_response["result"]
+        else:
+            chain_answer = ""
+
         intermediate_steps = db_chain_response["intermediate_steps"]
         intermediate_steps = IntermediateSteps.from_chain_steps(intermediate_steps)
         sql_query = intermediate_steps.sql_query
@@ -92,8 +97,10 @@ def get_sql_database_chain_executor(
     db: SQLDatabasePatched,
     llm: ChatOpenAI,
     debug: bool = False,
+    verbose_answer: bool = False
 ) -> SQLDatabaseChainExecutor:
     return SQLDatabaseChainExecutor(
-        db_chain=get_sql_database_chain_patched(db, llm, custom_prompt),
+        db_chain=get_sql_database_chain_patched(db, llm, custom_prompt, verbose_answer),
         debug=debug,
+        verbose_answer=verbose_answer
     )
