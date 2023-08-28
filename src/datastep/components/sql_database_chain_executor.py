@@ -9,7 +9,8 @@ from openai import OpenAIError
 from sqlalchemy.exc import SQLAlchemyError
 
 from datastep.components.chain import get_sql_database_chain_patched
-from datastep.components.custom_prompt import custom_prompt
+
+from datastep.components.datastep_prompt import datastep_prompt
 from datastep.components.patched_database_class import SQLDatabasePatched
 from datastep.components.patched_sql_chain import SQLDatabaseChainPatched
 from datastep.models.intermediate_steps import IntermediateSteps
@@ -100,7 +101,7 @@ def get_sql_database_chain_executor(
     verbose_answer: bool = False
 ) -> SQLDatabaseChainExecutor:
     return SQLDatabaseChainExecutor(
-        db_chain=get_sql_database_chain_patched(db, llm, custom_prompt, verbose_answer),
+        db_chain=get_sql_database_chain_patched(db, llm, datastep_prompt.get_prompt(), verbose_answer),
         debug=debug,
         verbose_answer=verbose_answer
     )
