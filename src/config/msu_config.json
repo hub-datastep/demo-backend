@@ -1,0 +1,7 @@
+{
+    "verbose_answer": false,
+    "db_driver": "MSSQL",
+    "prompt": {
+        "table_description": "\"\"\"Wrap each column name in square brackets ([]) to denote them as delimited identifiers.\nSome of the columns in the table:\n\"Тип документа\" — possible values are \"Списание\", \"Перемещение_Приход\", \"Перемещение_Расход\", \"Поступление\"\n\"Банковский счет.МСУ вид банковского счета\" — possible values are \"ОБС\", \"Проектный\", \"УФК МО\", \"Департамент финансов Москва\", \"УФК Москва\", \"Расчетный\"\n\"План/Факт\" — possible values are \"План\", \"Факт\". Use \"Факт\" if there is not stated other in the query.\n\"Сумма\" — actual transfer amount of money. Negative value means it was sent to counterparty. Positive value mean it was sent to MSU.\n\"Сумма договора\" — contract amount.\n\"Период\" — date of the payment. Working with that column use construction like LEFT(CONVERT(NVARCHAR(256), DATEADD(MONTH, _, GETDATE()), 120), 7) + '%'\n\"\"\""
+    }
+}
