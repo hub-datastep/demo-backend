@@ -11,3 +11,6 @@ deploy-master:
 
 deploy-dev:
 	fly deploy --config fly.dev.toml
+
+deploy-mock:
+	fly deploy --config fly.mock.toml
