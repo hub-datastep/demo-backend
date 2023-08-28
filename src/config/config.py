@@ -7,5 +7,8 @@ load_dotenv()
 
 config_name = os.getenv("CONFIG")
 
-with open(f"config/{config_name}.json", "r") as file:
+dirname = os.path.dirname(__file__)
+filename = os.path.join(dirname, f"./{config_name}.json")
+
+with open(filename, "r") as file:
     config = json.load(file)
