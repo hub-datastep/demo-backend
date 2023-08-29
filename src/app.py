@@ -11,7 +11,8 @@ from starlette.responses import JSONResponse
 
 from controller import (
     datastep_controller, chat_controller, message_controller,
-    review_controller, mark_controller, auth_controller
+    review_controller, mark_controller, auth_controller,
+    chat_pdf_controller
 )
 
 load_dotenv()
@@ -20,6 +21,7 @@ app = FastAPI()
 
 app.include_router(auth_controller.router)
 app.include_router(datastep_controller.router)
+app.include_router(chat_pdf_controller.router)
 app.include_router(chat_controller.router)
 app.include_router(message_controller.router)
 app.include_router(review_controller.router)
