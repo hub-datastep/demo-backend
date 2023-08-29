@@ -5,7 +5,7 @@ from repository.message_repository import message_repository
 from service.chatpdf_service import ChatPdfService
 
 
-def include_chat_history(messages: list[dict], chat_id: int) -> list[dict]:
+def include_chat_history(messages: list[dict], chat_id: int) -> None:
     messages_as_dtos = message_repository.fetch_all_by_chat_id(chat_id)
 
     for message in messages_as_dtos:
