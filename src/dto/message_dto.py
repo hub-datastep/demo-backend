@@ -13,6 +13,7 @@ class MessageCreateDto(BaseModel):
     sql: str | None = None
     table: str | None = None
     exception: str | None = None
+    connected_message_id: int | None = None
 
 
 class MessageOutDto(MessageCreateDto):
