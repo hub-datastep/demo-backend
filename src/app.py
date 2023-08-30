@@ -1,5 +1,6 @@
 import traceback
 
+import sentry_sdk
 import uvicorn as uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -13,6 +14,18 @@ from controller import (
     datastep_controller, chat_controller, message_controller,
     review_controller, mark_controller, auth_controller,
     chat_pdf_controller
+)
+
+sentry_sdk.init(
+    dsn="https://a93b994680a287f702ca14bc34dffb35@o4505793939963904.ingest.sentry.io/4505793941995520",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
 )
 
 load_dotenv()
