@@ -1,6 +1,7 @@
 {
     "verbose_answer": true,
     "db_driver": "POSTGRESQL",
+    "tables": ["mock_real_estate"],
     "prompt": {
         "table_description": ""
     }
