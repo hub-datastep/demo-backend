@@ -1,0 +1,7 @@
+{
+    "verbose_answer": true,
+    "db_driver": "POSTGRESQL",
+    "prompt": {
+        "table_description": ""
+    }
+}
