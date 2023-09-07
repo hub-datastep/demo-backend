@@ -13,7 +13,7 @@ from starlette.responses import JSONResponse
 from controller import (
     datastep_controller, chat_controller, message_controller,
     review_controller, mark_controller, auth_controller,
-    chat_pdf_controller
+    chat_pdf_controller, prompt_controller
 )
 
 sentry_sdk.init(
@@ -39,6 +39,7 @@ app.include_router(chat_controller.router)
 app.include_router(message_controller.router)
 app.include_router(review_controller.router)
 app.include_router(mark_controller.router)
+app.include_router(prompt_controller.router)
 
 
 @app.middleware("http")

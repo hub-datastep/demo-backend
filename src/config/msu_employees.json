@@ -4,6 +4,6 @@
     "tables": ["employees"],
     "db_uri": "mssql+pyodbc://ann:!1Testtest@mssql-129364-0.cloudclusters.net:15827/DWH_Persons?driver=ODBC+Driver+17+for+SQL+Server",
     "prompt": {
-        "table_description": "\"\"\"Wrap each column name in square brackets ([]) to denote them as delimited identifiers."
+        "table_description": "Wrap each column name in square brackets ([]) to denote them as delimited identifiers."
     }
 }

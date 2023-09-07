@@ -2,7 +2,6 @@ from langchain import PromptTemplate
 
 from config.config import config
 
-
 basic_prompt = """You are an %s expert. Given an input question, first create a syntactically correct %s query to run, then look at the results of the query and return the answer to the input question.
 Unless the user specifies in the question a specific number of examples to obtain, query for at most {top_k} results using the TOP clause as per %s. You can order the results to return the most informative data in the database.
 Never query for all columns from a table. You must query only the columns that are needed to answer the question.
@@ -23,16 +22,15 @@ Question: {input}"""
 
 
 class DatastepPrompt:
-    def __init__(self):
-        db_driver = config["db_driver"]
-        table_description = config["prompt"]["table_description"]
-        self.full_prompt = basic_prompt % (db_driver, db_driver, db_driver) + table_description + prompt_suffix
-
-    def get_prompt(self) -> PromptTemplate:
+    @classmethod
+    def get_prompt(cls, table_description: str = None) -> PromptTemplate:
         return PromptTemplate(
             input_variables=["input", "table_info", "top_k"],
-            template=self.full_prompt
+            template=cls.build_prompt(table_description)
         )
 
-
-datastep_prompt = DatastepPrompt()
+    @classmethod
+    def build_prompt(cls, table_description) -> str:
+        table_description = table_description or config["prompt"]["table_description"]
+        db_driver = config["db_driver"]
+        return basic_prompt % (db_driver, db_driver, db_driver) + table_description + prompt_suffix

@@ -3,20 +3,20 @@ import os
 from dotenv import load_dotenv
 from langchain import PromptTemplate
 from langchain.chat_models import ChatOpenAI
-from langchain_experimental.sql import SQLDatabaseChain
 
+from config.config import config
 from datastep.components.patched_database_class import SQLDatabasePatched
 from datastep.components.patched_sql_chain import SQLDatabaseChainPatched
 
 load_dotenv()
 
 
-def get_db(db_uri: str = None, tables: list[str] = None) -> SQLDatabasePatched:
+def get_db() -> SQLDatabasePatched:
     # Создаём подключение к БД
     # include_tables используем для указания таблиц, с которыми хотим работать
     return SQLDatabasePatched.from_uri(
-        db_uri or os.getenv("DB_URI"),
-        include_tables=tables,
+        config["db_uri"] or os.getenv("DB_URI"),
+        include_tables=config["tables"],
         view_support=True,
     )
 

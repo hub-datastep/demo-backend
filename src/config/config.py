@@ -1,7 +1,7 @@
 # TODO: придумать, как перенести из конфига строку подключения к базе в более безопасное время
 
-import os
 import json
+import os
 
 from dotenv import load_dotenv
 

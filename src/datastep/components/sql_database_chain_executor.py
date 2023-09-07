@@ -1,7 +1,7 @@
-import pandas as pd
-import langchain
 import dataclasses
 
+import langchain
+import pandas as pd
 from dotenv import load_dotenv
 from langchain.callbacks import StdOutCallbackHandler
 from langchain.chat_models import ChatOpenAI
@@ -9,13 +9,12 @@ from openai import OpenAIError
 from sqlalchemy.exc import SQLAlchemyError
 
 from datastep.components.chain import get_sql_database_chain_patched
-
-from datastep.components.datastep_prompt import datastep_prompt
+from datastep.components.datastep_prediction import DatastepPrediction
+from datastep.components.datastep_prompt import DatastepPrompt
 from datastep.components.patched_database_class import SQLDatabasePatched
 from datastep.components.patched_sql_chain import SQLDatabaseChainPatched
 from datastep.models.intermediate_steps import IntermediateSteps
-
-from datastep.components.datastep_prediction import DatastepPrediction
+from repository.prompt_repository import prompt_repository
 
 load_dotenv()
 
@@ -24,7 +23,6 @@ load_dotenv()
 class SQLDatabaseChainExecutor:
     db_chain: SQLDatabaseChainPatched
     debug: bool = False
-    verbose: bool = False
     verbose_answer: bool = False
     langchain_debug: bool = False
 
@@ -33,6 +31,9 @@ class SQLDatabaseChainExecutor:
 
     def run(self, query) -> DatastepPrediction:
         callbacks = self.get_callbacks()
+
+        prompt_dto = prompt_repository.fetch()
+        self.db_chain.llm_chain.prompt = DatastepPrompt.get_prompt(table_description=prompt_dto.prompt)
 
         try:
             db_chain_response = self.db_chain(query, callbacks=callbacks)
@@ -88,7 +89,7 @@ class SQLDatabaseChainExecutor:
 
     def get_callbacks(self):
         callbacks = []
-        if self.verbose:
+        if self.debug:
             callbacks.append(StdOutCallbackHandler())
 
         return callbacks
@@ -101,7 +102,7 @@ def get_sql_database_chain_executor(
     verbose_answer: bool = False
 ) -> SQLDatabaseChainExecutor:
     return SQLDatabaseChainExecutor(
-        db_chain=get_sql_database_chain_patched(db, llm, datastep_prompt.get_prompt(), verbose_answer),
+        db_chain=get_sql_database_chain_patched(db, llm, DatastepPrompt.get_prompt(), verbose_answer),
         debug=debug,
         verbose_answer=verbose_answer
     )
