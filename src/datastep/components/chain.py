@@ -11,11 +11,11 @@ from datastep.components.patched_sql_chain import SQLDatabaseChainPatched
 load_dotenv()
 
 
-def get_db(tables: list[str] = None) -> SQLDatabasePatched:
+def get_db(db_uri: str = None, tables: list[str] = None) -> SQLDatabasePatched:
     # Создаём подключение к БД
     # include_tables используем для указания таблиц, с которыми хотим работать
     return SQLDatabasePatched.from_uri(
-        os.getenv("DB_URI"),
+        db_uri or os.getenv("DB_URI"),
         include_tables=tables,
         view_support=True,
     )

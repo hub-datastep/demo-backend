@@ -6,13 +6,15 @@ from datastep.models.test import Test
 from datastep.models.test_set import TestSet
 
 
-TEST_SET_NAME = "sony"
-TEST_SET_DESCRIPTION = "delete after test"
+TEST_SET_NAME = "employees-06.09.23"
+TEST_SET_DESCRIPTION = "Тестируем первую версию ассистента по сотрудникам"
 CREATED_BY = "bleschunov"
+QUESTIONS_FILE_PATH = "../data/employees_questions.txt"
+TABLE_NAMES = ["employees"]
 
 
 datastep_service = get_sql_database_chain_executor(
-    get_db(tables=["УСО БДДС - С начала 2022 года - ПЗЕ"]),
+    get_db(tables=TABLE_NAMES),
     get_llm(model_name="gpt-3.5-turbo-16k"),
     debug=True,
     verbose_answer=config["verbose_answer"]
@@ -46,7 +48,7 @@ def get_test_results(question: str, test_id: int = None) -> Test:
 
 
 if __name__ == "__main__":
-    questions = get_questions("../data/questions.txt")
+    questions = get_questions(QUESTIONS_FILE_PATH)
     questions_count = len(questions)
 
     test_set = TestSet(
