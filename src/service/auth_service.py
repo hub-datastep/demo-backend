@@ -26,6 +26,6 @@ class AuthService:
     def get_current_user(cls, token: str = Depends(oauth2_scheme)) -> UserDto:
         try:
             user_response: UserResponse = supabase.auth.get_user(token)
-            return UserDto(email=user_response.user.email)
+            return UserDto(email=user_response.user.email, id=user_response.user.id)
         except AuthApiError as e:
             raise HTTPException(status_code=e.status, detail=e.message)
