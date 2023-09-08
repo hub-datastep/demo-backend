@@ -6,17 +6,17 @@ from datastep.models.test import Test
 from datastep.models.test_set import TestSet
 
 
-TEST_SET_NAME = "employees-06.09.23"
-TEST_SET_DESCRIPTION = "Тестируем первую версию ассистента по сотрудникам"
+TEST_SET_NAME = "all_tables-employees_questions-07.09.23"
+TEST_SET_DESCRIPTION = "Тестируем версию 0.0.2 ассистента по сотрудникам"
 CREATED_BY = "bleschunov"
 QUESTIONS_FILE_PATH = "../data/employees_questions.txt"
 TABLE_NAMES = ["employees"]
 
 
 datastep_service = get_sql_database_chain_executor(
-    get_db(tables=TABLE_NAMES),
+    get_db(),
     get_llm(model_name="gpt-3.5-turbo-16k"),
-    debug=True,
+    debug=False,
     verbose_answer=config["verbose_answer"]
 )
 
