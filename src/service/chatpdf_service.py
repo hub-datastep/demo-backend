@@ -16,11 +16,11 @@ class ChatPdfService:
     }
 
     @classmethod
-    def run(cls, messages) -> Generator:
+    def run(cls, messages, file) -> Generator:
         try:
             response = requests.post(
                 cls.url,
-                json=cls.create_body(messages),
+                json=cls.create_body(messages, file),
                 headers=cls.headers,
                 stream=True
             )
@@ -49,14 +49,45 @@ class ChatPdfService:
             "role": "assistant",
             "content": content
         }
-
+    
     @classmethod
-    def create_body(cls, messages):
+    def create_body(cls, messages, file):
         return {
             "stream": True,
-            "sourceId": cls.source_id,
+            "sourceId": cls.upload_file(file),
             "messages": messages
         }
+    
+    @classmethod
+    def upload_file(cls, file):
+        try:
+            print("uploading file")
+            files = [(
+                'file',
+                (
+                    'file',
+                    file,
+                    'application/octet-stream'
+                )
+            )]
+
+            response = requests.post(
+                cls.upload_file_url,
+                headers=cls.headers,
+                files=files
+            )
+            response.raise_for_status()
+
+            if response.iter_content:
+                max_chunk_size = 1024
+                for chunk in response.iter_content(max_chunk_size):
+                    sourceId = chunk.decode()
+                    print(sourceId)
+                    return sourceId
+            else:
+                raise Exception("No data received")
+        except requests.exceptions.RequestException as error:
+            print("Error:", error)
 
 
 if __name__ == "__main__":
