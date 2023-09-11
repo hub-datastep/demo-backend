@@ -9,6 +9,7 @@ load_dotenv()
 
 class ChatPdfService:
     url = "https://api.chatpdf.com/v1/chats/message"
+    upload_file_url = "https://api.chatpdf.com/v1/sources/add-file"
     source_id = os.getenv("CHAT_PDF_SOURCE_ID")
     headers = {
         "x-api-key": os.getenv("CHAT_PDF_API_KEY"),
@@ -61,7 +62,6 @@ class ChatPdfService:
     @classmethod
     def upload_file(cls, file):
         try:
-            print("uploading file")
             files = [(
                 'file',
                 (
@@ -82,7 +82,6 @@ class ChatPdfService:
                 max_chunk_size = 1024
                 for chunk in response.iter_content(max_chunk_size):
                     sourceId = chunk.decode()
-                    print(sourceId)
                     return sourceId
             else:
                 raise Exception("No data received")
