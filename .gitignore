@@ -3,3 +3,4 @@ set_fly_secrets.sh
 .idea
 *log
 __pycache__/
+.vscode
