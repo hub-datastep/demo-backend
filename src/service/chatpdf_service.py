@@ -12,7 +12,6 @@ class ChatPdfService:
     upload_file_url = "https://api.chatpdf.com/v1/sources/add-file"
     headers = {
         "x-api-key": os.getenv("CHAT_PDF_API_KEY"),
-        "Content-Type": "application/json",
     }
 
     @classmethod
@@ -21,7 +20,10 @@ class ChatPdfService:
             response = requests.post(
                 cls.url,
                 json=cls.create_body(messages, file),
-                headers=cls.headers,
+                headers={
+                    **cls.headers,
+                    "Content-Type": "application/json"
+                },
                 stream=True
             )
             response.raise_for_status()
@@ -54,7 +56,7 @@ class ChatPdfService:
     def create_body(cls, messages, file):
         return {
             "stream": True,
-            "sourceId": cls.upload_file(file),
+            **cls.upload_file(file),
             "messages": messages
         }
 
@@ -72,15 +74,14 @@ class ChatPdfService:
         response = requests.post(
             cls.upload_file_url,
             headers=cls.headers,
-            files=files
+            files=files,
+            stream=True
         )
         response.raise_for_status()
 
-        if response.iter_content:
-            max_chunk_size = 1024
-            for chunk in response.iter_content(max_chunk_size):
-                sourceId = chunk.decode()
-                return sourceId
+        if response.json:
+            sourceId = response.json()
+            return sourceId
         else:
             raise Exception("No data received")
 
