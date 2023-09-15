@@ -54,14 +54,15 @@ class ChatPdfService:
 
     @classmethod
     def create_body(cls, messages, file):
+        upload_file_response = cls.upload_file(file)
         return {
             "stream": True,
-            **cls.upload_file(file),
+            "sourceId": upload_file_response["sourceId"],
             "messages": messages
         }
 
     @classmethod
-    def upload_file(cls, file):
+    def upload_file(cls, file) -> dict:
         files = [(
             'file',
             (
@@ -80,8 +81,8 @@ class ChatPdfService:
         response.raise_for_status()
 
         if response.json:
-            sourceId = response.json()
-            return sourceId
+            responseData = response.json()
+            return responseData
         else:
             raise Exception("No data received")
 
