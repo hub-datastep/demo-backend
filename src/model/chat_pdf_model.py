@@ -21,4 +21,4 @@ def get_prediction(body: QueryDto) -> Generator:
     # include_chat_history(messages, body.chat_id)
     messages.append(ChatPdfService.create_user_message(body.query))
 
-    return ChatPdfService.run(messages, body.file.file)
+    return ChatPdfService.run(messages, body.fileObject.file)
