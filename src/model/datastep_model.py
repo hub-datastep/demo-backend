@@ -1,6 +1,7 @@
 import os
 from time import sleep
 
+from datastep.components import datastep_agent
 from datastep.components.datastep_prediction import DatastepPrediction
 from dto.query_dto import QueryDto
 from service.datastep_service import datastep_service
@@ -30,12 +31,19 @@ mock_prediction = DatastepPrediction(
             )
 
 
-def get_prediction(body: QueryDto) -> DatastepPrediction:
+def get_prediction_v1(body: QueryDto) -> DatastepPrediction:
     if os.getenv("MOCK_PREDICTION") == "True":
         sleep(2)
         return mock_prediction
     return datastep_service.run(body.query)
 
 
-def reset() -> None:
-    return datastep_service.reset()
+def get_prediction_v2(body: QueryDto) -> DatastepPrediction:
+    if os.getenv("MOCK_PREDICTION") == "True":
+        sleep(2)
+        return mock_prediction
+    return datastep_agent.execute(body.query)
+
+
+# def reset() -> None:
+#     return datastep_service.reset()

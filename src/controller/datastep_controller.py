@@ -15,5 +15,11 @@ router = APIRouter(
 
 @router.post("/prediction", response_model=DatastepPredictionDto)
 @version(1)
-async def get_prediction(body: QueryDto, current_user: UserDto = Depends(AuthService.get_current_user)):
-    return datastep_model.get_prediction(body)
+async def get_prediction_v1(body: QueryDto, current_user: UserDto = Depends(AuthService.get_current_user)):
+    return datastep_model.get_prediction_v1(body)
+
+
+@router.post("/prediction", response_model=DatastepPredictionDto)
+@version(2)
+async def get_prediction_v2(body: QueryDto, current_user: UserDto = Depends(AuthService.get_current_user)):
+    return datastep_model.get_prediction_v2(body)
