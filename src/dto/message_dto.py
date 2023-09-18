@@ -14,7 +14,7 @@ class MessageCreateDto(BaseModel):
     table: str | None = None
     exception: str | None = None
     connected_message_id: int | None = None
-    is_deleted: bool | None = None
+    is_deleted: bool | None = False
 
 
 class MessageOutDto(MessageCreateDto):
