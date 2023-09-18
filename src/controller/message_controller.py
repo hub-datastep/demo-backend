@@ -16,3 +16,9 @@ router = APIRouter(
 @version(1)
 async def create_message(body: MessageCreateDto, current_user: UserDto = Depends(AuthService.get_current_user)):
     return message_repository.create(body)
+
+
+@router.post("/{chat_id}")
+@version(1)
+async def clear_all_messages_by_chat_id(chat_id: int, current_user: UserDto = Depends(AuthService.get_current_user)):
+    return message_repository.clear(chat_id)
