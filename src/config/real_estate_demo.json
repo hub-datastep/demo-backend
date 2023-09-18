@@ -1,8 +1,10 @@
 {
     "verbose_answer": true,
     "db_driver": "POSTGRESQL",
+    "db_uri": "postgresql://qvzibsah:7wNHUBB3BMnY6QiFi0ggBejNd3SmlRf2@trumpet.db.elephantsql.com/qvzibsah",
     "tables": ["mock_real_estate"],
     "prompt": {
         "table_description": ""
-    }
+    },
+    "prompt_id": 3
 }
