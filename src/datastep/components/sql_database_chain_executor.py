@@ -42,6 +42,7 @@ class SQLDatabaseChainExecutor:
                 answer=str(e),
                 sql=None,
                 table=None,
+                table_source=None,
                 is_exception=True
             )
         except SQLAlchemyError as e:
@@ -52,6 +53,7 @@ class SQLDatabaseChainExecutor:
                 answer=str(e),
                 sql=self.get_sql_markdown(intermediate_steps.sql_query),
                 table=None,
+                table_source=None,
                 is_exception=True
             )
 
@@ -69,6 +71,7 @@ class SQLDatabaseChainExecutor:
             answer=chain_answer,
             sql=self.get_sql_markdown(sql_query),
             table=self.get_table_markdown(sql_result),
+            table_source=self.get_table_source(sql_result),
             is_exception=False
         )
 
@@ -86,6 +89,10 @@ class SQLDatabaseChainExecutor:
             return data_frame.to_markdown(index=False, floatfmt=".3f")
 
         return ""
+
+    @classmethod
+    def get_table_source(cls, sql_result) -> str:
+        return pd.DataFrame(sql_result).to_json(orient="table", force_ascii=False, index=False)
 
     def get_callbacks(self):
         callbacks = []
