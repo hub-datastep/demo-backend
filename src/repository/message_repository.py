@@ -20,13 +20,27 @@ class MessageRepository:
 
     @classmethod
     def fetch_all_by_chat_id(cls, chat_id: int) -> list[MessageOutDto]:
-        (_, messages), _ = supabase.table("message").select("*, review(*)").eq("chat_id", chat_id).execute()
+        (_, messages), _ = supabase\
+            .table("message")\
+            .select("*, review(*)")\
+            .eq("chat_id", chat_id)\
+            .neq("is_deleted", True)\
+            .execute()
         return [MessageOutDto(**message) for message in messages]
 
     @classmethod
     def create(cls, body: MessageCreateDto) -> MessageOutDto:
         (_, [message]), _ = supabase.table("message").insert(body.model_dump()).execute()
         return MessageOutDto(**message)
+    
+    @classmethod
+    def clear(cls, chat_id: int):
+        (_, messages), _ = supabase\
+            .table("message")\
+            .update({ "is_deleted": True })\
+            .eq("chat_id", chat_id)\
+            .execute()
+        return [MessageOutDto(**message) for message in messages]
 
 
 message_repository = MessageRepository()

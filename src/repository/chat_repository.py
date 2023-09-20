@@ -16,6 +16,7 @@ class ChatRepository:
             .table("chat")\
             .select("*, message(*, review(*), mark(*))")\
             .eq("user_id", user_id)\
+            .neq("message.is_deleted", True)\
             .execute()
 
         if len(chats) == 0:
