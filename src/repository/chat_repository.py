@@ -14,7 +14,7 @@ class ChatRepository:
     def fetch_by_user_id(cls, user_id: str) -> ChatOutDto:
         (_, chats), _ = supabase\
             .table("chat")\
-            .select("*, message(*, review(*), mark(*))")\
+            .select("*, message(*, review(*), mark(*)), source(*)")\
             .eq("user_id", user_id)\
             .execute()
 
