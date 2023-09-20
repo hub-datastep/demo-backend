@@ -10,11 +10,10 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
-from controller import (
-    datastep_controller, chat_controller, message_controller,
-    review_controller, mark_controller, auth_controller,
-    chat_pdf_controller, prompt_controller
-)
+from controller import (auth_controller, chat_controller, chat_pdf_controller,
+                        datastep_controller, file_controller, mark_controller,
+                        message_controller, prompt_controller,
+                        review_controller, source_controller)
 
 sentry_sdk.init(
     dsn="https://a93b994680a287f702ca14bc34dffb35@o4505793939963904.ingest.sentry.io/4505793941995520",
@@ -40,6 +39,8 @@ app.include_router(message_controller.router)
 app.include_router(review_controller.router)
 app.include_router(mark_controller.router)
 app.include_router(prompt_controller.router)
+app.include_router(source_controller.router)
+app.include_router(file_controller.router)
 
 
 @app.middleware("http")
@@ -50,16 +51,14 @@ async def catch_exceptions_middleware(request: Request, call_next):
         print(e)
         return JSONResponse(
             status_code=500,
-            content={
-                "message": f"{e}",
-                "traceback": traceback.format_exception(e)
-            },
+            content={"message": f"{e}", "traceback": traceback.format_exception(e)},
         )
+
 
 app = VersionedFastAPI(
     app,
-    version_format='{major}',
-    prefix_format='/api/v{major}',
+    version_format="{major}",
+    prefix_format="/api/v{major}",
     middleware=[
         Middleware(
             CORSMiddleware,
