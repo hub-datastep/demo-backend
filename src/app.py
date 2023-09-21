@@ -11,7 +11,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
 from controller import (auth_controller, chat_controller, chat_pdf_controller,
-                        datastep_controller, file_controller, mark_controller,
+                        datastep_controller, mark_controller,
                         message_controller, prompt_controller,
                         review_controller, source_controller)
 
@@ -40,7 +40,6 @@ app.include_router(review_controller.router)
 app.include_router(mark_controller.router)
 app.include_router(prompt_controller.router)
 app.include_router(source_controller.router)
-app.include_router(file_controller.router)
 
 
 @app.middleware("http")
