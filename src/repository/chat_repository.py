@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-from dto.chat_dto import ChatOutDto, ChatCreateDto
+from dto.chat_dto import ChatCreateDto, ChatOutDto
 from infra.supabase import supabase
 
 
@@ -14,7 +14,7 @@ class ChatRepository:
     def fetch_by_user_id(cls, user_id: str) -> ChatOutDto:
         (_, chats), _ = supabase\
             .table("chat")\
-            .select("*, message(*, review(*), mark(*)), source(*)")\
+            .select("*, message(*, review(*), mark(*))")\
             .eq("user_id", user_id)\
             .execute()
 
