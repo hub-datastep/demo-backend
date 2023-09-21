@@ -5,13 +5,10 @@ from pydantic import BaseModel
 
 class SourceCreateDto(BaseModel):
     source_id: str
-    file_name: str
     chat_id: int
+    file_name: str
 
 
-class SourceOutDto(BaseModel):
+class SourceDto(SourceCreateDto):
     id: int
-    source_id: str
-    file_name: str
-    chat_id: int
     created_at: datetime
