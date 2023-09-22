@@ -1,5 +1,5 @@
 import os
-from typing import Generator
+from typing import BinaryIO, Generator
 
 import requests
 from dotenv import load_dotenv
@@ -15,11 +15,11 @@ class ChatPdfService:
     }
 
     @classmethod
-    def run(cls, messages, file) -> Generator:
+    def run(cls, messages, source_id) -> Generator:
         try:
             response = requests.post(
                 cls.url,
-                json=cls.create_body(messages, file),
+                json=cls.create_body(messages, source_id),
                 headers={
                     **cls.headers,
                     "Content-Type": "application/json"
@@ -53,16 +53,15 @@ class ChatPdfService:
         }
 
     @classmethod
-    def create_body(cls, messages, file):
-        upload_file_response = cls.upload_file(file)
+    def create_body(cls, messages, source_id):
         return {
             "stream": True,
-            "sourceId": upload_file_response["sourceId"],
+            "sourceId": source_id,
             "messages": messages
         }
 
     @classmethod
-    def upload_file(cls, file) -> dict:
+    def upload_file(cls, file: BinaryIO) -> str:
         files = [(
             'file',
             (
@@ -82,9 +81,10 @@ class ChatPdfService:
 
         if response.json:
             responseData = response.json()
-            return responseData
+            source_id = responseData["sourceId"]
+            return source_id
         else:
-            raise Exception("No data received")
+            raise Exception("No sourceId received")
 
 
 if __name__ == "__main__":
@@ -94,6 +94,7 @@ if __name__ == "__main__":
             "content": "Как воспроизводится купонная выплата?",
         },
     ]
+    source_id = os.getenv("CHAT_PDF_API_KEY")
 
-    for chunk in ChatPdfService.run(messages):
+    for chunk in ChatPdfService.run(messages, source_id):
         print(chunk)

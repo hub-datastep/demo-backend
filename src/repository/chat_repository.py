@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-from dto.chat_dto import ChatOutDto, ChatCreateDto
+from dto.chat_dto import ChatCreateDto, ChatOutDto
 from infra.supabase import supabase
 
 
