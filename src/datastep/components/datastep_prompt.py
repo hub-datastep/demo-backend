@@ -1,3 +1,5 @@
+import datetime
+
 from langchain import PromptTemplate
 
 from config.config import config
@@ -32,5 +34,6 @@ class DatastepPrompt:
     @classmethod
     def build_prompt(cls, table_description) -> str:
         table_description = table_description or config["prompt"]["table_description"]
+        table_description = table_description.replace("[[currentDate]]", str(datetime.date.today()))
         db_driver = config["db_driver"]
         return basic_prompt % (db_driver, db_driver, db_driver) + table_description + prompt_suffix

@@ -2,7 +2,7 @@ from typing import Generator
 
 from dto.query_dto import QueryDto
 from repository.message_repository import message_repository
-from service.chatpdf_service import ChatPdfService
+from service.chat_pdf_service import ChatPdfService
 
 
 def include_chat_history(messages: list[dict], chat_id: int) -> None:
@@ -15,11 +15,10 @@ def include_chat_history(messages: list[dict], chat_id: int) -> None:
             messages.append(ChatPdfService.create_assistant_message(message.query))
 
 
-
 def get_prediction(body: QueryDto) -> Generator:
     messages = []
 
     # include_chat_history(messages, body.chat_id)
     messages.append(ChatPdfService.create_user_message(body.query))
 
-    return ChatPdfService.run(messages)
+    return ChatPdfService.run(messages, body.source_id)

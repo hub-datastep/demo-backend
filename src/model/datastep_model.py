@@ -27,6 +27,7 @@ mock_prediction = DatastepPrediction(
                 | МОСКОВСКИЙ ФОНД РЕНОВАЦИИ ЖИЛОЙ ЗАСТРОЙКИ |   4349817014.350 |
                 | РОСТРАНСМОДЕРНИЗАЦИЯ ФКУ                  |   3540598929.240 |
                 | АДМИНИСТРАЦИЯ ВОЛЖСКОГО БАССЕЙНА ФБУ      |   3018938800.000 |""",
+            table_source="",
             is_exception=False
             )
 
@@ -35,7 +36,7 @@ def get_prediction_v1(body: QueryDto) -> DatastepPrediction:
     if os.getenv("MOCK_PREDICTION") == "True":
         sleep(2)
         return mock_prediction
-    return datastep_service.run(body.query)
+    return datastep_service.run(body.query, body.tables)
 
 
 def get_prediction_v2(body: QueryDto) -> DatastepPrediction:

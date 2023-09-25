@@ -16,4 +16,4 @@ router = APIRouter(
 @router.post("/prediction")
 @version(1)
 async def get_prediction(body: QueryDto, current_user: UserDto = Depends(AuthService.get_current_user)):
-    return StreamingResponse(chat_pdf_model.get_prediction(body), media_type='text/event-stream')
+    return StreamingResponse(chat_pdf_model.get_prediction(body), media_type="text/event-stream")

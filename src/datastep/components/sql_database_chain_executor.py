@@ -8,6 +8,7 @@ from langchain.chat_models import ChatOpenAI
 from openai import OpenAIError
 from sqlalchemy.exc import SQLAlchemyError
 
+from config.config import config
 from datastep.components.chain import get_sql_database_chain_patched
 from datastep.components.datastep_prediction import DatastepPrediction
 from datastep.components.datastep_prompt import DatastepPrompt
@@ -17,6 +18,12 @@ from datastep.models.intermediate_steps import IntermediateSteps
 from repository.prompt_repository import prompt_repository
 
 load_dotenv()
+
+
+TABLE_PROMPT_ID_MAPPING = {
+    "платежи": 1,
+    "сотрудники": 2
+}
 
 
 @dataclasses.dataclass
@@ -29,10 +36,15 @@ class SQLDatabaseChainExecutor:
     def __post_init__(self):
         langchain.debug = self.langchain_debug
 
-    def run(self, query) -> DatastepPrediction:
+    def run(self, query: str, tables: list[str]) -> DatastepPrediction:
         callbacks = self.get_callbacks()
 
-        prompt_dto = prompt_repository.fetch()
+        if tables:
+            self.db_chain.database._include_tables = set(tables)
+            prompt_dto = prompt_repository.fetch_by_id(TABLE_PROMPT_ID_MAPPING[tables[0]])
+        else:
+            prompt_dto = prompt_repository.fetch_by_id(config["prompt_id"])
+
         self.db_chain.llm_chain.prompt = DatastepPrompt.get_prompt(table_description=prompt_dto.prompt)
 
         try:
@@ -42,6 +54,7 @@ class SQLDatabaseChainExecutor:
                 answer=str(e),
                 sql=None,
                 table=None,
+                table_source=None,
                 is_exception=True
             )
         except SQLAlchemyError as e:
@@ -52,6 +65,7 @@ class SQLDatabaseChainExecutor:
                 answer=str(e),
                 sql=self.get_sql_markdown(intermediate_steps.sql_query),
                 table=None,
+                table_source=None,
                 is_exception=True
             )
 
@@ -69,6 +83,7 @@ class SQLDatabaseChainExecutor:
             answer=chain_answer,
             sql=self.get_sql_markdown(sql_query),
             table=self.get_table_markdown(sql_result),
+            table_source=self.get_table_source(sql_result),
             is_exception=False
         )
 
@@ -86,6 +101,10 @@ class SQLDatabaseChainExecutor:
             return data_frame.to_markdown(index=False, floatfmt=".3f")
 
         return ""
+
+    @classmethod
+    def get_table_source(cls, sql_result) -> str:
+        return pd.DataFrame(sql_result).to_json(orient="table", force_ascii=False, index=False)
 
     def get_callbacks(self):
         callbacks = []

@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-from dto.chat_dto import ChatOutDto, ChatCreateDto
+from dto.chat_dto import ChatCreateDto, ChatOutDto
 from infra.supabase import supabase
 
 
@@ -16,6 +16,7 @@ class ChatRepository:
             .table("chat")\
             .select("*, message(*, review(*), mark(*))")\
             .eq("user_id", user_id)\
+            .neq("message.is_deleted", True)\
             .execute()
 
         if len(chats) == 0:
