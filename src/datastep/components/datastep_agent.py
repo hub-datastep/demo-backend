@@ -1,22 +1,28 @@
-from langchain import OpenAI
 from langchain.agents import Tool, initialize_agent
 from langchain.agents.agent_types import AgentType
 from langchain.chat_models import ChatOpenAI
-from langchain.memory import ConversationBufferMemory
+from langchain.memory import ConversationBufferWindowMemory
 from langchain.sql_database import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
 
 from config.config import config
 from datastep.components.datastep_prediction import DatastepPrediction
 from datastep.components.datastep_prompt import DatastepPrompt
+from repository.prompt_repository import PromptRepository
 
-chat_llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-16k")
-llm = OpenAI(temperature=0)
+sql_llm = ChatOpenAI(temperature=0, model_name="gpt-4")
+agent_llm = ChatOpenAI(temperature=0, model_name="gpt-4")
 
 db = SQLDatabase.from_uri(config["db_uri"], include_tables=config["tables"], view_support=True)
 
-db_chain = SQLDatabaseChain.from_llm(chat_llm, db, verbose=True, prompt=DatastepPrompt.get_prompt())
-db_chain.llm_chain.verbose = False
+table_description = PromptRepository.fetch_by_id(config["prompt_id"])
+db_chain = SQLDatabaseChain.from_llm(
+    sql_llm,
+    db,
+    verbose=True,
+    prompt=DatastepPrompt.get_prompt(table_description.prompt)
+)
+db_chain.llm_chain.verbose = True
 
 # toolkit = SQLDatabaseToolkit(db=db, llm=chat_llm)
 # agent_executor = create_sql_agent(
@@ -28,13 +34,14 @@ db_chain.llm_chain.verbose = False
 
 # agent_executor.agent.llm_chain.verbose = True
 
-memory = ConversationBufferMemory(memory_key="chat_history", input_key='input', output_key="output")
+memory = ConversationBufferWindowMemory(k=3, memory_key="chat_history", input_key='input', output_key="output")
 
 tools = [
     Tool(
         name="Database Chain",
         description="Useful for when you need data from database",
-        func=db_chain.run
+        func=db_chain.run,
+        return_direct=True,
     )
 ]
 
@@ -56,7 +63,7 @@ AI: [your last observation here]
 
 datastep_agent = initialize_agent(
     tools,
-    llm,
+    agent_llm,
     agent_kwargs={
         "format_instructions": format_instructions
     },
@@ -69,16 +76,27 @@ datastep_agent = initialize_agent(
 
 datastep_agent.agent.llm_chain.verbose = False
 
-def execute(query: str) -> DatastepPrediction:
-    response = datastep_agent(query)
-    return DatastepPrediction(
-        answer=response["output"],
-        sql="",
-        table="",
-        is_exception=False
-    )
 
-# out = datastep_agent("Топ 5 компаний по доходу")
+def execute(query: str) -> DatastepPrediction:
+    try:
+        response = datastep_agent(query)
+        return DatastepPrediction(
+            answer=response["output"],
+            sql="",
+            table="",
+            is_exception=False,
+            table_source=""
+        )
+    except Exception as e:
+        return DatastepPrediction(
+            answer=str(e),
+            sql="",
+            table="",
+            is_exception=False,
+            table_source=""
+        )
+
+# out = datastep_agent("Топ 5 компаний по доходу из базы данных")
 # print(out)
-# out = datastep_agent("Покажи ответ в виде таблицы")
-# print(out)
+# out = datastep_agent("Кто из них заработал меньше всего?")
+# print(out['output'])
