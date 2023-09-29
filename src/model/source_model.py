@@ -1,5 +1,3 @@
-import logging
-
 from fastapi import UploadFile
 
 from dto.source_dto import SourceCreateDto, SourceDto
