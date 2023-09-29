@@ -4,20 +4,33 @@ from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.sql_database import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
+from langchain.callbacks.arize_callback import ArizeCallbackHandler
 
 from config.config import config
 from datastep.components.datastep_prediction import DatastepPrediction
 from datastep.components.datastep_prompt import DatastepPrompt
 from repository.prompt_repository import PromptRepository
+from langchain.callbacks.manager import CallbackManager
+from langchain.callbacks import StdOutCallbackHandler
+
+arize_callback = ArizeCallbackHandler(
+    model_id="datastep",
+    model_version="1.0",
+    SPACE_KEY="ad4e321",
+    API_KEY="4b4a463031c9906fe45"
+)
+
+manager = CallbackManager([StdOutCallbackHandler(), arize_callback])
+
 
 sql_llm = ChatOpenAI(temperature=0, model_name="gpt-4")
-agent_llm = ChatOpenAI(temperature=0, model_name="gpt-4")
+agent_llm = ChatOpenAI(temperature=0, model_name="gpt-4", callback_manager=manager)
 
 db = SQLDatabase.from_uri(config["db_uri"], include_tables=config["tables"], view_support=True)
 
 table_description = PromptRepository.fetch_by_id(config["prompt_id"])
 db_chain = SQLDatabaseChain.from_llm(
-    sql_llm,
+    agent_llm,
     db,
     verbose=True,
     prompt=DatastepPrompt.get_prompt(table_description.prompt)
@@ -70,7 +83,7 @@ datastep_agent = initialize_agent(
     agent=AgentType.CONVERSATIONAL_REACT_DESCRIPTION,
     verbose=True,
     memory=memory,
-    return_intermediate_steps=False,
+    return_intermediate_steps=True,
 )
 
 
@@ -96,7 +109,7 @@ def execute(query: str) -> DatastepPrediction:
             table_source=""
         )
 
-# out = datastep_agent("Топ 5 компаний по доходу из базы данных")
-# print(out)
+out = datastep_agent("Покажи топ 5 контрагентов по доходу в базе данных")
+print(out)
 # out = datastep_agent("Кто из них заработал меньше всего?")
 # print(out['output'])

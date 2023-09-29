@@ -11,7 +11,7 @@ python = "^3.11"
 fastapi = ">=0.101.0,<0.102.0"
 uvicorn = ">=0.23.2,<0.24.0"
 pydantic = "^2"
-pandas = ">=2.0.3,<2.1.0"
+pandas = ">=0.25.3,<2"
 pyodbc = "==4.0.34"
 psycopg2-binary = ">=2.9.7,<2.10.0"
 openai = ">=0.27.8,<0.28.0"
@@ -25,6 +25,7 @@ fastapi-versioning = "^0.10.0"
 python-jose = "^3.3.0"
 python-multipart = "^0.0.6"
 sentry-sdk = {extras = ["fastapi"], version = "^1.30.0"}
+arize = {extras = ["autoembeddings"], version = "^7.5.0"}
 
 
 [build-system]
