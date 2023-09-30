@@ -4,7 +4,7 @@ from dto.question_dto import QuestionDto
 from infra.supabase import supabase
 
 
-class QuestionsRepository:
+class QuestionRepository:
     @classmethod
     def get_questions(cls, limit: int) -> list[QuestionDto]:
         (_, questionsList), _ = supabase\
@@ -16,4 +16,4 @@ class QuestionsRepository:
         return [QuestionDto(**questionItem) for questionItem in questionsList]
 
 
-questions_repository = QuestionsRepository()
+question_repository = QuestionRepository()
