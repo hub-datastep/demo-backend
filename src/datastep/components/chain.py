@@ -7,6 +7,8 @@ from langchain.chat_models import ChatOpenAI
 from config.config import config
 from datastep.components.patched_database_class import SQLDatabasePatched
 from datastep.components.patched_sql_chain import SQLDatabaseChainPatched
+from datastep.components.questions.patched_question_chain import \
+    QuestionChainPatched
 
 load_dotenv()
 
@@ -47,5 +49,16 @@ def get_sql_database_chain_patched(
         prompt=prompt,
         use_query_checker=False,
         return_direct=not verbose_answer,
+        return_intermediate_steps=True
+    )
+
+
+def get_question_chain_patched(
+    llm: ChatOpenAI,
+    prompt: PromptTemplate,
+) -> QuestionChainPatched:
+    return QuestionChainPatched(
+        llm=llm,
+        prompt=prompt,
         return_intermediate_steps=True
     )

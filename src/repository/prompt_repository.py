@@ -1,5 +1,5 @@
 from config.config import config
-from dto.prompt_out_dto import PromptOutDto, PromptEditDto
+from dto.prompt_out_dto import PromptEditDto, PromptOutDto
 from infra.supabase import supabase
 
 
