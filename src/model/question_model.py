@@ -1,9 +1,6 @@
 from dto.question_dto import QuestionDto
-from repository.questions_repository import questions_repository
+from service.questions_service import question_service
 
 
-def get_random_questions(limit: int) -> list[QuestionDto]:
-    # TODO: replace questions_repository to chain that will generate questions
-    questions_service = questions_repository
-
-    return questions_service.get_questions(limit)
+def get_random_questions(tables: list[str], limit: int) -> list[QuestionDto]:
+    return question_service.run(tables, limit)
