@@ -19,7 +19,6 @@ from repository.prompt_repository import prompt_repository
 
 load_dotenv()
 
-
 TABLE_PROMPT_ID_MAPPING = {
     "платежи": 1,
     "сотрудники": 2
@@ -45,7 +44,8 @@ class SQLDatabaseChainExecutor:
         else:
             prompt_dto = prompt_repository.fetch_by_id(config["prompt_id"])
 
-        self.db_chain.llm_chain.prompt = DatastepPrompt.get_prompt(table_description=prompt_dto.prompt)
+        self.db_chain.llm_chain.prompt = DatastepPrompt.get_prompt(
+            table_description=prompt_dto.prompt)
 
         try:
             db_chain_response = self.db_chain(query, callbacks=callbacks)
@@ -121,7 +121,8 @@ def get_sql_database_chain_executor(
     verbose_answer: bool = False
 ) -> SQLDatabaseChainExecutor:
     return SQLDatabaseChainExecutor(
-        db_chain=get_sql_database_chain_patched(db, llm, DatastepPrompt.get_prompt(), verbose_answer),
+        db_chain=get_sql_database_chain_patched(
+            db, llm, DatastepPrompt.get_prompt(), verbose_answer),
         debug=debug,
         verbose_answer=verbose_answer
     )

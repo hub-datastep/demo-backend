@@ -1,5 +1,5 @@
 from dto.question_dto import QuestionDto
-from service.questions_service import question_service
+from service.question_service import question_service
 
 
 def get_random_questions(tables: list[str], limit: int) -> list[QuestionDto]:
