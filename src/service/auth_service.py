@@ -24,6 +24,7 @@ class AuthService:
 
     @classmethod
     def get_current_user(cls, token: str = Depends(oauth2_scheme)) -> UserDto:
+        # TODO: получить айди тенанта из базы или кинуть ошибку, если такого тенанта нет и положить его в UserDto
         try:
             user_response: UserResponse = supabase.auth.get_user(token)
             return UserDto(email=user_response.user.email)

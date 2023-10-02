@@ -4,7 +4,7 @@ from fastapi_versioning import version
 from datastep.components.datastep_prediction import DatastepPredictionDto
 from dto.query_dto import QueryDto
 from dto.user_dto import UserDto
-from model import datastep_model
+from model.datastep_model import datastep_get_prediction
 from service.auth_service import AuthService
 
 router = APIRouter(
@@ -16,4 +16,4 @@ router = APIRouter(
 @router.post("/prediction", response_model=DatastepPredictionDto)
 @version(1)
 async def get_prediction(body: QueryDto, current_user: UserDto = Depends(AuthService.get_current_user)):
-    return datastep_model.get_prediction(body)
+    return await datastep_get_prediction(body)
