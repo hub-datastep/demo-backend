@@ -1,4 +1,5 @@
 from config.config import config
+from datastep.datastep_chains.datastep_sql_chain import datastep_sql_chain_template
 from dto.prompt_out_dto import PromptEditDto, PromptOutDto
 from infra.supabase import supabase
 
@@ -17,10 +18,10 @@ class PromptRepository:
             .eq("tenant_id", tenant_id)\
             .eq("is_active", True)\
             .execute()
-        # TODO: при первом создании тенанта, промта явно не будет, если его не будет, то будет вылетать ошибка, надо будет это предусмотреть
-        # TODO case 1: сделать для промта дефолтное значение - пустую строку (супабейз такое умеет)
-        # TODO case 2: сделать дефолтное значение для промтов в супабейзе
-        # TODO case 3: выдавать exception что промта нет
+
+        if prompt == None:
+            return datastep_sql_chain_template
+
         return PromptOutDto(**prompt)
 
     @classmethod
