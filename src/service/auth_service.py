@@ -6,7 +6,7 @@ from gotrue.errors import AuthApiError
 from dto.auth_dto import AuthDto
 from dto.user_dto import UserDto
 from infra.supabase import supabase
-from repository.user_tenant_repository import user_tenant_repository
+from repository.tenant_repository import tenant_repository
 
 
 class AuthService:
@@ -32,7 +32,7 @@ class AuthService:
         try:
             user_response: UserResponse = supabase.auth.get_user(token)
             user_id = user_response.user.id
-            tenant_id = user_tenant_repository.get_tenant_id_by_user_id(user_id)
+            tenant_id = tenant_repository.get_tenant_id_by_user_id(user_id)
 
             return UserDto(
                 email=user_response.user.email,
