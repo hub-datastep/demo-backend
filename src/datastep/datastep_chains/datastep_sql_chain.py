@@ -3,15 +3,46 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts.prompt import PromptTemplate
 from langchain.utilities import SQLDatabase
 
-# TODO: убрать этот промт, потому что больше не используем
-datastep_sql_chain_template = """You are a MS SQL expert. Given an input question, create a syntactically correct MS SQL query to run. Never query for all the columns from a specific table, only ask for a the few relevant columns given the question.
-Unless the user specifies in his question a specific number of examples he wishes to obtain, always limit your query to at most 5 results using the TOP clause as per MS SQL.
-You MUST show only MS SQL query.
+# datastep_sql_chain_template = """
+# You are a MS SQL expert. Given an input question, create a syntactically correct MS SQL query to run.
+# Never query for all the columns from a specific table, only ask for a the few relevant columns given the question.
+# Unless the user specifies in his question a specific number of examples he wishes to obtain, always limit your query to at most 5 results using the TOP clause as per MS SQL.
+# You MUST show only MS SQL query.
 
-Only use the following tables:
+# Only use the following tables:
+# {table_info}
+
+# Question: {input}
+# """
+
+datastep_sql_chain_template = """
+You must follow the steps described below:
+
+Step 1:
+Write down how you can change some words in the question so that it is interpreted unambiguously.
+Pay attention that some words can be perceived differently, Get rid of such ambiguity.
+Show the corrected question and remember it.
+
+Question: {input}
+
+
+Step 2:
+Write down what types of data are needed to answer new question from Step 1?
+For example, geography, physical properties, numerical values, and so on.
+Give examples from the question and remember them.
+
+
+Step 3:
+According to this scheme, determine in the table whether all the data types from the previous answer are in the table?
+
+Only use the following table:
 {table_info}
 
-Question: {input}"""
+
+Step 4:
+Based on the previous answer, is it possible to make an SQL query?
+If it is impossible, explain why?
+"""
 
 
 class DatastepSqlChain:
