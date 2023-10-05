@@ -10,11 +10,15 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
-from controller import (auth_controller, chat_controller, chat_pdf_controller,
-                        datastep_controller, mark_controller,
-                        message_controller, prompt_controller,
-                        question_controller, review_controller,
-                        source_controller, logo_controller)
+from controller import (
+    auth_controller, chat_controller,
+    datastep_controller, mark_controller,
+    message_controller, prompt_controller,
+    question_controller, review_controller,
+    source_controller, logo_controller,
+    chat_pdf_controller, user_controller,
+    tenant_controller
+)
 
 sentry_sdk.init(
     dsn="https://a93b994680a287f702ca14bc34dffb35@o4505793939963904.ingest.sentry.io/4505793941995520",
@@ -43,6 +47,8 @@ app.include_router(prompt_controller.router)
 app.include_router(source_controller.router)
 app.include_router(question_controller.router)
 app.include_router(logo_controller.router)
+app.include_router(user_controller.router)
+app.include_router(tenant_controller.router)
 
 
 @app.middleware("http")

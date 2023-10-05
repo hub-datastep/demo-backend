@@ -34,6 +34,7 @@ class AuthService:
             tenant_id = tenant_repository.get_tenant_id_by_user_id(user_id)
 
             return UserDto(
+                id=user_id,
                 email=user_response.user.email,
                 tenant_id=tenant_id
             )
