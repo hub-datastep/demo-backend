@@ -58,9 +58,8 @@ class DatastepSqlChain:
         llm = ChatOpenAI(temperature=temperature, verbose=verbose, model_name="gpt-3.5-turbo")
 
         datastep_sql_chain_prompt = PromptTemplate(
-            input_variables=["input", "table_info"],
-            # template=prompt_template
-            template=datastep_sql_chain_template
+            template=prompt_template,
+            input_variables=["input", "table_info", "current_date"],
         )
 
         db_chain = LLMChain(llm=llm, prompt=datastep_sql_chain_prompt, verbose=verbose)
