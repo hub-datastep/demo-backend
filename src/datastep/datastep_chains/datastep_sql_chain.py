@@ -59,7 +59,8 @@ class DatastepSqlChain:
 
         datastep_sql_chain_prompt = PromptTemplate(
             input_variables=["input", "table_info"],
-            template=prompt_template
+            # template=prompt_template
+            template=datastep_sql_chain_template
         )
 
         db_chain = LLMChain(llm=llm, prompt=datastep_sql_chain_prompt, verbose=verbose)
