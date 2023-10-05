@@ -13,7 +13,8 @@ class DatastepSqlDatabase:
         if not databases_connection_pool.get("foo", None):
             databases_connection_pool["foo"] = SQLDatabase.from_uri(
                 database_connection_string,
-                include_tables=include_tables
+                include_tables=include_tables,
+                view_support=True
             )
 
         self.database = databases_connection_pool["foo"]
