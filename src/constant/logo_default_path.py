@@ -1,0 +1,1 @@
+LOGO_DEFAULT_PATH = "/image/logo/datastepLogo.svg"
