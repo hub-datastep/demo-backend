@@ -10,7 +10,6 @@ class DatastepSqlDatabase:
         include_tables: list[str],
         tenant_id: int
     ):
-        print(database_connection_string)
         # TODO: Использовать пулинг из Алхимии
         if not databases_connection_pool.get(tenant_id, None):
             databases_connection_pool[tenant_id] = SQLDatabase.from_uri(

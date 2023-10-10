@@ -14,7 +14,6 @@ class DatastepMarkdownChain:
     ):
         llm = OpenAI(temperature=temperature, verbose=verbose)
 
-
         markdown_prompt = PromptTemplate(input_variables=["input"], template=markdown_template)
         self.chain = LLMChain(llm=llm, prompt=markdown_prompt)
 
