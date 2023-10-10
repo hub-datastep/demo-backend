@@ -6,7 +6,7 @@ class FileDto(BaseModel):
     name_ru: str
     name_en: str
     url: str
-    chat_id: int
+    chat_id: int | None = None
 
 
 class StorageFileDto:

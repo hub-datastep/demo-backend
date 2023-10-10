@@ -22,13 +22,14 @@ def _get_chain():
     return LLMChain(llm=llm, prompt=prompt)
 
 
-def get_prediction(source_id: str, query: str):
+def get_prediction(source_id: str, query: str) -> (int, str):
     chain = _get_chain()
     doc = datastep_faiss.search(source_id, query)
-    return chain.run(
+    response = chain.run(
         query=query,
         text=doc.page_content
     )
+    return doc.metadata["page"], response
 
 
 if __name__ == "__main__":
