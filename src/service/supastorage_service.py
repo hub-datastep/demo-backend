@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from fastapi import UploadFile
 from transliterate import translit
 
+from dto.file_dto import StorageFileDto
 from infra.supabase import supabase
 
 load_dotenv()
@@ -24,12 +25,12 @@ def get_all_files():
     return res
 
 
-def get_file_public_url(file_path_in_bucket):
+def get_file_public_url(file_path_in_bucket) -> str:
     public_url = supabase.storage.from_(BUCKET_NAME).get_public_url(file_path_in_bucket)
     return public_url
 
 
-def upload_file_to_supastorage(fileObject: UploadFile):
+def upload_file_to_supastorage(fileObject: UploadFile) -> StorageFileDto:
     file = BufferedReader(fileObject.file)
     normal_filename = sanitize_filename(fileObject.filename)
 
