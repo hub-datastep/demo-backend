@@ -17,7 +17,7 @@ from controller import (
     question_controller, review_controller,
     source_controller, logo_controller,
     chat_pdf_controller, user_controller,
-    tenant_controller
+    tenant_controller, file_controller
 )
 
 sentry_sdk.init(
@@ -49,6 +49,7 @@ app.include_router(question_controller.router)
 app.include_router(logo_controller.router)
 app.include_router(user_controller.router)
 app.include_router(tenant_controller.router)
+app.include_router(file_controller.router)
 
 
 @app.middleware("http")
