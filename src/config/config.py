@@ -12,5 +12,5 @@ config_name = os.getenv("CONFIG")
 dirname = os.path.dirname(__file__)
 filename = os.path.join(dirname, f"./{config_name}.json")
 
-with open(filename, "r") as file:
+with open(filename, "r", encoding="utf-8") as file:
     config = json.load(file)
