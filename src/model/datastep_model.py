@@ -1,42 +1,53 @@
-import os
-from time import sleep
+import pandas as pd
 
-from datastep.components.datastep_prediction import DatastepPrediction
+from datastep.components.datastep_sql_database import DatastepSqlDatabase
+from datastep.datastep_chains.datastep_check_data_chain import check_data
+from datastep.datastep_chains.datastep_similar_queries import generate_similar_queries
+from datastep.datastep_chains.datastep_sql2text_chain import describe_sql
+from datastep.datastep_chains.datastep_sql_chain import DatastepSqlChain
+from dto.datastep_prediction_dto import DatastepPredictionDto, DatastepPredictionOutDto
 from dto.query_dto import QueryDto
-from service.datastep_service import datastep_service
+from repository.prompt_repository import prompt_repository
+from repository.tenant_repository import tenant_repository
 
-mock_prediction = DatastepPrediction(
-            answer="""Топ 5 компаний по чистой прибыли за 2023 год:
-                1. None - Чистая прибыль: 14,216,107,656.10
-                2. ФСК ДЕВЕЛОПМЕНТ ООО - Чистая прибыль: 9,073,095,523.76
-                3. МОСКОВСКИЙ ФОНД РЕНОВАЦИИ ЖИЛОЙ ЗАСТРОЙКИ - Чистая прибыль: 4,349,817,014.35
-                4. РОСТРАНСМОДЕРНИЗАЦИЯ ФКУ - Чистая прибыль: 3,540,598,929.24
-                5. АДМИНИСТРАЦИЯ ВОЛЖСКОГО БАССЕЙНА ФБУ - Чистая прибыль: 3,018,938,800.00""",
-            sql="""~~~sql
-                SELECT TOP 5 [Контрагент], SUM([Сумма]) AS [Чистая прибыль]
-                FROM test
-                WHERE [Тип документа] = 'Поступление' AND [План/Факт] = 'Факт' AND [Период] LIKE '%2023%'
-                GROUP BY [Контрагент]
-                ORDER BY [Чистая прибыль] DESC
-                ~~~""",
-            table="""| Контрагент                                |   Чистая прибыль |
-                |:------------------------------------------|-----------------:|
-                |                                           |  14216107656.100 |
-                | ФСК ДЕВЕЛОПМЕНТ ООО                       |   9073095523.760 |
-                | МОСКОВСКИЙ ФОНД РЕНОВАЦИИ ЖИЛОЙ ЗАСТРОЙКИ |   4349817014.350 |
-                | РОСТРАНСМОДЕРНИЗАЦИЯ ФКУ                  |   3540598929.240 |
-                | АДМИНИСТРАЦИЯ ВОЛЖСКОГО БАССЕЙНА ФБУ      |   3018938800.000 |""",
+
+async def datastep_get_prediction(body: QueryDto, tenant_id: int) -> DatastepPredictionDto:
+    tenant_db_uri = tenant_repository.get_db_uri_by_tenant_id(tenant_id)
+    tenant_active_prompt_template = prompt_repository.get_active_prompt_by_tenant_id(tenant_id)
+
+    datastep_sql_database = DatastepSqlDatabase(
+        database_connection_string=tenant_db_uri,
+        include_tables=body.tables,
+        tenant_id=tenant_id
+    )
+    datastep_sql_chain = DatastepSqlChain(
+        sql_database=datastep_sql_database.database,
+        prompt_template=tenant_active_prompt_template.prompt
+    )
+
+    result, description, alternative_queries = await check_data(body.query)
+    if result.lower() == "нет":
+        return DatastepPredictionOutDto(
+            answer=description,
+            sql="",
+            table="",
             table_source="",
-            is_exception=False
-            )
+            similar_queries=alternative_queries
+        )
 
+    similar_queries = await generate_similar_queries(body.query)
+    sql_query = await datastep_sql_chain.arun(body.query)
+    sql_description = await describe_sql(sql_query)
+    # TODO: разобраться, как сделать подключение к базе асинк
+    sql_query_result = datastep_sql_database.run(sql_query)
+    sql_query_result_markdown = pd.DataFrame(sql_query_result).to_markdown(index=False, floatfmt=".3f")
+    sql_query_result_table_source = pd.DataFrame(sql_query_result)\
+        .to_json(orient="table", force_ascii=False, index=False)
 
-def get_prediction(body: QueryDto) -> DatastepPrediction:
-    if os.getenv("MOCK_PREDICTION") == "True":
-        sleep(2)
-        return mock_prediction
-    return datastep_service.run(body.query, body.tables)
-
-
-def reset() -> None:
-    return datastep_service.reset()
+    return DatastepPredictionOutDto(
+        answer=sql_description,
+        sql=f"~~~sql\n{sql_query}\n~~~",
+        table=sql_query_result_markdown,
+        table_source=sql_query_result_table_source,
+        similar_queries=similar_queries
+    )
