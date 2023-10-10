@@ -1,12 +1,15 @@
 from fastapi import UploadFile
 
-from dto.file_dto import FileDto, FileOutDto
+from datastep.components import datastep_faiss
+from dto.file_dto import FileDto, FileOutDto, StorageFileDto
 from repository import file_repository
 from service.supastorage_service import upload_file_to_supastorage
 
 
 def save_file(chat_id: int, fileObject: UploadFile) -> FileOutDto:
-    storageFile = upload_file_to_supastorage(fileObject)
+    storageFile: StorageFileDto = upload_file_to_supastorage(fileObject)
+
+    datastep_faiss.save_document(storageFile.filename, storageFile.fileUrl)
 
     file = file_repository.save_file(
         FileDto(
