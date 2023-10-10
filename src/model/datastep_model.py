@@ -1,8 +1,11 @@
 import pandas as pd
 
 from datastep.components.datastep_sql_database import DatastepSqlDatabase
+from datastep.datastep_chains.datastep_check_data_chain import check_data
+from datastep.datastep_chains.datastep_similar_queries import generate_similar_queries
+from datastep.datastep_chains.datastep_sql2text_chain import describe_sql
 from datastep.datastep_chains.datastep_sql_chain import DatastepSqlChain
-from dto.datastep_prediction_dto import DatastepPredictionDto
+from dto.datastep_prediction_dto import DatastepPredictionDto, DatastepPredictionOutDto
 from dto.query_dto import QueryDto
 from repository.prompt_repository import prompt_repository
 from repository.tenant_repository import tenant_repository
@@ -22,16 +25,29 @@ async def datastep_get_prediction(body: QueryDto, tenant_id: int) -> DatastepPre
         prompt_template=tenant_active_prompt_template.prompt
     )
 
+    result, description, alternative_queries = await check_data(body.query)
+    if result.lower() == "нет":
+        return DatastepPredictionOutDto(
+            answer=description,
+            sql="",
+            table="",
+            table_source="",
+            similar_queries=alternative_queries
+        )
+
+    similar_queries = await generate_similar_queries(body.query)
     sql_query = await datastep_sql_chain.arun(body.query)
+    sql_description = await describe_sql(sql_query)
     # TODO: разобраться, как сделать подключение к базе асинк
     sql_query_result = datastep_sql_database.run(sql_query)
     sql_query_result_markdown = pd.DataFrame(sql_query_result).to_markdown(index=False, floatfmt=".3f")
     sql_query_result_table_source = pd.DataFrame(sql_query_result)\
         .to_json(orient="table", force_ascii=False, index=False)
 
-    return DatastepPredictionDto(
-        answer="",
+    return DatastepPredictionOutDto(
+        answer=sql_description,
         sql=f"~~~sql\n{sql_query}\n~~~",
         table=sql_query_result_markdown,
-        table_source=sql_query_result_table_source
+        table_source=sql_query_result_table_source,
+        similar_queries=similar_queries
     )

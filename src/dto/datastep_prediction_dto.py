@@ -6,3 +6,7 @@ class DatastepPredictionDto(BaseModel):
     sql: str | None
     table: str | None
     table_source: str | None
+
+
+class DatastepPredictionOutDto(DatastepPredictionDto):
+    similar_queries: list[str]

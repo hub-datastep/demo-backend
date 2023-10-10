@@ -1,3 +1,6 @@
+import datetime
+import re
+
 from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts.prompt import PromptTemplate
@@ -55,11 +58,11 @@ class DatastepSqlChain:
     ):
         self.sql_database = sql_database
 
-        llm = ChatOpenAI(temperature=temperature, verbose=verbose, model_name="gpt-3.5-turbo")
+        llm = ChatOpenAI(temperature=temperature, verbose=verbose, model_name="gpt-4")
 
         datastep_sql_chain_prompt = PromptTemplate(
             template=prompt_template,
-            input_variables=["input", "table_info", "current_date"],
+            input_variables=["input", "table_info", "current_date", "limit"]
         )
 
         db_chain = LLMChain(llm=llm, prompt=datastep_sql_chain_prompt, verbose=verbose)
@@ -68,4 +71,15 @@ class DatastepSqlChain:
 
     async def arun(self, input: str) -> str:
         table_info = self.sql_database.get_table_info()
-        return await self.chain.arun(input=input, table_info=table_info)
+        response = await self.chain.arun(
+            input=input,
+            table_info=table_info,
+            current_date=str(datetime.date.today()),
+            limit=100
+        )
+        match = re.search("SQL: (.+)", response)
+
+        if match:
+            return match.group(1)
+
+        return response
