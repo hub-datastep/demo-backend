@@ -27,6 +27,7 @@ python-multipart = "^0.0.6"
 sentry-sdk = {extras = ["fastapi"], version = "^1.30.0"}
 faiss-cpu = "^1.7.4"
 pypdf = "^3.16.3"
+transliterate = "^1.10.2"
 
 
 [build-system]
