@@ -13,10 +13,10 @@ router = APIRouter(
 )
 
 
-@router.get("", response_model=list[FileDto])
+@router.get("/{chat_id}", response_model=list[FileDto])
 @version(1)
-async def get_all_files(current_user: UserDto = Depends(AuthService.get_current_user)):
-    return file_repository.get_all_filenames_ru()
+async def get_all_files(chat_id: int, current_user: UserDto = Depends(AuthService.get_current_user)):
+    return file_repository.get_all_filenames_ru(chat_id)
 
 
 @router.post("/{chat_id}")
