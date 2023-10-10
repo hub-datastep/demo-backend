@@ -2,8 +2,12 @@ from dto.file_dto import FileDto, FileOutDto
 from infra.supabase import supabase
 
 
-def get_all_filenames_ru() -> list[FileDto]:
-    (_, filenames), _ = supabase.table("file").select("*").execute()
+def get_all_filenames_ru(chat_id: int) -> list[FileDto]:
+    (_, filenames), _ = supabase\
+        .table("file")\
+        .select("*")\
+        .in_("chat_id", [chat_id, 666666])\
+        .execute()
     return [FileDto(**filename) for filename in filenames]
 
 
