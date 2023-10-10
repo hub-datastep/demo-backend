@@ -45,10 +45,10 @@ def upload_file_to_supastorage(fileObject: UploadFile) -> StorageFileDto:
         )
     full_file_url = get_file_public_url(normal_filename)
 
-    return {
-        "filename": normal_filename,
-        "fileUrl": full_file_url
-    }
+    return StorageFileDto(
+        filename=normal_filename,
+        fileUrl=full_file_url
+    )
 
 
 if __name__ == "__main__":

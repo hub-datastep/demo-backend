@@ -2,13 +2,16 @@ from pydantic import BaseModel
 
 
 class FileDto(BaseModel):
-    id: int
     name_ru: str
     name_en: str
     url: str
-    chat_id: int
+    chat_id: int | None = None
 
 
-class StorageFileDto:
+class FileOutDto(FileDto):
+    id: int
+
+
+class StorageFileDto(BaseModel):
     filename: str
     fileUrl: str
