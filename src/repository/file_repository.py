@@ -7,6 +7,7 @@ def get_all_filenames_ru(chat_id: int) -> list[FileDto]:
         .table("file")\
         .select("*")\
         .in_("chat_id", [chat_id, 666666])\
+        .order("id", desc=False)\
         .execute()
     return [FileDto(**filename) for filename in filenames]
 
@@ -16,4 +17,4 @@ def save_file(body: FileDto) -> FileOutDto:
         .table("file")\
         .insert(body.model_dump())\
         .execute()
-    return FileDto(**file)
+    return FileOutDto(**file)
