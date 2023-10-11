@@ -1,4 +1,4 @@
-FROM python:3
+FROM python:3.11
 
 RUN pip install poetry
 ENV PATH="${PATH}:/root/.local/bin"
@@ -39,6 +39,6 @@ COPY langchain-with-pydantic-v2 /app/langchain-with-pydantic-v2
 RUN chmod +x /app/langchain-with-pydantic-v2/install_linux.sh \
     && /app/langchain-with-pydantic-v2/install_linux.sh
 
-COPY ./src /app/src
+COPY . /app
 
 CMD ["python3", "/app/src/app.py"]

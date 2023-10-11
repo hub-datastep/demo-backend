@@ -12,11 +12,11 @@ def save_document(source_id: str, file_url: str):
     loader = PyPDFLoader(file_url)
     pages = loader.load_and_split()
     faiss_index = FAISS.from_documents(pages, OpenAIEmbeddings())
-    faiss_index.save_local(f"{pathlib.Path().resolve()}/../data/{source_id}")
+    faiss_index.save_local(f"{pathlib.Path(__file__).parent.resolve()}/../../../data/{source_id}")
 
 
 def search(source_id: str, query: str):
-    faiss_index = FAISS.load_local(f"{pathlib.Path().resolve()}/../data/{source_id}", OpenAIEmbeddings())
+    faiss_index = FAISS.load_local(f"{pathlib.Path(__file__).parent.resolve()}/../../../data/{source_id}", OpenAIEmbeddings())
     doc = faiss_index.similarity_search(query, k=1)
     return doc[0]
 
