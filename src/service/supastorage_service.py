@@ -15,8 +15,9 @@ BUCKET_NAME = "files"
 
 
 def sanitize_filename(filename):
-    sanitized_filename = re.sub(r'[<>:\"/\\|?*]', '_', filename)
-    sanitized_filename = translit(sanitized_filename, "ru", reversed=True)
+    sanitized_filename = str(translit(filename, "ru", reversed=True))
+    sanitized_filename = sanitized_filename.replace(" ", "_")
+    sanitized_filename = re.sub(r'[^a-zA-Z0-9_.]', '', sanitized_filename)
     return sanitized_filename
 
 
