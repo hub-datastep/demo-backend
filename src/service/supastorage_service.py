@@ -15,8 +15,8 @@ BUCKET_NAME = "files"
 
 
 def sanitize_filename(filename):
-    sanitized_filename = re.sub(r'[<>:\"/\\|?*]', '_', filename)
     sanitized_filename = translit(sanitized_filename, "ru", reversed=True)
+    sanitized_filename = re.sub(r'[^a-zA-Z0-9_]', '_', filename)
     return sanitized_filename
 
 
@@ -52,7 +52,9 @@ def upload_file_to_supastorage(fileObject: UploadFile) -> StorageFileDto:
 
 
 if __name__ == "__main__":
-    files = get_all_files()
-    print(files[0])
+    string = "@#$%HOw Are ты №*;(;№*)"
+    print(sanitize_filename(string))
+    # files = get_all_files()
+    # print(files[0])
     # for file in files:
     #     print(get_public_url(file["name"]))
