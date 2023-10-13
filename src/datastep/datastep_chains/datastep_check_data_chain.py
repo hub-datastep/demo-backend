@@ -68,20 +68,15 @@ decision_description: описание твоего решения, можно �
 alternative_queries:
 """
 
-check_data_prompt = PromptTemplate(
-    template=check_data_template,
-    input_variables=["table_info", "input"]
-)
 
-llm = ChatOpenAI(temperature=0.8, verbose=False, model_name="gpt-4")
-
-check_data_chain = LLMChain(llm=llm, prompt=check_data_prompt, verbose=False)
-
-database = DatastepSqlDatabase(
-    database_connection_string="mssql+pyodbc://ann:!1Testtest@mssql-129364-0.cloudclusters.net:15827/DWH_Persons?driver=ODBC+Driver+17+for+SQL+Server",
-    include_tables=["платежи"],
-    tenant_id=1
-)
+def get_chain():
+    check_data_prompt = PromptTemplate(
+        template=check_data_template,
+        input_variables=["table_info", "input"]
+    )
+    llm = ChatOpenAI(temperature=0.8, verbose=False, model_name="gpt-4")
+    check_data_chain = LLMChain(llm=llm, prompt=check_data_prompt, verbose=False)
+    return check_data_chain
 
 
 def parse_alternative_queries(alternative_queries) -> list[str]:
@@ -101,7 +96,8 @@ def parse_alternative_queries(alternative_queries) -> list[str]:
     return alternative_queries
 
 
-async def check_data(input: str) -> tuple[str, str, list[str]]:
+async def check_data(input: str, database: DatastepSqlDatabase) -> tuple[str, str, list[str]]:
+    check_data_chain = get_chain()
     response = await check_data_chain.arun(
         input=input,
         table_info=database.database.get_table_info()
