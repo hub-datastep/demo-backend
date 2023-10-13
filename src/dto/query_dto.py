@@ -6,3 +6,4 @@ class QueryDto(BaseModel):
     query: str
     filename: str | None = None
     tables: list[str] | None = None
+    limit: int = 100

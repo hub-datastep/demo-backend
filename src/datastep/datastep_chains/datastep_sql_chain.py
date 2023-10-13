@@ -69,13 +69,13 @@ class DatastepSqlChain:
 
         self.chain = db_chain
 
-    async def arun(self, input: str) -> str:
+    async def arun(self, input: str, limit) -> str:
         table_info = self.sql_database.get_table_info()
         response = await self.chain.arun(
             input=input,
             table_info=table_info,
             current_date=str(datetime.date.today()),
-            limit=100
+            limit=limit
         )
         match = re.search("SQL: (.+)", response)
 
