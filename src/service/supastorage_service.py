@@ -27,7 +27,8 @@ def get_all_files():
 
 
 def get_file_public_url(file_path_in_bucket) -> str:
-    public_url = supabase.storage.from_(BUCKET_NAME).get_public_url(file_path_in_bucket)
+    public_url = supabase.storage.from_(
+        BUCKET_NAME).get_public_url(file_path_in_bucket)
     return public_url
 
 
@@ -50,6 +51,12 @@ def upload_file_to_supastorage(fileObject: UploadFile) -> StorageFileDto:
         filename=normal_filename,
         fileUrl=full_file_url
     )
+
+
+def delete_file_from_supastorage(name_en: str):
+    supabase.storage\
+        .from_(BUCKET_NAME)\
+        .remove([name_en])
 
 
 if __name__ == "__main__":

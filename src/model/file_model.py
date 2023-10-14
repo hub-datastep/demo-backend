@@ -5,7 +5,7 @@ from fastapi import UploadFile
 from datastep.components import datastep_faiss
 from dto.file_dto import FileDto, FileOutDto, StorageFileDto
 from repository import file_repository
-from service.supastorage_service import upload_file_to_supastorage, sanitize_filename, get_file_public_url
+from service.supastorage_service import upload_file_to_supastorage, sanitize_filename, get_file_public_url, delete_file_from_supastorage
 from storage3.utils import StorageException
 
 
@@ -52,3 +52,11 @@ def save_file(chat_id: int, file_object: UploadFile) -> FileOutDto:
     )
 
     return file
+
+def delete_file(body: FileOutDto):
+    file_repository.delete_file(body.id)
+    if not file_repository.is_file_exists_in_other_chats(body.chat_id, body.name_ru):
+        delete_file_from_supastorage(body.name_en)
+        datastep_faiss.delete_document(body.name_en)
+    
+        
