@@ -31,3 +31,24 @@ def is_file_exists(chat_id: int, name_ru: str) -> bool:
     if (len(files) == 0):
         return False
     return True
+
+
+def is_file_exists_in_other_chats(chat_id: int, name_ru: str) -> bool:
+    (_, files), _ = supabase\
+        .table("file")\
+        .select("*")\
+        .neq("chat_id", chat_id)\
+        .eq("name_ru", name_ru)\
+        .execute()
+
+    if (len(files) == 0):
+        return False
+    return True
+
+
+def delete_file(id: int):
+    supabase\
+        .table("file")\
+        .delete()\
+        .match({"id": id})\
+        .execute()
