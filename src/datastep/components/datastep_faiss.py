@@ -1,25 +1,30 @@
 import pathlib
-
-from langchain.document_loaders import PyPDFLoader
-from langchain.vectorstores.faiss import FAISS
-from langchain.embeddings.openai import OpenAIEmbeddings
-from dotenv import load_dotenv
 import shutil
 
+from dotenv import load_dotenv
+from langchain.document_loaders import PyPDFLoader
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.vectorstores.faiss import FAISS
 
 load_dotenv()
+
+
+def get_store_file_path(source_id: str) -> str:
+    return f"{pathlib.Path(__file__).parent.resolve()}/../../../data/{source_id}"
 
 
 def save_document(source_id: str, file_url: str):
     loader = PyPDFLoader(file_url)
     pages = loader.load_and_split()
     faiss_index = FAISS.from_documents(pages, OpenAIEmbeddings())
-    faiss_index.save_local(f"{pathlib.Path(__file__).parent.resolve()}/../../../data/{source_id}")
+    store_file_path = get_store_file_path(source_id)
+    faiss_index.save_local(store_file_path)
 
 
 def search(source_id: str, query: str):
+    store_file_path = get_store_file_path(source_id)
     faiss_index = FAISS.load_local(
-        f"{pathlib.Path(__file__).parent.resolve()}/../../../data/{source_id}",
+        store_file_path,
         OpenAIEmbeddings()
     )
     doc = faiss_index.similarity_search(query, k=1)
@@ -27,7 +32,8 @@ def search(source_id: str, query: str):
 
 
 def delete_document(source_id: str):
-    shutil.rmtree(f"{pathlib.Path(__file__).parent.resolve()}/../../../data/{source_id}")
+    store_file_path = get_store_file_path(source_id)
+    shutil.rmtree(store_file_path)
 
 
 if __name__ == "__main__":
