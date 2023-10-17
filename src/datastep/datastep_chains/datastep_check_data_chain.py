@@ -26,9 +26,11 @@ check_data_template = """Пройди все шаги по порядку.
 Some of the columns in the table:
 "Тип документа" — income or debiting; possible values are "Списание", "Поступление"
 "План/Факт" — possible values are "План", "Факт". Use "Факт" if there is not stated other in the query.
-"Сумма" — actual transfer amount of money. Negative value means it was sent to counterparty. Positive value mean it was sent to МСУ.
+"Сумма" — actual transfer amount of money, this column can be used to evaluate net profit.
 "Сумма договора" — contract amount.
 "Период" — date of the payment. Do not use FORMAT with this column.
+"Контрагент" — name of the counterpart/company/organization, this column can be used to detect company.
+"Группа статей ДДС" — purpose of the payment, this column can be used to detect insurance payment or wage fund.
 
 Используй формат:
 Тип данных:
@@ -74,8 +76,8 @@ def get_chain():
         template=check_data_template,
         input_variables=["table_info", "input"]
     )
-    llm = ChatOpenAI(temperature=0.8, verbose=False, model_name="gpt-4")
-    check_data_chain = LLMChain(llm=llm, prompt=check_data_prompt, verbose=False)
+    llm = ChatOpenAI(temperature=0, verbose=True, model_name="gpt-4")
+    check_data_chain = LLMChain(llm=llm, prompt=check_data_prompt, verbose=True)
     return check_data_chain
 
 

@@ -2,7 +2,7 @@ from fastapi import HTTPException
 
 from fastapi import UploadFile
 
-from datastep.components import datastep_faiss
+from datastep.components import datastep_faiss, datastep_llama
 from dto.file_dto import FileDto, FileOutDto, StorageFileDto
 from repository import file_repository
 from service.supastorage_service import upload_file_to_supastorage, sanitize_filename, get_file_public_url, delete_file_from_supastorage
@@ -40,7 +40,7 @@ def save_file(chat_id: int, file_object: UploadFile) -> FileOutDto:
             )
         raise e
 
-    datastep_faiss.save_document(storage_file.filename, storage_file.fileUrl)
+    datastep_llama.save_document(storage_file.filename, storage_file.fileUrl)
 
     file = file_repository.save_file(
         FileDto(
@@ -52,6 +52,7 @@ def save_file(chat_id: int, file_object: UploadFile) -> FileOutDto:
     )
 
     return file
+
 
 def delete_file(body: FileOutDto):
     file_repository.delete_file(body.id)
