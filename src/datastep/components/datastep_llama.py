@@ -2,8 +2,9 @@ import pathlib
 
 from llama_index import VectorStoreIndex, download_loader, StorageContext, load_index_from_storage, ServiceContext
 
+
 def get_storage_path(source_id):
-    return f"{pathlib.Path(__file__).parent.resolve()}/../../../llama/data/{source_id}"
+    return f"{pathlib.Path(__file__).parent.resolve()}/../../../data/{source_id}/llama"
 
 
 def save_document(source_id: str, file_url: str):
@@ -34,12 +35,3 @@ def query(source_id: str, query: str):
 
 if __name__ == "__main__":
     pass
-    # persist()
-    # response = search("Характеристики смесителя")
-    # print(response)
-
-    # pp = pprint.PrettyPrinter(indent=4)
-    # pp.pprint(response.source_nodes)
-    #
-    # response = response.get_formatted_sources()
-    # print(response)

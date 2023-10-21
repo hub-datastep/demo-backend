@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi_versioning import version
 
-from dto.file_dto import FileDto, FileOutDto
+from dto.file_dto import FileOutDto
 from dto.user_dto import UserDto
 from model import file_model
 from repository import file_repository
@@ -23,6 +23,7 @@ async def get_all_files(chat_id: int, current_user: UserDto = Depends(AuthServic
 @version(1)
 async def upload_file(chat_id: int, fileObject: UploadFile, current_user: UserDto = Depends(AuthService.get_current_user)):
     return file_model.save_file(chat_id, fileObject)
+
 
 @router.delete("/")
 @version(1)

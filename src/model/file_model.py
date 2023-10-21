@@ -1,8 +1,11 @@
+import pathlib
+import shutil
+
 from fastapi import HTTPException
 
 from fastapi import UploadFile
 
-from datastep.components import datastep_faiss, datastep_llama
+from datastep.components import datastep_faiss, datastep_llama, datastep_multivector
 from dto.file_dto import FileDto, FileOutDto, StorageFileDto
 from repository import file_repository
 from service.supastorage_service import upload_file_to_supastorage, sanitize_filename, get_file_public_url, delete_file_from_supastorage
@@ -40,7 +43,8 @@ def save_file(chat_id: int, file_object: UploadFile) -> FileOutDto:
             )
         raise e
 
-    datastep_llama.save_document(storage_file.filename, storage_file.fileUrl)
+    datastep_faiss.save_document(storage_file.filename, storage_file.fileUrl)
+    datastep_multivector.save_document(storage_file.filename, storage_file.fileUrl)
 
     file = file_repository.save_file(
         FileDto(
@@ -54,10 +58,20 @@ def save_file(chat_id: int, file_object: UploadFile) -> FileOutDto:
     return file
 
 
-def delete_file(body: FileOutDto):
+def get_store_file_path(source_id: str) -> str:
+    return f"{pathlib.Path(__file__).parent.resolve()}/../../data/{source_id}"
+
+
+def delete_local_store(filename):
+    try:
+        store_file_path = get_store_file_path(filename)
+        shutil.rmtree(store_file_path)
+    except FileNotFoundError:
+        pass
+
+
+def delete_file(body: FileDto):
     file_repository.delete_file(body.id)
     if not file_repository.is_file_exists_in_other_chats(body.chat_id, body.name_ru):
         delete_file_from_supastorage(body.name_en)
-        datastep_faiss.delete_document(body.name_en)
-    
-        
+        delete_local_store(body.name_en)

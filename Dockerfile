@@ -35,10 +35,6 @@ COPY poetry.lock pyproject.toml /app/
 RUN poetry config virtualenvs.create false \
     && poetry install --no-root
 
-COPY langchain-with-pydantic-v2 /app/langchain-with-pydantic-v2
-RUN chmod +x /app/langchain-with-pydantic-v2/install_linux.sh \
-    && /app/langchain-with-pydantic-v2/install_linux.sh
-
 COPY . /app
 
 CMD ["python3", "/app/src/app.py"]
