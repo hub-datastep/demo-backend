@@ -1,5 +1,11 @@
+import os
 import pathlib
 import uuid
+
+from rq import get_current_job
+from rq.job import Job
+from rq.command import send_stop_job_command
+from redis import Redis
 
 from langchain.schema.document import Document
 from langchain.vectorstores import Chroma
@@ -17,7 +23,10 @@ from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOpenAI
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.schema.output import LLMResult
+from langchain.schema import OutputParserException
 
+from dto.file_dto import FileOutDto
+from model import file_model
 from repository import file_upload_task_repository, file_repository
 
 load_dotenv()
@@ -25,11 +34,9 @@ id_key = "doc_id"
 
 
 class UpdateTaskHandler(BaseCallbackHandler):
-    def __init__(self, task_id: int, last_progress: int, full_work):
+    def __init__(self, job: Job):
         super()
-        self.task_id = task_id
-        self.last_progress = last_progress
-        self.full_work = full_work
+        self.job = job
 
     def on_llm_end(
         self,
@@ -39,8 +46,9 @@ class UpdateTaskHandler(BaseCallbackHandler):
         parent_run_id: uuid.UUID | None = None,
         **kwargs: any,
     ) -> any:
-        file_upload_task_repository.increase_progress(self.task_id, self.last_progress + 1)
-        self.last_progress += 1
+        prev_meta = self.job.get_meta(refresh=True)
+        self.job.meta["progress"] = prev_meta["progress"] + 1
+        self.job.save_meta()
 
 
 def get_storage_path(source_id):
@@ -51,7 +59,7 @@ def get_doc_ids(docs):
     return [str(uuid.uuid4()) for _ in docs]
 
 
-async def get_hypothetical_questions(file_id: int, docs):
+def get_hypothetical_questions(file: FileOutDto, docs):
     functions = [
         {
             "name": "hypothetical_questions",
@@ -81,14 +89,19 @@ async def get_hypothetical_questions(file_id: int, docs):
         )
         | JsonKeyOutputFunctionsParser(key_name="questions")
     )
-    task = file_upload_task_repository.create_task(file_id, len(docs))
-    file_repository.update({"id": file_id}, {"file_upload_task_id": task.id})
-    hypothetical_questions = await chain.abatch(docs, {
-        "max_concurrency": 12,
-        "callbacks": [UpdateTaskHandler(task.id, 0, len(docs))]}
-    )
-    file_upload_task_repository.update(task.id, {"status": "finished"})
-    return hypothetical_questions
+    task = file_upload_task_repository.create_task(file.id, len(docs))
+    job = get_current_job()
+    file_repository.update({"id": file.id}, {"file_upload_task_id": task.id})
+    try:
+        hypothetical_questions = chain.batch(docs, {
+            "max_concurrency": 12,
+            "callbacks": [UpdateTaskHandler(job)]}
+        )
+        file_upload_task_repository.update(task.id, {"status": "finished"})
+        return hypothetical_questions
+    except OutputParserException:
+        file_model.delete_file(file)
+        send_stop_job_command(Redis(), job.id)
 
 
 def get_docs(file_url):
@@ -143,8 +156,8 @@ def get_retriever_qa(retriever):
     )
 
 
-async def save_chroma(file_id: int, source_id, docs, doc_ids):
-    hypothetical_questions = await get_hypothetical_questions(file_id, docs)
+def save_chroma(file: FileOutDto, source_id, docs, doc_ids):
+    hypothetical_questions = get_hypothetical_questions(file, docs)
 
     question_docs = []
     for i, question_list in enumerate(hypothetical_questions):
@@ -157,12 +170,25 @@ async def save_chroma(file_id: int, source_id, docs, doc_ids):
     )
 
 
-async def save_document(file_id: int, source_id: str, file_url: str):
+def save_document(file: FileOutDto, source_id: str, file_url: str):
+    store_file_path = get_storage_path(source_id)
+
     docs = get_docs(file_url)
+
+    job = get_current_job()
+    job.meta["progress"] = 0
+    job.meta["full_work"] = len(docs)
+    job.save_meta()
+
     doc_ids = get_doc_ids(docs)
-    save_store(source_id, docs, doc_ids)
-    await save_chroma(file_id, source_id, docs, doc_ids)
-    file_repository.update({"id": file_id}, {"status": "active"})
+
+    if not os.path.isdir(store_file_path + "/documents"):
+        save_store(source_id, docs, doc_ids)
+
+    if not os.path.isdir(store_file_path + "/chroma"):
+        save_chroma(file, source_id, docs, doc_ids)
+
+    file_repository.update({"id": file.id}, {"status": "active"})
 
 
 def query(source_id, query):

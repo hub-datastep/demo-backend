@@ -17,5 +17,5 @@ class DatastepMarkdownChain:
         markdown_prompt = PromptTemplate(input_variables=["input"], template=markdown_template)
         self.chain = LLMChain(llm=llm, prompt=markdown_prompt)
 
-    async def arun(self, input: str) -> str:
-        return await self.chain.arun(input)
+    def run(self, input: str) -> str:
+        return self.chain.run(input)

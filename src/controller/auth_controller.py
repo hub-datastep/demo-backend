@@ -14,11 +14,11 @@ router = APIRouter(
 
 @router.post("/sign_in")
 @version(1)
-async def sign_in(form_data: OAuth2PasswordRequestForm = Depends()) -> AuthDto:
+def sign_in(form_data: OAuth2PasswordRequestForm = Depends()) -> AuthDto:
     return AuthService.sign_in(username=form_data.username, password=form_data.password)
 
 
 @router.get("/users/me")
 @version(1)
-async def read_users_me(current_user: UserDto = Depends(AuthService.get_current_user)) -> UserDto:
+def read_users_me(current_user: UserDto = Depends(AuthService.get_current_user)) -> UserDto:
     return current_user

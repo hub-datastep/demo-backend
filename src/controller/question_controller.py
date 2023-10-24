@@ -13,5 +13,5 @@ router = APIRouter(
 
 @router.get("/{limit}")
 @version(1)
-async def get_template_questions(limit: int, current_user: UserDto = Depends(AuthService.get_current_user)):
+def get_template_questions(limit: int, current_user: UserDto = Depends(AuthService.get_current_user)):
     return question_model.get_random_questions(limit)

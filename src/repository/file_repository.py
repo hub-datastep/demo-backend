@@ -28,11 +28,53 @@ def get_all_filenames_ru(chat_id: int, tenant_id: int) -> list[FileOutDto]:
     return [FileOutDto(**filename) for filename in all_files]
 
 
+def get_mutual_file_by_filename_ru(tenant_id: int, filename_ru: str) -> list[FileOutDto]:
+    (_, files), _ = supabase \
+        .table("file") \
+        .select("*") \
+        .eq("status", "active") \
+        .eq("name_ru", filename_ru) \
+        .execute()
+
+    if len(files) == 0:
+        return []
+
+    (_, mutual_files), _ = supabase \
+        .table("file_tenant") \
+        .select("*") \
+        .eq("tenant_id", tenant_id) \
+        .eq("file_id", files[0]["id"]) \
+        .execute()
+
+    return [FileOutDto(**file) for file in mutual_files]
+
+
+def get_personal_file_by_filename_ru(chat_id: int, filename_ru: str) -> list[FileOutDto]:
+    (_, files), _ = supabase\
+        .table("file")\
+        .select("*")\
+        .eq("status", "active")\
+        .eq("name_ru", filename_ru)\
+        .eq("chat_id", chat_id)\
+        .execute()
+    return [FileOutDto(**file) for file in files]
+
+
 def get_file_by_task_id(task_id: int) -> FileOutDto:
     (_, filename), _ = supabase \
         .table("file") \
         .select("*") \
         .eq("file_upload_task_id", task_id) \
+        .execute()
+    return FileOutDto(**filename[0])
+
+
+def get_file_by_id(file_id: int) -> FileOutDto:
+    (_, filename), _ = supabase \
+        .table("file") \
+        .select("*") \
+        .eq("id", file_id) \
+        .neq("status", "deleted") \
         .execute()
     return FileOutDto(**filename[0])
 

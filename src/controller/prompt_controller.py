@@ -14,7 +14,7 @@ router = APIRouter(
 
 @router.put("/{prompt_id}", response_model=PromptDto)
 @version(1)
-async def edit_prompt(
+def edit_prompt(
     prompt_id: int,
     body: PromptEditDto,
     current_user: UserDto = Depends(AuthService.get_current_user)

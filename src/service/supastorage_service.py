@@ -33,7 +33,7 @@ def get_file_public_url(file_path_in_bucket) -> str:
     return public_url
 
 
-def upload_file_to_supastorage(fileObject: UploadFile) -> StorageFileDto:
+def upload_or_get_file(fileObject: UploadFile) -> StorageFileDto:
     try:
         file = BufferedReader(fileObject.file)
         normal_filename = sanitize_filename(fileObject.filename)

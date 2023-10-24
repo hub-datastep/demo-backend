@@ -32,6 +32,8 @@ llama-index = "^0.8.45.post1"
 langchain = "^0.0.315"
 chromadb = "^0.4.14"
 websockets = ">=10.3,<11.0"
+redis = "^5.0.1"
+rq = "^1.15.1"
 
 
 [build-system]

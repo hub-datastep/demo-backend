@@ -69,9 +69,9 @@ class DatastepSqlChain:
 
         self.chain = db_chain
 
-    async def arun(self, input: str, limit) -> str:
+    def run(self, input: str, limit) -> str:
         table_info = self.sql_database.get_table_info()
-        response = await self.chain.arun(
+        response = self.chain.run(
             input=input,
             table_info=table_info,
             current_date=str(datetime.date.today()),

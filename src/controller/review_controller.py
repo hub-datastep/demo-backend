@@ -14,5 +14,5 @@ router = APIRouter(
 
 @router.post("", response_model=ReviewOutDto)
 @version(1)
-async def create_review(body: ReviewCreateDto, current_user: UserDto = Depends(AuthService.get_current_user)):
+def create_review(body: ReviewCreateDto, current_user: UserDto = Depends(AuthService.get_current_user)):
     return review_repository.create(body)

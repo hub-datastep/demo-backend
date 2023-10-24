@@ -20,5 +20,5 @@ llm = ChatOpenAI(temperature=0, verbose=False, model_name="gpt-4")
 sql2text_chain = LLMChain(llm=llm, prompt=sql2text_prompt, verbose=False)
 
 
-async def describe_sql(sql: str) -> str:
-    return await sql2text_chain.arun(sql)
+def describe_sql(sql: str) -> str:
+    return sql2text_chain.run(sql)

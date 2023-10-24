@@ -15,5 +15,5 @@ router = APIRouter(
 
 @router.post("/prediction", response_model=DatastepPredictionOutDto)
 @version(1)
-async def get_prediction(body: QueryDto, current_user: UserDto = Depends(AuthService.get_current_user)):
+def get_prediction(body: QueryDto, current_user: UserDto = Depends(AuthService.get_current_user)):
     return datastep_pdf_model.get_prediction(body.filename, body.query)

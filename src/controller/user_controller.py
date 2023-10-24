@@ -12,5 +12,5 @@ router = APIRouter(
 
 @router.get("/current")
 @version(1)
-async def get_current_user(current_user: UserDto = Depends(AuthService.get_current_user)):
+def get_current_user(current_user: UserDto = Depends(AuthService.get_current_user)):
     return current_user

@@ -14,5 +14,5 @@ router = APIRouter(
 
 @router.get("/{tenant_id}/prompt/active", response_model=PromptDto)
 @version(1)
-async def get_active_prompt(tenant_id: int, current_user: UserDto = Depends(AuthService.get_current_user)):
+def get_active_prompt(tenant_id: int, current_user: UserDto = Depends(AuthService.get_current_user)):
     return prompt_repository.get_active_prompt_by_tenant_id(tenant_id)

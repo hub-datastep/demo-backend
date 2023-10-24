@@ -1,24 +1,46 @@
 import pathlib
 import shutil
 
-from fastapi import UploadFile, BackgroundTasks, HTTPException
+from fastapi import UploadFile, HTTPException
+from rq import Queue, get_current_job
+from rq.job import Job
+from redis import Redis
 
 from datastep.components import datastep_faiss, datastep_multivector
-from dto.file_dto import FileDto, FileOutDto, StorageFileDto
+from dto.file_dto import FileDto, StorageFileDto, FileOutDto
+from dto.user_dto import UserDto
 from repository import file_repository
-from service.supastorage_service import upload_file_to_supastorage, sanitize_filename, get_file_public_url, delete_file_from_supastorage
+from service import supastorage_service
+from service.supastorage_service import delete_file_from_supastorage
 from storage3.utils import StorageException
 
 
-async def save_file(chat_id: int, file_object: UploadFile, background_tasks: BackgroundTasks) -> FileOutDto:
-    if file_repository.is_file_exists(chat_id, file_object.filename):
+def _save_file(file: FileOutDto, storage_file):
+    job = get_current_job()
+    job.meta["file_id"] = file.id
+    job.save_meta()
+
+    datastep_faiss.save_document(storage_file.filename, storage_file.fileUrl)
+    datastep_multivector.save_document(file, storage_file.filename, storage_file.fileUrl)
+
+
+def save_file(chat_id: int, file_object: UploadFile, current_user: UserDto) -> Job:
+    # Если файл есть в частной библиотеке или в общей библиотеке тенанта, то он уже отображается пользователю
+
+    is_in_mutual_files \
+        = len(file_repository.get_mutual_file_by_filename_ru(current_user.tenant_id, file_object.filename)) != 0
+
+    is_in_personal_files \
+        = len(file_repository.get_personal_file_by_filename_ru(chat_id, file_object.filename)) != 0
+
+    if is_in_mutual_files or is_in_personal_files:
         raise HTTPException(
             status_code=409,
             detail="Файл с таким названием уже загружен"
         )
 
     try:
-        storage_file: StorageFileDto = upload_file_to_supastorage(file_object)
+        storage_file: StorageFileDto = supastorage_service.upload_or_get_file(file_object)
     except StorageException as e:
         dict_, = e.args
         if dict_["error"] == "Invalid Input":
@@ -38,10 +60,9 @@ async def save_file(chat_id: int, file_object: UploadFile, background_tasks: Bac
         )
     )
 
-    datastep_faiss.save_document(storage_file.filename, storage_file.fileUrl)
-    background_tasks.add_task(datastep_multivector.save_document, file.id, storage_file.filename, storage_file.fileUrl)
-
-    return file
+    redis = Redis()
+    q = Queue(connection=redis)
+    return q.enqueue(_save_file, file, storage_file, job_id=current_user.id)
 
 
 def get_store_file_path(source_id: str) -> str:

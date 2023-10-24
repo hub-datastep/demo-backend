@@ -30,9 +30,9 @@ def parse_similar_queries(similar_queries: str) -> list[str]:
     return [q[3:] for q in similar_queries.split("\n")]
 
 
-async def generate_similar_queries(input: str, database: DatastepSqlDatabase) -> list[str]:
+def generate_similar_queries(input: str, database: DatastepSqlDatabase) -> list[str]:
     similar_queries_chain = get_chain()
-    response = await similar_queries_chain.arun(
+    response = similar_queries_chain.run(
         input=input,
         table_info=database.database.get_table_info()
     )

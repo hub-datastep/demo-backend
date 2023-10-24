@@ -14,6 +14,6 @@ router = APIRouter(
 
 @router.post("", response_model=MarkOutDto)
 @version(1)
-async def create_mark(body: MarkCreateDto, current_user: UserDto = Depends(AuthService.get_current_user)):
+def create_mark(body: MarkCreateDto, current_user: UserDto = Depends(AuthService.get_current_user)):
     return mark_repository.create(body)
 

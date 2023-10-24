@@ -1,3 +1,4 @@
+import os
 import pathlib
 import shutil
 
@@ -35,6 +36,10 @@ def get_store_file_path(source_id: str) -> str:
 
 
 def save_document(source_id: str, file_url: str):
+    store_file_path = get_store_file_path(source_id)
+    if os.path.isdir(store_file_path):
+        return
+
     loader = PyPDFLoader(file_url)
     pages = loader.load_and_split()
     faiss_index = FAISS.from_documents(pages, OpenAIEmbeddings())

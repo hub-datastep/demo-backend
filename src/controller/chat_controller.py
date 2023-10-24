@@ -14,11 +14,11 @@ router = APIRouter(
 
 @router.get("/{user_id}", response_model=ChatOutDto)
 @version(1)
-async def get_chat(user_id: str, current_user: UserDto = Depends(AuthService.get_current_user)):
+def get_chat(user_id: str, current_user: UserDto = Depends(AuthService.get_current_user)):
     return chat_repository.fetch_by_user_id(user_id)
 
 
 @router.post("", response_model=ChatOutDto)
 @version(1)
-async def create_chat(body: ChatCreateDto, current_user: UserDto = Depends(AuthService.get_current_user)):
+def create_chat(body: ChatCreateDto, current_user: UserDto = Depends(AuthService.get_current_user)):
     return chat_repository.create(body)

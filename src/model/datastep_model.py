@@ -11,7 +11,7 @@ from repository.prompt_repository import prompt_repository
 from repository.tenant_repository import tenant_repository
 
 
-async def datastep_get_prediction(body: QueryDto, tenant_id: int) -> DatastepPredictionDto:
+def datastep_get_prediction(body: QueryDto, tenant_id: int) -> DatastepPredictionDto:
     tenant_db_uri = tenant_repository.get_db_uri_by_tenant_id(tenant_id)
 
     if body.tables[0] == "платежи":
@@ -30,7 +30,7 @@ async def datastep_get_prediction(body: QueryDto, tenant_id: int) -> DatastepPre
         verbose=True
     )
 
-    result, description, alternative_queries = await check_data(body.query, datastep_sql_database)
+    result, description, alternative_queries = check_data(body.query, datastep_sql_database)
     if result.lower() == "нет":
         return DatastepPredictionOutDto(
             answer=description,
@@ -40,9 +40,9 @@ async def datastep_get_prediction(body: QueryDto, tenant_id: int) -> DatastepPre
             similar_queries=alternative_queries
         )
 
-    similar_queries = await generate_similar_queries(body.query, datastep_sql_database)
-    sql_query = await datastep_sql_chain.arun(input=body.query, limit=body.limit)
-    sql_description = await describe_sql(sql_query)
+    similar_queries = generate_similar_queries(body.query, datastep_sql_database)
+    sql_query = datastep_sql_chain.run(input=body.query, limit=body.limit)
+    sql_description = describe_sql(sql_query)
     # TODO: разобраться, как сделать подключение к базе асинк
     sql_query_result = datastep_sql_database.run(sql_query)
     sql_query_result_markdown = pd.DataFrame(sql_query_result).to_markdown(index=False, floatfmt=".3f")

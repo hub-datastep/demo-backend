@@ -27,7 +27,7 @@ llm = ChatOpenAI(temperature=0.5, verbose=True, model_name="gpt-3.5-turbo")
 rephrase_chain = LLMChain(llm=llm, prompt=rephrase_prompt, verbose=True)
 
 
-async def rephrase(input: str) -> str:
-    return await rephrase_chain.arun(
+def rephrase(input: str) -> str:
+    return rephrase_chain.run(
         input=input,
     )
