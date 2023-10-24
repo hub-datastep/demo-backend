@@ -30,5 +30,14 @@ class TenantRepository:
 
         return tenants_ids[0]["tenant_id"]
 
+    @classmethod
+    def get_modes_by_tenant_id(cls, tenant_id: int) -> list[str]:
+        (_, modes), _ = supabase.table("mode_tenant").select("mode(*)").eq("tenant_id", tenant_id).execute()
+        return [entry["mode"]["name"] for entry in modes]
+
 
 tenant_repository = TenantRepository()
+
+
+if __name__ == "__main__":
+    print(TenantRepository.get_modes_by_tenant_id(3))

@@ -32,11 +32,13 @@ class AuthService:
             user_response: UserResponse = supabase.auth.get_user(token)
             user_id = user_response.user.id
             tenant_id = tenant_repository.get_tenant_id_by_user_id(user_id)
+            available_modes = tenant_repository.get_modes_by_tenant_id(tenant_id)
 
             return UserDto(
                 id=user_id,
                 email=user_response.user.email,
-                tenant_id=tenant_id
+                tenant_id=tenant_id,
+                available_modes=available_modes
             )
         except AuthApiError as e:
             raise HTTPException(status_code=e.status, detail=e.message)
