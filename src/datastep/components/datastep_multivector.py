@@ -15,10 +15,32 @@ from langchain.retrievers.multi_vector import MultiVectorRetriever
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 from langchain.chat_models import ChatOpenAI
+from langchain.callbacks.base import BaseCallbackHandler
+from langchain.schema.output import LLMResult
 
+from repository import file_upload_task_repository, file_repository
 
 load_dotenv()
 id_key = "doc_id"
+
+
+class UpdateTaskHandler(BaseCallbackHandler):
+    def __init__(self, task_id: int, last_progress: int, full_work):
+        super()
+        self.task_id = task_id
+        self.last_progress = last_progress
+        self.full_work = full_work
+
+    def on_llm_end(
+        self,
+        response: LLMResult,
+        *,
+        run_id: uuid.UUID,
+        parent_run_id: uuid.UUID | None = None,
+        **kwargs: any,
+    ) -> any:
+        file_upload_task_repository.increase_progress(self.task_id, self.last_progress + 1)
+        self.last_progress += 1
 
 
 def get_storage_path(source_id):
@@ -29,7 +51,7 @@ def get_doc_ids(docs):
     return [str(uuid.uuid4()) for _ in docs]
 
 
-def get_hypothetical_questions(docs):
+async def get_hypothetical_questions(file_id: int, docs):
     functions = [
         {
             "name": "hypothetical_questions",
@@ -59,7 +81,14 @@ def get_hypothetical_questions(docs):
         )
         | JsonKeyOutputFunctionsParser(key_name="questions")
     )
-    return chain.batch(docs, {"max_concurrency": 12})
+    task = file_upload_task_repository.create_task(file_id, len(docs))
+    file_repository.update({"id": file_id}, {"file_upload_task_id": task.id})
+    hypothetical_questions = await chain.abatch(docs, {
+        "max_concurrency": 12,
+        "callbacks": [UpdateTaskHandler(task.id, 0, len(docs))]}
+    )
+    file_upload_task_repository.update(task.id, {"status": "finished"})
+    return hypothetical_questions
 
 
 def get_docs(file_url):
@@ -114,8 +143,8 @@ def get_retriever_qa(retriever):
     )
 
 
-def save_chroma(source_id, docs, doc_ids):
-    hypothetical_questions = get_hypothetical_questions(docs)
+async def save_chroma(file_id: int, source_id, docs, doc_ids):
+    hypothetical_questions = await get_hypothetical_questions(file_id, docs)
 
     question_docs = []
     for i, question_list in enumerate(hypothetical_questions):
@@ -128,11 +157,12 @@ def save_chroma(source_id, docs, doc_ids):
     )
 
 
-def save_document(source_id: str, file_url: str):
+async def save_document(file_id: int, source_id: str, file_url: str):
     docs = get_docs(file_url)
     doc_ids = get_doc_ids(docs)
     save_store(source_id, docs, doc_ids)
-    save_chroma(source_id, docs, doc_ids)
+    await save_chroma(file_id, source_id, docs, doc_ids)
+    file_repository.update({"id": file_id}, {"status": "active"})
 
 
 def query(source_id, query):
