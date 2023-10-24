@@ -4,6 +4,7 @@ from io import BufferedReader
 from dotenv import load_dotenv
 from fastapi import UploadFile
 from transliterate import translit
+from storage3.utils import StorageException
 
 from dto.file_dto import StorageFileDto
 from infra.supabase import supabase
@@ -33,19 +34,27 @@ def get_file_public_url(file_path_in_bucket) -> str:
 
 
 def upload_file_to_supastorage(fileObject: UploadFile) -> StorageFileDto:
-    file = BufferedReader(fileObject.file)
-    normal_filename = sanitize_filename(fileObject.filename)
+    try:
+        file = BufferedReader(fileObject.file)
+        normal_filename = sanitize_filename(fileObject.filename)
 
-    supabase.storage\
-        .from_(BUCKET_NAME)\
-        .upload(
-            path=normal_filename,
-            file=file,
-            file_options={
-                "content-type": fileObject.content_type
-            }
-        )
-    full_file_url = get_file_public_url(normal_filename)
+        supabase.storage \
+            .from_(BUCKET_NAME) \
+            .upload(
+                path=normal_filename,
+                file=file,
+                file_options={
+                    "content-type": fileObject.content_type
+                }
+            )
+        full_file_url = get_file_public_url(normal_filename)
+    except StorageException as e:
+        dict_, = e.args
+        if dict_["error"] == "Duplicate":
+            normal_filename = sanitize_filename(fileObject.filename)
+            full_file_url = get_file_public_url(normal_filename)
+        else:
+            raise e
 
     return StorageFileDto(
         filename=normal_filename,

@@ -21,21 +21,7 @@ async def save_file(chat_id: int, file_object: UploadFile, background_tasks: Bac
         storage_file: StorageFileDto = upload_file_to_supastorage(file_object)
     except StorageException as e:
         dict_, = e.args
-        if dict_["error"] == "Duplicate":
-            normal_filename = sanitize_filename(file_object.filename)
-            full_file_url = get_file_public_url(normal_filename)
-
-            file = file_repository.save_file(
-                FileDto(
-                    name_ru=file_object.filename,
-                    name_en=normal_filename,
-                    url=full_file_url,
-                    chat_id=chat_id,
-                    status="uploading"
-                )
-            )
-            return file
-        elif dict_["error"] == "Invalid Input":
+        if dict_["error"] == "Invalid Input":
             raise HTTPException(
                 status_code=400,
                 detail="В названии файла есть недопустимые символы"
