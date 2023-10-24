@@ -2,15 +2,30 @@ from dto.file_dto import FileDto, FileOutDto
 from infra.supabase import supabase
 
 
-def get_all_filenames_ru(chat_id: int) -> list[FileOutDto]:
-    (_, filenames), _ = supabase\
+def get_all_filenames_ru(chat_id: int, tenant_id: int) -> list[FileOutDto]:
+    (_, mutual_files_ids), _ = supabase\
+        .table("file_tenant")\
+        .select("file_id")\
+        .eq("tenant_id", tenant_id)\
+        .execute()
+    mutual_files_ids = [entry["file_id"] for entry in mutual_files_ids]
+
+    (_, mutual_files), _ = supabase \
+        .table("file") \
+        .select("*") \
+        .in_("id", mutual_files_ids) \
+        .eq("status", "active") \
+        .execute()
+
+    (_, personal_files), _ = supabase\
         .table("file")\
         .select("*") \
+        .eq("chat_id", chat_id) \
         .eq("status", "active") \
-        .in_("chat_id", [chat_id, 666666])\
-        .order("id", desc=False)\
         .execute()
-    return [FileOutDto(**filename) for filename in filenames]
+
+    all_files = [*mutual_files, *personal_files]
+    return [FileOutDto(**filename) for filename in all_files]
 
 
 def get_file_by_task_id(task_id: int) -> FileOutDto:
@@ -66,4 +81,6 @@ def update(match: dict, update: dict):
 
 
 if __name__ == "__main__":
-    get_all_filenames_ru(18)
+    files = get_all_filenames_ru(18, 1)
+    for f in files:
+        print(f.id, f.name_ru)
