@@ -14,10 +14,7 @@ from repository.tenant_repository import tenant_repository
 def datastep_get_prediction(body: QueryDto, tenant_id: int) -> DatastepPredictionDto:
     tenant_db_uri = tenant_repository.get_db_uri_by_tenant_id(tenant_id)
 
-    if body.tables[0] == "платежи":
-        tenant_active_prompt_template = prompt_repository.fetch_by_id(1)
-    else:
-        tenant_active_prompt_template = prompt_repository.fetch_by_id(2)
+    tenant_active_prompt_template = prompt_repository.get_active_prompt_by_tenant_id(tenant_id, body.tables[0])
 
     datastep_sql_database = DatastepSqlDatabase(
         database_connection_string=tenant_db_uri,
