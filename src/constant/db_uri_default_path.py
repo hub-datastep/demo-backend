@@ -1,0 +1,1 @@
+DB_URI_DEFAULT_PATH = "postgresql://postgres:tyrL9XVM5oLj4bYc@db.jewhjfmkakywtircahxz.supabase.co/postgres"

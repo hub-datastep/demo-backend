@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 
 from infra.supabase import supabase
+from dto.tenant_dto import TenantCreateDto, TenantDto
 
 
 class TenantRepository:
@@ -14,7 +15,7 @@ class TenantRepository:
         return tenant["db_uri"]
 
     @classmethod
-    def get_tenant_id_by_user_id(cls, user_id: str) -> int:
+    def get_tenant_id_by_user_id(cls, user_id: str) -> int | None:
         (_, tenants_ids), _ = supabase\
             .table("user_tenant")\
             .select("tenant_id")\
@@ -23,17 +24,34 @@ class TenantRepository:
             .execute()
 
         if len(tenants_ids) == 0:
-            raise HTTPException(
-                status_code=404,
-                detail=f"User with id={user_id} does not belong to any tenant"
-            )
+            return None
 
         return tenants_ids[0]["tenant_id"]
 
     @classmethod
     def get_modes_by_tenant_id(cls, tenant_id: int) -> list[str]:
-        (_, modes), _ = supabase.table("mode_tenant").select("mode(*)").eq("tenant_id", tenant_id).execute()
+        (_, modes), _ = supabase.table("mode_tenant").select(
+            "mode(*)").eq("tenant_id", tenant_id).execute()
         return [entry["mode"]["name"] for entry in modes]
+
+    @classmethod
+    def create_tenant(cls, body: TenantCreateDto) -> TenantDto:
+        (_, [tenant]), _ = supabase\
+            .table("tenant")\
+            .insert(body.model_dump())\
+            .execute()
+        return TenantDto(**tenant)
+
+    @classmethod
+    def assign_user_id_to_tenant(cls, user_id: str, tenant_id: int):
+        supabase\
+            .table("user_tenant")\
+            .insert({
+                "user_id": user_id,
+                "tenant_id": tenant_id,
+                "is_last": True,
+            })\
+            .execute()
 
 
 tenant_repository = TenantRepository()
