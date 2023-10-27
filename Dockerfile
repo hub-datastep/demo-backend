@@ -29,6 +29,12 @@ RUN echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
 # Enables authentication of users and servers on a network
 RUN apt-get install libgssapi-krb5-2 -y
 
+RUN apt-get install -y lsb-release gpg
+RUN curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+RUN echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/redis.list
+RUN apt-get update
+RUN apt-get install -y redis
+
 WORKDIR /app
 
 COPY poetry.lock pyproject.toml /app/
@@ -37,4 +43,7 @@ RUN poetry config virtualenvs.create false \
 
 COPY . /app
 
-CMD ["python3", "/app/src/app.py"]
+RUN apt install lsb-release curl gpg
+RUN chmod +x /app/start.sh
+
+CMD /app/start.sh

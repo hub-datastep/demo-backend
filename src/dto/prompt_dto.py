@@ -17,3 +17,4 @@ class PromptDto(PromptEditDto):
     updated_at: datetime
     created_by: str | None
     updated_by: str | None
+    table: str
