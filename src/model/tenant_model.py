@@ -17,3 +17,4 @@ def create_tenant_with_user_id(user_id: str):
             )
         )
         tenant_repository.assign_user_id_to_tenant(user_id, new_tenant.id)
+        tenant_repository.assign_mode_to_tenant(new_tenant.id)

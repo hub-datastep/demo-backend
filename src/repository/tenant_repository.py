@@ -53,6 +53,17 @@ class TenantRepository:
             })\
             .execute()
 
+    @classmethod
+    def assign_mode_to_tenant(cls, tenant_id: int):
+        supabase\
+            .table("mode_tenant")\
+            .insert({
+                "mode_id": 1,
+                "tenant_id": tenant_id
+            })\
+            .execute()
+
+
 
 tenant_repository = TenantRepository()
 
