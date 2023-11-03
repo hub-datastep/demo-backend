@@ -18,9 +18,10 @@ def get_all_filenames_ru(chat_id: int, tenant_id: int) -> list[FileOutDto]:
         .execute()
 
     (_, personal_files), _ = supabase\
-        .table("file")\
+        .table("file") \
         .select("*") \
         .eq("chat_id", chat_id) \
+        .not_.in_("id", mutual_files_ids) \
         .eq("status", "active") \
         .execute()
 
