@@ -5,8 +5,10 @@ from gotrue.errors import AuthApiError
 
 from dto.auth_dto import AuthDto
 from dto.user_dto import UserDto
+from dto.config_dto import PredictionConfigDto
 from infra.supabase import supabase
 from repository.tenant_repository import tenant_repository
+from repository.config_repository import get_database_prediction_config
 
 
 class AuthService:
@@ -42,3 +44,14 @@ class AuthService:
             )
         except AuthApiError as e:
             raise HTTPException(status_code=e.status, detail=e.message)
+    
+    @classmethod
+    def get_current_config(cls) -> PredictionConfigDto:
+        try:
+            user_id = cls.get_current_user().id
+            prediction_config = get_database_prediction_config(user_id)
+
+            return prediction_config
+        except Exception as e:
+            print(e)
+            raise HTTPException(status_code=500, detail="Failed get prediction config")
