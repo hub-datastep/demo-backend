@@ -35,10 +35,11 @@ async def datastep_get_prediction(
 
     functions = []
 
-    if prediction_config is None or prediction_config.is_data_check:
-        functions.append(check_data(body.query, datastep_sql_database))
-    if prediction_config is None or prediction_config.is_alternative_questions:
-        functions.append(generate_similar_queries(body.query, datastep_sql_database))
+    is_data_check = prediction_config is None or prediction_config.is_data_check
+    functions.append(check_data(body.query, datastep_sql_database, turn_on=is_data_check))
+
+    is_alternative_questions = prediction_config is None or prediction_config.is_alternative_questions
+    functions.append(generate_similar_queries(body.query, datastep_sql_database, turn_on=is_alternative_questions))
 
     is_sql_description = prediction_config is None or prediction_config.is_sql_description
 
@@ -52,7 +53,7 @@ async def datastep_get_prediction(
     )
     result, description, alternative_queries = results[0]
     similar_queries = results[1]
-    sql_query, sql_description = results[2]
+    sql_query, sql_description = results[-1]
     if result.lower() == "нет":
         return DatastepPredictionOutDto(
             answer=description,

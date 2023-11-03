@@ -74,7 +74,8 @@ class DatastepSqlChain:
             sql_query = match.group(1)
         else:
             sql_query = response
-        
+
+        sql_description = ""
         if is_sql_description:
             sql_description = await describe_sql(sql_query)
 
