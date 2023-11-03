@@ -1,3 +1,4 @@
+import pathlib
 import re
 
 from infra.supabase import supabase
@@ -5,6 +6,7 @@ from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from rq import get_current_job
 
 
 def get_nomenclatures(group: str) -> str:
@@ -97,14 +99,44 @@ def map_with_nomenclature(query: str, final_group: str):
     return extract_nomenclature(response)
 
 
+def get_data_folder_path():
+    return f"{pathlib.Path(__file__).parent.resolve()}"
+
+
+def save_to_database(values: dict):
+    return supabase.table("nomenclature_mapping").insert(values).execute()
+
+
 def do_mapping(query: str) -> str:
-    wide_group = map_with_groups(query, "../data/parent-parent-parent.txt")
-    middle_group = map_with_groups(query, "../data/parent-parent.txt", wide_group, 3)
-    narrow_group = map_with_groups(query, "../data/parent.txt", middle_group, 6)
+    job = get_current_job()
+
+    wide_group = map_with_groups(query, f"{get_data_folder_path()}/../data/parent-parent-parent.txt")
+    job.meta["wide_group"] = wide_group
+    job.save_meta()
+
+    middle_group = map_with_groups(query, f"{get_data_folder_path()}/../data/parent-parent.txt", wide_group, 3)
+    job.meta["middle_group"] = middle_group
+    job.save_meta()
+
+    narrow_group = map_with_groups(query, f"{get_data_folder_path()}/../data/parent.txt", middle_group, 6)
+    job.meta["narrow_group"] = narrow_group
+    job.save_meta()
+
     response = map_with_nomenclature(query, narrow_group)
+
+    database_response = save_to_database({
+        "input": query,
+        "output": response,
+        "wide_group": wide_group,
+        "middle_group": middle_group,
+        "narrow_group": narrow_group
+    })
+
+    job.meta["mapping_id"] = database_response.data[0]["id"]
+    job.save()
 
     return response
 
 
 if __name__ == "__main__":
-    print(do_mapping("Муфта соединительная, ПП, d=50мммм, СИНИКОН Comfort Plus"))
+    pass
