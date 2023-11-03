@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+
 from datastep.datastep_chains.datastep_sql_chain import datastep_sql_chain_template
 from dto.prompt_dto import PromptEditDto, PromptDto
 from infra.supabase import supabase
@@ -11,7 +13,7 @@ class PromptRepository:
 
     @classmethod
     def get_active_prompt_by_tenant_id(cls, tenant_id: int, table: str) -> PromptDto:
-        (_, [prompt]), _ = supabase\
+        response = supabase\
             .table("prompt")\
             .select("*")\
             .eq("tenant_id", tenant_id)\
@@ -19,10 +21,10 @@ class PromptRepository:
             .eq("is_active", True)\
             .execute()
 
-        if prompt == None:
-            return datastep_sql_chain_template
+        if len(response.data) == 0:
+            raise HTTPException(status_code=404, detail="Cannot found prompt for current user")
 
-        return PromptDto(**prompt)
+        return PromptDto(**response.data[0])
 
     @classmethod
     def edit_by_id(cls, prompt_id: int, body: PromptEditDto) -> PromptDto:

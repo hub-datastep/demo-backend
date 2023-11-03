@@ -8,11 +8,16 @@ from datastep.datastep_chains.datastep_sql_chain import DatastepSqlChain
 
 from dto.datastep_prediction_dto import DatastepPredictionDto, DatastepPredictionOutDto
 from dto.query_dto import QueryDto
+from dto.config_dto import DatabasePredictionConfigDto
 from repository.prompt_repository import prompt_repository
 from repository.tenant_repository import tenant_repository
 
 
-async def datastep_get_prediction(body: QueryDto, tenant_id: int) -> DatastepPredictionDto:
+async def datastep_get_prediction(
+    body: QueryDto,
+    tenant_id: int,
+    prediction_config: DatabasePredictionConfigDto | None
+) -> DatastepPredictionDto:
     tenant_db_uri = tenant_repository.get_db_uri_by_tenant_id(tenant_id)
     tenant_active_prompt_template = prompt_repository.get_active_prompt_by_tenant_id(tenant_id, body.tables[0])
 
@@ -28,14 +33,27 @@ async def datastep_get_prediction(body: QueryDto, tenant_id: int) -> DatastepPre
         verbose=False
     )
 
+    functions = []
+
+    is_data_check = prediction_config is None or prediction_config.is_data_check
+    functions.append(check_data(body.query, datastep_sql_database, turn_on=is_data_check))
+
+    is_alternative_questions = prediction_config is None or prediction_config.is_alternative_questions
+    functions.append(generate_similar_queries(body.query, datastep_sql_database, turn_on=is_alternative_questions))
+
+    is_sql_description = prediction_config is None or prediction_config.is_sql_description
+
     results = await asyncio.gather(
-        check_data(body.query, datastep_sql_database),
-        generate_similar_queries(body.query, datastep_sql_database),
-        datastep_sql_chain.run(input=body.query, limit=body.limit),
+        *functions,
+        datastep_sql_chain.run(
+            input=body.query,
+            limit=body.limit, 
+            is_sql_description=is_sql_description
+        ),
     )
     result, description, alternative_queries = results[0]
     similar_queries = results[1]
-    sql_query, sql_description = results[2]
+    sql_query, sql_description = results[-1]
     if result.lower() == "нет":
         return DatastepPredictionOutDto(
             answer=description,

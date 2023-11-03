@@ -98,7 +98,10 @@ def parse_alternative_queries(alternative_queries) -> list[str]:
     return alternative_queries
 
 
-async def check_data(input: str, database: DatastepSqlDatabase) -> tuple[str, str, list[str]]:
+async def check_data(input: str, database: DatastepSqlDatabase, turn_on: bool) -> tuple[str, str, list[str]]:
+    if not turn_on:
+        return "", "", []
+
     check_data_chain = get_chain()
     response = await check_data_chain.arun(
         input=input,

@@ -60,7 +60,7 @@ class DatastepSqlChain:
 
         self.chain = db_chain
 
-    async def run(self, input: str, limit) -> (str, str):
+    async def run(self, input: str, limit: int, is_sql_description: bool) -> (str, str):
         table_info = self.sql_database.get_table_info()
         response = await self.chain.arun(
             input=input,
@@ -75,6 +75,8 @@ class DatastepSqlChain:
         else:
             sql_query = response
 
-        sql_description = await describe_sql(sql_query)
+        sql_description = ""
+        if is_sql_description:
+            sql_description = await describe_sql(sql_query)
 
         return sql_query, sql_description
