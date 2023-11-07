@@ -6,3 +6,8 @@ class UserDto(BaseModel):
     email: str
     tenant_id: int
     available_modes: list[str]
+
+
+class UserForTenantDto(BaseModel):
+    user_id: str
+    email: str
