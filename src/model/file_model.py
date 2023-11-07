@@ -16,12 +16,16 @@ from storage3.utils import StorageException
 
 
 def _save_file(file: FileOutDto, storage_file):
-    job = get_current_job()
-    job.meta["file_id"] = file.id
-    job.save_meta()
+    try:
+        job = get_current_job()
+        job.meta["file_id"] = file.id
+        job.save_meta()
 
-    datastep_faiss.save_document(storage_file.filename, storage_file.fileUrl)
-    datastep_multivector.save_document(file, storage_file.filename, storage_file.fileUrl)
+        datastep_faiss.save_document(storage_file.filename, storage_file.fileUrl)
+        datastep_multivector.save_document(file, storage_file.filename, storage_file.fileUrl)
+    except Exception as e:
+        delete_file(file)
+        raise e
 
 
 def save_file(chat_id: int, file_object: UploadFile, current_user: UserDto) -> Job:
@@ -61,8 +65,11 @@ def save_file(chat_id: int, file_object: UploadFile, current_user: UserDto) -> J
     )
 
     redis = Redis()
-    q = Queue(connection=redis)
-    return q.enqueue(_save_file, file, storage_file, job_id=current_user.id)
+    q = Queue("default", connection=redis)
+    job = q.enqueue(_save_file, file, storage_file, result_ttl=86400, job_timeout="60m")
+    job.meta["user_id"] = current_user.id
+    job.save_meta()
+    return job
 
 
 def get_store_file_path(source_id: str) -> str:

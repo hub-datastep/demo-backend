@@ -41,9 +41,11 @@ COPY poetry.lock pyproject.toml /app/
 RUN poetry config virtualenvs.create false \
     && poetry install --no-root
 
+RUN pip install rq-dashboard
+RUN apt install lsb-release curl gpg
+
 COPY . /app
 
-RUN apt install lsb-release curl gpg
 RUN chmod +x /app/start.sh
 
 CMD /app/start.sh

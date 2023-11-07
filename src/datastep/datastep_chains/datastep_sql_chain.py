@@ -6,17 +6,8 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts.prompt import PromptTemplate
 from langchain.utilities import SQLDatabase
 
-# datastep_sql_chain_template = """
-# You are a MS SQL expert. Given an input question, create a syntactically correct MS SQL query to run.
-# Never query for all the columns from a specific table, only ask for a the few relevant columns given the question.
-# Unless the user specifies in his question a specific number of examples he wishes to obtain, always limit your query to at most 5 results using the TOP clause as per MS SQL.
-# You MUST show only MS SQL query.
-
-# Only use the following tables:
-# {table_info}
-
-# Question: {input}
-# """
+from datastep.datastep_chains.datastep_sql2text_chain import describe_sql
+from util.logger import async_log
 
 datastep_sql_chain_template = """
 You must follow the steps described below:
@@ -69,9 +60,10 @@ class DatastepSqlChain:
 
         self.chain = db_chain
 
-    def run(self, input: str, limit) -> str:
+    @async_log("Генерация SQL")
+    async def run(self, input: str, limit: int, is_sql_description: bool) -> (str, str):
         table_info = self.sql_database.get_table_info()
-        response = self.chain.run(
+        response = await self.chain.arun(
             input=input,
             table_info=table_info,
             current_date=str(datetime.date.today()),
@@ -80,6 +72,12 @@ class DatastepSqlChain:
         match = re.search("SQL: (.+)", response)
 
         if match:
-            return match.group(1)
+            sql_query = match.group(1)
+        else:
+            sql_query = response
 
-        return response
+        sql_description = ""
+        if is_sql_description:
+            sql_description = await describe_sql(sql_query)
+
+        return sql_query, sql_description

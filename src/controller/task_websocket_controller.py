@@ -32,6 +32,7 @@ async def websocket_endpoint(
             ).model_dump_json()
         )
         if job.get_status() in ["finished", "failed", "stopped"]:
+            job.delete()
             await websocket.close()
             break
         await sleep(1)

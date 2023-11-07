@@ -5,6 +5,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts.prompt import PromptTemplate
 
 from datastep.components.datastep_sql_database import DatastepSqlDatabase
+from util.logger import async_log
 
 check_data_template = """Пройди все шаги по порядку.
 
@@ -77,7 +78,7 @@ def get_chain():
         input_variables=["table_info", "input"]
     )
     llm = ChatOpenAI(temperature=0, verbose=True, model_name="gpt-4")
-    check_data_chain = LLMChain(llm=llm, prompt=check_data_prompt, verbose=True)
+    check_data_chain = LLMChain(llm=llm, prompt=check_data_prompt, verbose=False)
     return check_data_chain
 
 
@@ -98,9 +99,13 @@ def parse_alternative_queries(alternative_queries) -> list[str]:
     return alternative_queries
 
 
-def check_data(input: str, database: DatastepSqlDatabase) -> tuple[str, str, list[str]]:
+@async_log("Проверка, есть ли в базе нужная для ответа информация")
+async def check_data(input: str, database: DatastepSqlDatabase, turn_on: bool) -> tuple[str, str, list[str]]:
+    if not turn_on:
+        return "", "", []
+
     check_data_chain = get_chain()
-    response = check_data_chain.run(
+    response = await check_data_chain.arun(
         input=input,
         table_info=database.database.get_table_info()
     )

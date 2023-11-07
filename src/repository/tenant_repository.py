@@ -2,10 +2,12 @@ from fastapi import HTTPException
 
 from infra.supabase import supabase
 from dto.tenant_dto import TenantCreateDto, TenantDto
+from util.logger import log
 
 
 class TenantRepository:
     @classmethod
+    @log("Получение строки подключения к базе")
     def get_db_uri_by_tenant_id(cls, tenant_id: int) -> str:
         (_, [tenant]), _ = supabase\
             .table("tenant")\
@@ -15,18 +17,20 @@ class TenantRepository:
         return tenant["db_uri"]
 
     @classmethod
-    def get_tenant_id_by_user_id(cls, user_id: str) -> int | None:
-        (_, tenants_ids), _ = supabase\
+    def get_tenant_id_by_user_id(cls, user_id: str) -> int:
+        response = supabase\
             .table("user_tenant")\
             .select("tenant_id")\
             .eq("user_id", user_id)\
             .eq("is_last", True)\
             .execute()
+        if len(response.data) == 0:
+            raise HTTPException(
+                status_code=404,
+                detail=f"User with id={user_id} does not belong to any tenant"
+            )
 
-        if len(tenants_ids) == 0:
-            return None
-
-        return tenants_ids[0]["tenant_id"]
+        return response.data[0]["tenant_id"]
 
     @classmethod
     def get_modes_by_tenant_id(cls, tenant_id: int) -> list[str]:

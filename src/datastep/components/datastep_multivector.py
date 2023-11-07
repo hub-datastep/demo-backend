@@ -27,7 +27,8 @@ from langchain.schema import OutputParserException
 
 from dto.file_dto import FileOutDto
 from model import file_model
-from repository import file_upload_task_repository, file_repository
+from repository import file_repository
+
 
 load_dotenv()
 id_key = "doc_id"
@@ -36,6 +37,7 @@ id_key = "doc_id"
 class UpdateTaskHandler(BaseCallbackHandler):
     def __init__(self, job: Job):
         super()
+        self.current_progress = 0
         self.job = job
 
     def on_llm_end(
@@ -46,8 +48,8 @@ class UpdateTaskHandler(BaseCallbackHandler):
         parent_run_id: uuid.UUID | None = None,
         **kwargs: any,
     ) -> any:
-        prev_meta = self.job.get_meta(refresh=True)
-        self.job.meta["progress"] = prev_meta["progress"] + 1
+        self.current_progress += 1
+        self.job.meta["progress"] = self.current_progress
         self.job.save_meta()
 
 
@@ -83,21 +85,18 @@ def get_hypothetical_questions(file: FileOutDto, docs):
         | ChatPromptTemplate.from_template(
             "Generate a list of 3 hypothetical questions in russian that the below document could be used to answer:\n\n{doc}"
         )
-        | ChatOpenAI(max_retries=0, model="gpt-3.5-turbo").bind(
+        | ChatOpenAI(max_retries=2, model="gpt-3.5-turbo").bind(
                 functions=functions,
                 function_call={"name": "hypothetical_questions"}
         )
         | JsonKeyOutputFunctionsParser(key_name="questions")
     )
-    task = file_upload_task_repository.create_task(file.id, len(docs))
     job = get_current_job()
-    file_repository.update({"id": file.id}, {"file_upload_task_id": task.id})
     try:
         hypothetical_questions = chain.batch(docs, {
-            "max_concurrency": 12,
+            "max_concurrency": 6,
             "callbacks": [UpdateTaskHandler(job)]}
         )
-        file_upload_task_repository.update(task.id, {"status": "finished"})
         return hypothetical_questions
     except OutputParserException:
         file_model.delete_file(file)

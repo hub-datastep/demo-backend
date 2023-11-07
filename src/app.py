@@ -18,7 +18,8 @@ from controller import (
     source_controller, logo_controller,
     chat_pdf_controller, user_controller,
     tenant_controller, file_controller,
-    task_controller, task_websocket_controller
+    task_controller, task_websocket_controller,
+    config_controller
 )
 
 sentry_sdk.init(
@@ -52,6 +53,7 @@ app.include_router(user_controller.router)
 app.include_router(tenant_controller.router)
 app.include_router(file_controller.router)
 app.include_router(task_controller.router)
+app.include_router(config_controller.router)
 
 
 @app.middleware("http")
@@ -86,6 +88,7 @@ app = VersionedFastAPI(
 )
 
 app.include_router(task_websocket_controller.router)
+
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8080, reload=False)
