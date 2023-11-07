@@ -36,10 +36,11 @@ class TenantRepository:
 
     @classmethod
     def create_tenant(cls, body: TenantCreateDto) -> TenantDto:
-        (_, [tenant]), _ = supabase\
+        response = supabase\
             .table("tenant")\
             .insert(body.model_dump())\
             .execute()
+        tenant = response.data[0]
         return TenantDto(**tenant)
 
     @classmethod
