@@ -1,10 +1,12 @@
 from fastapi import HTTPException
 
 from infra.supabase import supabase
+from util.logger import log
 
 
 class TenantRepository:
     @classmethod
+    @log("Получение строки подключения к базе")
     def get_db_uri_by_tenant_id(cls, tenant_id: int) -> str:
         (_, [tenant]), _ = supabase\
             .table("tenant")\

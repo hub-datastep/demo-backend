@@ -11,8 +11,10 @@ from dto.query_dto import QueryDto
 from dto.config_dto import DatabasePredictionConfigDto
 from repository.prompt_repository import prompt_repository
 from repository.tenant_repository import tenant_repository
+from util.logger import async_log
 
 
+@async_log("Получение ответа ассистента")
 async def datastep_get_prediction(
     body: QueryDto,
     tenant_id: int,

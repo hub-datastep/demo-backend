@@ -5,6 +5,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts.prompt import PromptTemplate
 
 from datastep.components.datastep_sql_database import DatastepSqlDatabase
+from util.logger import async_log
 
 check_data_template = """Пройди все шаги по порядку.
 
@@ -98,6 +99,7 @@ def parse_alternative_queries(alternative_queries) -> list[str]:
     return alternative_queries
 
 
+@async_log("Проверка, есть ли в базе нужная для ответа информация")
 async def check_data(input: str, database: DatastepSqlDatabase, turn_on: bool) -> tuple[str, str, list[str]]:
     if not turn_on:
         return "", "", []

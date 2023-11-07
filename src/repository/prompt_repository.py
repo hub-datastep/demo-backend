@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 
-from datastep.datastep_chains.datastep_sql_chain import datastep_sql_chain_template
 from dto.prompt_dto import PromptEditDto, PromptDto
 from infra.supabase import supabase
+from util.logger import log
 
 
 class PromptRepository:
@@ -12,6 +12,7 @@ class PromptRepository:
         return PromptDto(**prompt)
 
     @classmethod
+    @log("Получение промпта")
     def get_active_prompt_by_tenant_id(cls, tenant_id: int, table: str) -> PromptDto:
         response = supabase\
             .table("prompt")\

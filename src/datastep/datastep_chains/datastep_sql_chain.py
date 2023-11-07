@@ -7,7 +7,7 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain.utilities import SQLDatabase
 
 from datastep.datastep_chains.datastep_sql2text_chain import describe_sql
-
+from util.logger import async_log
 
 datastep_sql_chain_template = """
 You must follow the steps described below:
@@ -60,6 +60,7 @@ class DatastepSqlChain:
 
         self.chain = db_chain
 
+    @async_log("Генерация SQL")
     async def run(self, input: str, limit: int, is_sql_description: bool) -> (str, str):
         table_info = self.sql_database.get_table_info()
         response = await self.chain.arun(
