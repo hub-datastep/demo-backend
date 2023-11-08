@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi_versioning import version
 
-from dto.nomenclature_mapping_job_dto import NomenclatureMappingUpdateDto
+from dto.nomenclature_mapping_job_dto import NomenclatureMappingUpdateDto, NomenclatureMappingJobOutDto
 from dto.user_dto import UserDto
 from model import nomenclature_model
 from service.auth_service import AuthService
@@ -12,12 +12,13 @@ router = APIRouter(
 )
 
 
-@router.get("/job")
+@router.get("/job/{source}", response_model=NomenclatureMappingJobOutDto)
 @version(1)
 def get_nomenclature_mapping_jobs(
+    source: str | None = None,
     current_user: UserDto = Depends(AuthService.get_current_user)
 ):
-    return nomenclature_model.get_all_jobs()
+    return nomenclature_model.get_all_jobs(source=source)
 
 
 @router.put("")
@@ -33,7 +34,7 @@ def update_nomenclature_mapping(
 @version(1)
 def upload_file(
     file_object: UploadFile,
-    # current_user: UserDto = Depends(AuthService.get_current_user)
+    current_user: UserDto = Depends(AuthService.get_current_user)
 ):
     return nomenclature_model.process(file_object)
 

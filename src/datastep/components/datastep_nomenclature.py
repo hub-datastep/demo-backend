@@ -129,7 +129,8 @@ def do_mapping(query: str) -> str:
         "output": response,
         "wide_group": wide_group,
         "middle_group": middle_group,
-        "narrow_group": narrow_group
+        "narrow_group": narrow_group,
+        "source": job.get_meta().get("source", None)
     })
 
     job.meta["mapping_id"] = database_response.data[0]["id"]

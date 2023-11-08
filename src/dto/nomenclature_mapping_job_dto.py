@@ -15,3 +15,4 @@ class NomenclatureMappingJobOutDto(BaseModel):
     wide_group: str | None
     middle_group: str | None
     narrow_group: str | None
+    source: str | None
