@@ -16,3 +16,13 @@ class NomenclatureMappingJobOutDto(BaseModel):
     middle_group: str | None
     narrow_group: str | None
     source: str | None
+
+    def to_row(self):
+        return (
+            self.output,
+            str(self.status),
+            self.wide_group,
+            self.middle_group,
+            self.narrow_group,
+            self.source
+        )

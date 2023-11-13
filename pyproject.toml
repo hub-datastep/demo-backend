@@ -33,6 +33,7 @@ chromadb = "^0.4.14"
 websockets = ">=10.3,<11.0"
 redis = "^5.0.1"
 rq = "^1.15.1"
+openpyxl = "^3.1.2"
 
 
 [build-system]

@@ -1,7 +1,11 @@
+import pathlib
+
 from starlette.datastructures import UploadFile
 from rq.queue import Queue
 from rq.job import Job
 from redis import Redis
+from openpyxl import Workbook
+from openpyxl.styles import PatternFill, Font
 
 from datastep.components import datastep_nomenclature
 from dto.nomenclature_mapping_job_dto import NomenclatureMappingJobOutDto, NomenclatureMappingUpdateDto
@@ -9,7 +13,7 @@ from infra.supabase import supabase
 
 
 def parse_file(file_object: UploadFile):
-    return [s.decode("utf-8") for s in file_object.file.readlines()], file_object.filename
+    return [s.decode("utf-8").strip() for s in file_object.file.readlines()], file_object.filename
 
 
 def parse_string(file: str):
@@ -78,8 +82,78 @@ def get_all_jobs(source: str | None) -> list[NomenclatureMappingJobOutDto]:
     return [*jobs_from_rq, *jobs_from_database]
 
 
-if __name__ == "__main__":
-    all_jobs = get_all_jobs("source.txt")
+def create_excel(jobs: list[NomenclatureMappingJobOutDto]):
+    wb = Workbook()
+    ws = wb.active
 
-    for job in all_jobs:
-        print(job.get_status(), job.id, job.args)
+    ws.append(("Вход", "Выход", "Статус", "Широкая группа", "Средняя группа", "Узкая группа", "Источник"))
+    for i in range(1, 8):
+        ws.cell(1, i).font = Font(bold=True)
+
+    for i, j in enumerate(jobs, start=2):
+        ws.append((j.input, *j.to_row()))
+        if j.input == j.output:
+            ws.cell(i, 1).fill = PatternFill("solid", start_color="00FF00")
+        else:
+            ws.cell(i, 1).fill = PatternFill("solid", start_color="FF0000")
+
+    wb.save("sheet.xlsx")
+
+
+def transform_jobs_lists_to_dict(job_lists: list[list[NomenclatureMappingJobOutDto]]) -> dict:
+    """
+    result example:
+        {'Блок для ручной кладки ЦСК-100 400х200х200мм\n':
+            [
+                ('Блок газобетонный D600 B3,5 F50 600х200х200мм', 'None', '01. Строительные материалы', '01.07. Кирпич, камень, блоки', '01.07.01. Блоки газосиликатные', 'source_3.txt'),
+                ('Блок газобетонный D600 B3,5 F50 600х200х200мм', 'None', '01. Строительные материалы', '01.07. Кирпич, камень, блоки', '01.07.01. Блоки газосиликатные', 'source_4.txt')
+            ],
+            ...
+        }
+
+    """
+    result = {j.input: [] for j in job_lists[0]}
+    for job_list in job_lists:
+        for job in job_list:
+            result[job.input].append(job)
+    return result
+
+
+def create_test_excel(job_dict: dict):
+    def color_cell(ws, input: str, output: str, row: int):
+        if input.strip() == output:
+            ws.cell(row, 2).fill = PatternFill("solid", start_color="00FF00")
+        else:
+            ws.cell(row, 2).fill = PatternFill("solid", start_color="FF0000")
+
+    wb = Workbook()
+    ws = wb.active
+
+    ws.append(("Вход", "Выход", "Статус", "Широкая группа", "Средняя группа", "Узкая группа", "Источник"))
+    for i in range(1, 8):
+        ws.cell(1, i).font = Font(bold=True)
+
+    shift = 2
+    for input, rows in job_dict.items():
+        ws.append((input, *rows[0].to_row()))
+        color_cell(ws, input, rows[0].output, shift)
+        shift += 1
+        for job in rows[1:]:
+            ws.append(("", *job.to_row()))
+            color_cell(ws, input, job.output, shift)
+            shift += 1
+
+    filepath = f"{pathlib.Path(__file__).parent.resolve()}/../../data/sheet.xlsx"
+    wb.save(filepath)
+
+
+if __name__ == "__main__":
+    first_test_jobs = get_all_jobs("test_101123_1.txt")
+    # print(len(first_test_jobs))
+    # second_test_jobs = get_all_jobs("test_descr.txt")
+    create_test_excel(transform_jobs_lists_to_dict([first_test_jobs]))
+    # print(transform_jobs_lists_to_dict([first_test_jobs, second_test_jobs]))
+    # create_excel(all_jobs)
+
+    # for job in all_jobs:
+    #     print(job.status, job.correctness, job.id)
