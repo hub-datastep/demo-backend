@@ -26,3 +26,9 @@ class NomenclatureMappingJobOutDto(BaseModel):
             self.narrow_group,
             self.source
         )
+
+
+class NomenclatureMappingJobDto(NomenclatureMappingJobOutDto):
+    correct_wide_group: str | None
+    correct_middle_group: str | None
+    correct_narrow_group: str | None

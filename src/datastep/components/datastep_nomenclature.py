@@ -75,7 +75,7 @@ nomenclature_prompt = PromptTemplate(
     input_variables=["input", "groups"]
 )
 
-llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo")
+llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo", max_retries=3, request_timeout=30)
 
 description_chain = LLMChain(llm=llm, prompt=description_prompt)
 group_chain = LLMChain(llm=llm, prompt=group_prompt)

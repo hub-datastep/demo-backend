@@ -45,9 +45,10 @@ def get_jobs_from_rq(source: str | None):
 
     queued_job_ids = queue.get_job_ids()
     started_job_ids = queue.started_job_registry.get_job_ids()
+    finished_job_ids = queue.finished_job_registry.get_job_ids()
     failed_job_ids = queue.failed_job_registry.get_job_ids()
 
-    jobs = Job.fetch_many([*queued_job_ids, *started_job_ids, *failed_job_ids], connection=redis)
+    jobs = Job.fetch_many([*queued_job_ids, *started_job_ids, *finished_job_ids, *failed_job_ids], connection=redis)
 
     result = []
     wanted_jobs = [j for j in jobs if j.get_meta().get("source", None) == source]
@@ -78,8 +79,9 @@ def get_jobs_from_database(source: str | None):
 
 def get_all_jobs(source: str | None) -> list[NomenclatureMappingJobOutDto]:
     jobs_from_rq = get_jobs_from_rq(source)
-    jobs_from_database = get_jobs_from_database(source)
-    return [*jobs_from_rq, *jobs_from_database]
+    # jobs_from_database = get_jobs_from_database(source)
+    # return [*jobs_from_rq, *jobs_from_database]
+    return jobs_from_rq
 
 
 def create_excel(jobs: list[NomenclatureMappingJobOutDto]):
@@ -105,8 +107,8 @@ def transform_jobs_lists_to_dict(job_lists: list[list[NomenclatureMappingJobOutD
     result example:
         {'Блок для ручной кладки ЦСК-100 400х200х200мм\n':
             [
-                ('Блок газобетонный D600 B3,5 F50 600х200х200мм', 'None', '01. Строительные материалы', '01.07. Кирпич, камень, блоки', '01.07.01. Блоки газосиликатные', 'source_3.txt'),
-                ('Блок газобетонный D600 B3,5 F50 600х200х200мм', 'None', '01. Строительные материалы', '01.07. Кирпич, камень, блоки', '01.07.01. Блоки газосиликатные', 'source_4.txt')
+                Job('Блок газобетонный D600 B3,5 F50 600х200х200мм', 'None', '01. Строительные материалы', '01.07. Кирпич, камень, блоки', '01.07.01. Блоки газосиликатные', 'source_3.txt'),
+                Job('Блок газобетонный D600 B3,5 F50 600х200х200мм', 'None', '01. Строительные материалы', '01.07. Кирпич, камень, блоки', '01.07.01. Блоки газосиликатные', 'source_4.txt')
             ],
             ...
         }
