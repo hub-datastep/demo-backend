@@ -8,12 +8,12 @@ class TenantRepository:
     @classmethod
     @log("Получение строки подключения к базе")
     def get_db_uri_by_tenant_id(cls, tenant_id: int) -> str:
-        (_, [tenant]), _ = supabase\
+        response = supabase\
             .table("tenant")\
             .select("db_uri")\
             .eq("id", tenant_id)\
             .execute()
-        return tenant["db_uri"]
+        return response.data[0]["db_uri"]
 
     @classmethod
     def get_tenant_id_by_user_id(cls, user_id: str) -> int:

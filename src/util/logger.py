@@ -1,6 +1,6 @@
 import time
 
-log_file_name = None
+log_file_name = "timing.log"
 
 template = "{} — {} — {}\n"
 
