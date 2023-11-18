@@ -23,3 +23,11 @@ class MessageOutDto(MessageCreateDto):
     created_at: datetime
     review: list[ReviewOutDto] | None = None
     mark: list[MarkOutDto] | None = None
+
+class CreateFavoriteMessageDto(BaseModel):
+    user_id: str
+    mode: str
+    query: str
+
+class FavoriteMessageDto(CreateFavoriteMessageDto):
+    id: int
