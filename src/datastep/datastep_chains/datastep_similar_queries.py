@@ -3,6 +3,7 @@ from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
 
 from datastep.components.datastep_sql_database import DatastepSqlDatabase
+from util.logger import async_log
 
 similar_queries_template = """По данной схеме таблицы и составь 4 похожих вопроса на данный.
 
@@ -30,7 +31,11 @@ def parse_similar_queries(similar_queries: str) -> list[str]:
     return [q[3:] for q in similar_queries.split("\n")]
 
 
-async def generate_similar_queries(input: str, database: DatastepSqlDatabase) -> list[str]:
+@async_log("Генерация похожих вопросов")
+async def generate_similar_queries(input: str, database: DatastepSqlDatabase, turn_on: bool) -> list[str]:
+    if not turn_on:
+        return []
+
     similar_queries_chain = get_chain()
     response = await similar_queries_chain.arun(
         input=input,
