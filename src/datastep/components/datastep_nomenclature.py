@@ -1,5 +1,4 @@
 import pathlib
-import re
 
 from infra.supabase import supabase
 from langchain.prompts import PromptTemplate
@@ -94,8 +93,6 @@ group_runnable_gpt_4 = create_structured_output_runnable(group_json_schema, gpt_
 nomenclature_runnable = create_structured_output_runnable(nomenclature_json_schema, gpt_4, nomenclature_prompt)
 
 description_chain = LLMChain(llm=gpt_3, prompt=description_prompt)
-# group_chain = LLMChain(llm=llm, prompt=group_prompt)
-# nomenclature_chain = LLMChain(llm=llm, prompt=nomenclature_prompt)
 
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=4000,
@@ -112,15 +109,6 @@ def map_with_groups(query: str, description: str, filepath: str, group_runnable,
 
     response = group_runnable.invoke({"input": query, "groups": groups, "description": description})
     return response["category"]
-
-
-def extract(response: dict, regex: str):
-    return response["category"]
-    # match = re.search(regex, response)
-    # try:
-    #     return match.group(1)
-    # except:
-    #     return response
 
 
 def map_with_nomenclature(query: str, final_group: str):
@@ -147,21 +135,13 @@ def save_to_database(values: dict):
 def do_mapping(query: str) -> str:
     with get_openai_callback() as cb:
         description = description_chain.run(query)
-        # print(description)
         job = get_current_job()
 
-        # wide_group = map_with_groups(query, description, f"{get_data_folder_path()}/../data/parent-parent-parent.txt", group_runnable_gpt_4)
-        # print(wide_group)
-        # job.meta["wide_group"] = wide_group
-        # job.save_meta()
-
         middle_group = map_with_groups(query, description, f"{get_data_folder_path()}/../data/parent-parent.txt", group_runnable_gpt_3)
-        # print(middle_group)
         job.meta["middle_group"] = middle_group
         job.save_meta()
 
         narrow_group = map_with_groups(query, description, f"{get_data_folder_path()}/../data/parent.txt", group_runnable_gpt_3, middle_group, 6)
-        # print(narrow_group)
         job.meta["narrow_group"] = narrow_group
         job.save_meta()
 
@@ -179,8 +159,6 @@ def do_mapping(query: str) -> str:
 
         job.meta["mapping_id"] = database_response.data[0]["id"]
         job.save()
-
-    # print("$" + str(cb.prompt_tokens * 0.01 / 1000 * cb.completion_tokens * 0.03 / 1000))
 
     return response
 
