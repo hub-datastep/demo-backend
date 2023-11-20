@@ -8,7 +8,8 @@ from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font
 
 from datastep.components import datastep_nomenclature
-from dto.nomenclature_mapping_job_dto import NomenclatureMappingJobOutDto, NomenclatureMappingUpdateDto
+from dto.nomenclature_mapping_job_dto import NomenclatureMappingJobOutDto, NomenclatureMappingUpdateDto, \
+    NomenclatureMappingJobDto
 from infra.supabase import supabase
 
 
@@ -20,26 +21,32 @@ def parse_string(file: str):
     return file.split("\n")
 
 
-def create_job(query: str, filename: str | None):
+def create_job(test_case: str, filename: str | None):
+    query, narrow_group, middle_group, wide_group = test_case.split(":")
+
     redis = Redis()
     queue = Queue(name="nomenclature", connection=redis)
     job = queue.enqueue(datastep_nomenclature.do_mapping, query, result_ttl=-1)
+
     job.meta["source"] = filename
+    job.meta["correct_wide_group"] = wide_group
+    job.meta["correct_middle_group"] = middle_group
+    job.meta["correct_narrow_group"] = narrow_group
     job.save_meta()
 
 
 def process(nomenclature_object: UploadFile):
-    nomenclatures, filename = parse_file(nomenclature_object)
+    test_cases, filename = parse_file(nomenclature_object)
 
-    for nomenclature in nomenclatures:
-        create_job(nomenclature, filename)
+    for test_case in test_cases:
+        create_job(test_case, filename)
 
 
 def update_nomenclature_mapping(body: NomenclatureMappingUpdateDto):
     supabase.table("nomenclature_mapping").update({"correctness": body.correctness}).eq("id", body.id).execute()
 
 
-def get_jobs_from_rq(source: str | None):
+def get_jobs_from_rq(source: str | None) -> list[NomenclatureMappingJobDto]:
     redis = Redis()
     queue = Queue("nomenclature", connection=redis)
 
@@ -53,35 +60,38 @@ def get_jobs_from_rq(source: str | None):
     result = []
     wanted_jobs = [j for j in jobs if j.get_meta().get("source", None) == source]
     for job in wanted_jobs:
-        result.append(NomenclatureMappingJobOutDto(
+        result.append(NomenclatureMappingJobDto(
             id=job.get_meta().get("mapping_id", None),
             input=job.args[0],
-            output=job.return_value(),
+            output=str(job.return_value()).replace("\n", "").replace("'", ""),
             source=job.get_meta().get("source", None),
             status=job.get_status(),
             wide_group=job.get_meta().get("wide_group", None),
             middle_group=job.get_meta().get("middle_group", None),
             narrow_group=job.get_meta().get("narrow_group", None),
+            correct_wide_group=job.get_meta().get("correct_wide_group", None),
+            correct_middle_group=job.get_meta().get("correct_middle_group", None),
+            correct_narrow_group=job.get_meta().get("correct_narrow_group", None)
         ))
 
     return result
 
 
-def get_jobs_from_database(source: str | None):
+def get_jobs_from_database(source: str | None) -> list[NomenclatureMappingJobDto]:
     response = supabase.table("nomenclature_mapping").select("*").order("id").eq("source", source).execute()
 
     result = []
     for job in response.data:
-        result.append(NomenclatureMappingJobOutDto(**job))
+        result.append(NomenclatureMappingJobDto(**job))
 
     return result
 
 
-def get_all_jobs(source: str | None) -> list[NomenclatureMappingJobOutDto]:
+def get_all_jobs(source: str | None) -> list[NomenclatureMappingJobDto]:
     jobs_from_rq = get_jobs_from_rq(source)
     # jobs_from_database = get_jobs_from_database(source)
-    # return [*jobs_from_rq, *jobs_from_database]
     return jobs_from_rq
+    # return [*jobs_from_rq, *jobs_from_database]
 
 
 def create_excel(jobs: list[NomenclatureMappingJobOutDto]):
@@ -102,7 +112,7 @@ def create_excel(jobs: list[NomenclatureMappingJobOutDto]):
     wb.save("sheet.xlsx")
 
 
-def transform_jobs_lists_to_dict(job_lists: list[list[NomenclatureMappingJobOutDto]]) -> dict:
+def transform_jobs_lists_to_dict(job_lists: list[list[NomenclatureMappingJobDto]]) -> dict:
     """
     result example:
         {'Блок для ручной кладки ЦСК-100 400х200х200мм\n':
@@ -122,11 +132,11 @@ def transform_jobs_lists_to_dict(job_lists: list[list[NomenclatureMappingJobOutD
 
 
 def create_test_excel(job_dict: dict):
-    def color_cell(ws, input: str, output: str, row: int):
+    def color_cell(ws, row: int, column: int, input: str, output: str):
         if input.strip() == output:
-            ws.cell(row, 2).fill = PatternFill("solid", start_color="00FF00")
+            ws.cell(row, column).fill = PatternFill("solid", start_color="00FF00")
         else:
-            ws.cell(row, 2).fill = PatternFill("solid", start_color="FF0000")
+            ws.cell(row, column).fill = PatternFill("solid", start_color="FF0000")
 
     wb = Workbook()
     ws = wb.active
@@ -138,11 +148,17 @@ def create_test_excel(job_dict: dict):
     shift = 2
     for input, rows in job_dict.items():
         ws.append((input, *rows[0].to_row()))
-        color_cell(ws, input, rows[0].output, shift)
+        color_cell(ws, shift, 2, input, rows[0].output)
+        color_cell(ws, shift, 4, rows[0].correct_wide_group, rows[0].wide_group)
+        color_cell(ws, shift, 5, rows[0].correct_middle_group, rows[0].middle_group)
+        color_cell(ws, shift, 6, rows[0].correct_narrow_group, rows[0].narrow_group)
         shift += 1
         for job in rows[1:]:
             ws.append(("", *job.to_row()))
-            color_cell(ws, input, job.output, shift)
+            color_cell(ws, shift, 2, input, job.output)
+            color_cell(ws, shift, 4, job.correct_wide_group, job.wide_group)
+            color_cell(ws, shift, 5, job.correct_middle_group, job.middle_group)
+            color_cell(ws, shift, 6, job.correct_narrow_group, job.narrow_group)
             shift += 1
 
     filepath = f"{pathlib.Path(__file__).parent.resolve()}/../../data/sheet.xlsx"
