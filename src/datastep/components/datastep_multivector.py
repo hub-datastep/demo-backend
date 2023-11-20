@@ -85,7 +85,7 @@ def get_hypothetical_questions(file: FileOutDto, docs):
         | ChatPromptTemplate.from_template(
             "Generate a list of 3 hypothetical questions in russian that the below document could be used to answer:\n\n{doc}"
         )
-        | ChatOpenAI(max_retries=2, model="gpt-3.5-turbo", request_timeout=10).bind(
+        | ChatOpenAI(max_retries=6, model="gpt-3.5-turbo-1106", request_timeout=10).bind(
                 functions=functions,
                 function_call={"name": "hypothetical_questions"}
         )
