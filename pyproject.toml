@@ -29,11 +29,11 @@ faiss-cpu = "^1.7.4"
 pypdf = "^3.16.3"
 transliterate = "^1.10.2"
 llama-index = "^0.8.45.post1"
-langchain = "^0.0.315"
 chromadb = "^0.4.14"
 websockets = ">=10.3,<11.0"
 redis = "^5.0.1"
 rq = "^1.15.1"
+openpyxl = "^3.1.2"
 
 
 [build-system]

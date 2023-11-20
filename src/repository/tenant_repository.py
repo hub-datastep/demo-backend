@@ -21,7 +21,6 @@ class TenantRepository:
             .table("user_tenant")\
             .select("tenant_id")\
             .eq("user_id", user_id)\
-            .eq("is_last", True)\
             .execute()
 
         if len(response.data) == 0:
