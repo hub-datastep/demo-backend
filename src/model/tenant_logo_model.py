@@ -7,7 +7,7 @@ def get_logo(user_id: str) -> str:
     tenant_id = tenant_repository.get_tenant_id_by_user_id(user_id)
     logo = logo_repository.fetch_logo_by_tenant_id(tenant_id)
     
-    if logo == None:
+    if logo is None:
         return LOGO_DEFAULT_PATH
     
     return logo

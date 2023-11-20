@@ -1,1 +1,1 @@
-LOGO_DEFAULT_PATH = "/image/logo/datastepLogo.svg"
+LOGO_DEFAULT_PATH = "/image/logo/defaultLogo.svg"

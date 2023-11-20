@@ -65,7 +65,6 @@ app = VersionedFastAPI(
             allow_origins=[
                 "https://msu-frontend.fly.dev",
                 "https://msu-frontend-dev.fly.dev",
-                "https://datastep-frontend-mock.fly.dev",
                 "http://localhost:3000"
             ],
             allow_methods=["POST", "GET", "PUT", "DELETE"],
