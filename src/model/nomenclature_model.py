@@ -22,7 +22,15 @@ def parse_string(file: str):
 
 
 def create_job(test_case: str, filename: str | None):
-    query, narrow_group, middle_group, wide_group = test_case.split(":")
+    split = test_case.split(":")
+
+    query = split[0]
+    narrow_group = ""
+    middle_group = ""
+    wide_group = ""
+
+    if len(split) > 1:
+        narrow_group, middle_group, wide_group = split[1:]
 
     redis = Redis()
     queue = Queue(name="nomenclature", connection=redis)
@@ -131,7 +139,7 @@ def transform_jobs_lists_to_dict(job_lists: list[list[NomenclatureMappingJobDto]
     return result
 
 
-def create_test_excel(job_dict: dict):
+def create_test_excel(job_dict: dict, colored: bool = False):
     def color_cell(ws, row: int, column: int, input: str, output: str):
         if input.strip() == output:
             ws.cell(row, column).fill = PatternFill("solid", start_color="00FF00")
@@ -148,17 +156,19 @@ def create_test_excel(job_dict: dict):
     shift = 2
     for input, rows in job_dict.items():
         ws.append((input, *rows[0].to_row()))
-        color_cell(ws, shift, 2, input, rows[0].output)
-        color_cell(ws, shift, 4, rows[0].correct_wide_group, rows[0].wide_group)
-        color_cell(ws, shift, 5, rows[0].correct_middle_group, rows[0].middle_group)
-        color_cell(ws, shift, 6, rows[0].correct_narrow_group, rows[0].narrow_group)
+        if colored:
+            color_cell(ws, shift, 2, input, rows[0].output)
+            color_cell(ws, shift, 4, rows[0].correct_wide_group, rows[0].wide_group)
+            color_cell(ws, shift, 5, rows[0].correct_middle_group, rows[0].middle_group)
+            color_cell(ws, shift, 6, rows[0].correct_narrow_group, rows[0].narrow_group)
         shift += 1
         for job in rows[1:]:
             ws.append(("", *job.to_row()))
-            color_cell(ws, shift, 2, input, job.output)
-            color_cell(ws, shift, 4, job.correct_wide_group, job.wide_group)
-            color_cell(ws, shift, 5, job.correct_middle_group, job.middle_group)
-            color_cell(ws, shift, 6, job.correct_narrow_group, job.narrow_group)
+            if colored:
+                color_cell(ws, shift, 2, input, job.output)
+                color_cell(ws, shift, 4, job.correct_wide_group, job.wide_group)
+                color_cell(ws, shift, 5, job.correct_middle_group, job.middle_group)
+                color_cell(ws, shift, 6, job.correct_narrow_group, job.narrow_group)
             shift += 1
 
     filepath = f"{pathlib.Path(__file__).parent.resolve()}/../../data/sheet.xlsx"
