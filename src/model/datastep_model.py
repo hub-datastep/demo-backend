@@ -26,7 +26,6 @@ async def datastep_get_prediction(
     datastep_sql_database = DatastepSqlDatabase(
         database_connection_string=tenant_db_uri,
         include_tables=body.tables,
-        tenant_id=tenant_id
     )
 
     datastep_sql_chain = DatastepSqlChain(

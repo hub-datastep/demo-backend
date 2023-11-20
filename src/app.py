@@ -15,23 +15,11 @@ from controller import (
     datastep_controller, mark_controller,
     message_controller, prompt_controller,
     question_controller, review_controller,
-    source_controller, logo_controller,
+    logo_controller, config_controller,
     chat_pdf_controller, user_controller,
     tenant_controller, file_controller,
     task_controller, task_websocket_controller,
-    nomenclature_controller, config_controller
-)
-
-sentry_sdk.init(
-    dsn="https://a93b994680a287f702ca14bc34dffb35@o4505793939963904.ingest.sentry.io/4505793941995520",
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
-    traces_sample_rate=1.0,
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0,
+    nomenclature_controller
 )
 
 load_dotenv()
@@ -46,7 +34,6 @@ app.include_router(message_controller.router)
 app.include_router(review_controller.router)
 app.include_router(mark_controller.router)
 app.include_router(prompt_controller.router)
-app.include_router(source_controller.router)
 app.include_router(question_controller.router)
 app.include_router(logo_controller.router)
 app.include_router(user_controller.router)
@@ -62,7 +49,6 @@ async def catch_exceptions_middleware(request: Request, call_next):
     try:
         return await call_next(request)
     except Exception as e:
-        print(e)
         return JSONResponse(
             status_code=500,
             content={"message": f"{e}", "traceback": traceback.format_exception(e)},

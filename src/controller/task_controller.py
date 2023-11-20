@@ -20,8 +20,8 @@ router = APIRouter(
 
 def get_current_user_job(user_id: str) -> Job | None:
     redis = Redis()
-    q = Queue("default", connection=redis)
-    registry = StartedJobRegistry(name="default", connection=redis)
+    q = Queue("document", connection=redis)
+    registry = StartedJobRegistry(name="document", connection=redis)
     job_ids: list = registry.get_job_ids()
     job_ids.extend(q.get_job_ids())
     all_jobs = Job.fetch_many(job_ids, connection=redis)

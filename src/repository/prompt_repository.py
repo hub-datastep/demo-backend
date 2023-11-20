@@ -2,7 +2,7 @@ from fastapi import HTTPException
 
 from dto.prompt_dto import PromptEditDto, PromptDto
 from infra.supabase import supabase
-from util.logger import log
+# from util.logger import log
 
 
 class PromptRepository:
@@ -12,7 +12,7 @@ class PromptRepository:
         return PromptDto(**prompt)
 
     @classmethod
-    @log("Получение промпта")
+    # @log("Получение промпта")
     def get_active_prompt_by_tenant_id(cls, tenant_id: int, table: str) -> PromptDto:
         response = supabase\
             .table("prompt")\
