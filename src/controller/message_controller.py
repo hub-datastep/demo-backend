@@ -34,3 +34,8 @@ def get_favorites_list_by_user_id(user_id: str, current_user: UserDto=Depends(Au
 @version(1)
 def add_message_to_favorites_list(body: CreateFavoriteMessageDto, current_user: UserDto=Depends(AuthService.get_current_user)):
     return message_repository.add_favorite_message(body)
+
+@router.delete("/favorite/{favorite_message_id}")
+@version(1)
+def remove_favorite_message(favorite_message_id: int, current_user: UserDto = Depends(AuthService.get_current_user)):
+    return message_repository.remove_favorite_message(favorite_message_id)

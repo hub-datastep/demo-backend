@@ -41,7 +41,7 @@ class MessageRepository:
             .eq("chat_id", chat_id)\
             .execute()
         return [MessageOutDto(**message) for message in messages]
-    
+        
     @classmethod
     def get_favorites_list(cls, user_id: str) -> list[FavoriteMessageDto]:
         response = supabase\
@@ -56,6 +56,15 @@ class MessageRepository:
         supabase\
             .table("favorite")\
             .insert(body.model_dump())\
-            .execute()           
+            .execute()       
+            
+    @classmethod
+    def remove_favorite_message(cls, favorite_message_id: int):
+        supabase\
+            .table("favorite")\
+            .delete()\
+            .eq("id", favorite_message_id)\
+            .execute()
+
 
 message_repository = MessageRepository()
