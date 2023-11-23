@@ -9,39 +9,60 @@ from requests import Request
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# from controller import (
+#     auth_controller, chat_controller,
+#     datastep_controller, mark_controller,
+#     message_controller, prompt_controller,
+#     question_controller, review_controller,
+#     logo_controller, config_controller,
+#     chat_pdf_controller, user_controller,
+#     tenant_controller, file_controller,
+#     task_controller, task_websocket_controller,
+#     nomenclature_controller
+# )
+
+from scheme import mode_scheme
 
 from controller import (
-    auth_controller, chat_controller,
-    datastep_controller, mark_controller,
-    message_controller, prompt_controller,
-    question_controller, review_controller,
-    logo_controller, config_controller,
-    chat_pdf_controller, user_controller,
-    tenant_controller, file_controller,
-    task_controller, task_websocket_controller,
-    nomenclature_controller
+    chat_controller, message_controller,
+    user_controller, tenant_controller,
+    mark_controller, review_controller,
+    prediction_controller
 )
+from infra.database import create_db_and_tables, create_mock_data
 
 load_dotenv()
 
 app = FastAPI()
 
-app.include_router(auth_controller.router)
-app.include_router(datastep_controller.router)
-app.include_router(chat_pdf_controller.router)
+# app.include_router(auth_controller.router)
+# app.include_router(datastep_controller.router)
+# app.include_router(chat_pdf_controller.router)
+# app.include_router(chat_controller.router)
+# app.include_router(message_controller.router)
+# app.include_router(review_controller.router)
+# app.include_router(mark_controller.router)
+# app.include_router(prompt_controller.router)
+# app.include_router(question_controller.router)
+# app.include_router(logo_controller.router)
+# app.include_router(user_controller.router)
+# app.include_router(tenant_controller.router)
+# app.include_router(file_controller.router)
+# app.include_router(task_controller.router)
+# app.include_router(nomenclature_controller.router)
+# app.include_router(config_controller.router)
+
 app.include_router(chat_controller.router)
-app.include_router(message_controller.router)
-app.include_router(review_controller.router)
-app.include_router(mark_controller.router)
-app.include_router(prompt_controller.router)
-app.include_router(question_controller.router)
-app.include_router(logo_controller.router)
 app.include_router(user_controller.router)
+app.include_router(message_controller.router)
 app.include_router(tenant_controller.router)
-app.include_router(file_controller.router)
-app.include_router(task_controller.router)
-app.include_router(nomenclature_controller.router)
-app.include_router(config_controller.router)
+app.include_router(mark_controller.router)
+app.include_router(review_controller.router)
+app.include_router(prediction_controller.router)
 
 
 @app.middleware("http")
@@ -74,7 +95,16 @@ app = VersionedFastAPI(
     ]
 )
 
-app.include_router(task_websocket_controller.router)
+# app.include_router(task_websocket_controller.router)
+
+
+@app.on_event("startup")
+def on_startup():
+    print("start")
+    create_db_and_tables()
+    print("middle")
+    create_mock_data()
+    print("end")
 
 
 if __name__ == "__main__":

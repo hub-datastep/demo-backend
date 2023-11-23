@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
+from sqlmodel import Session
 
-from dto.review_dto import ReviewOutDto, ReviewCreateDto
-from dto.user_dto import UserDto
-from repository.review_repository import review_repository
-from service.auth_service import AuthService
+from infra.database import get_session
+from repository import review_repository
+from scheme.review_scheme import ReviewCreate, ReviewRead
 
 router = APIRouter(
     prefix="/review",
@@ -12,7 +12,7 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=ReviewOutDto)
+@router.post("", response_model=ReviewRead)
 @version(1)
-def create_review(body: ReviewCreateDto, current_user: UserDto = Depends(AuthService.get_current_user)):
-    return review_repository.create(body)
+def create_review(*, session: Session = Depends(get_session), review: ReviewCreate):
+    return review_repository.create_review(session, review)

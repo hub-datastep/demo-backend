@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
+from sqlmodel import Session
 
-from dto.mark_dto import MarkCreateDto, MarkOutDto
-from dto.user_dto import UserDto
-from repository.mark_repository import mark_repository
-from service.auth_service import AuthService
+from infra.database import get_session
+from repository import mark_repository
+from scheme.mark_scheme import MarkRead, MarkCreate
 
 router = APIRouter(
     prefix="/mark",
@@ -12,8 +12,7 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=MarkOutDto)
+@router.post("", response_model=MarkRead)
 @version(1)
-def create_mark(body: MarkCreateDto, current_user: UserDto = Depends(AuthService.get_current_user)):
-    return mark_repository.create(body)
-
+def create_or_update_mark(*, session: Session = Depends(get_session), mark: MarkCreate):
+    return mark_repository.create_or_update_mark(session, mark)

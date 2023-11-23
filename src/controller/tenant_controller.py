@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
+from sqlmodel import Session
 
-from dto.prompt_dto import PromptDto
-from dto.user_dto import UserDto
-from repository.prompt_repository import prompt_repository
-from service.auth_service import AuthService
+from infra.database import get_session
+from repository import tenant_repository
+from scheme.tenant_scheme import TenantRead, TenantCreate
 
 router = APIRouter(
     prefix="/tenant",
@@ -12,7 +12,7 @@ router = APIRouter(
 )
 
 
-@router.get("/{tenant_id}/prompt/active", response_model=PromptDto)
+@router.post("", response_model=TenantRead)
 @version(1)
-def get_active_prompt(tenant_id: int, current_user: UserDto = Depends(AuthService.get_current_user)):
-    return prompt_repository.get_active_prompt_by_tenant_id(tenant_id, "платежи")
+def create_tenant(*, session: Session = Depends(get_session), tenant: TenantCreate):
+    return tenant_repository.create_tenant(session, tenant)

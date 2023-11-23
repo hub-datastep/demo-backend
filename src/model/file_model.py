@@ -11,8 +11,8 @@ from dto.file_dto import FileDto, StorageFileDto, FileOutDto
 from dto.user_dto import UserDto
 from repository import file_repository
 from service import supastorage_service
-from service.supastorage_service import delete_file_from_supastorage
-from storage3.utils import StorageException
+# from service.supastorage_service import delete_file_from_supastorage
+# from storage3.utils import StorageException
 
 
 def _save_file(file: FileOutDto, storage_file):

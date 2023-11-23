@@ -1,27 +1,29 @@
 import asyncio
 import pandas as pd
 
+from dotenv import load_dotenv
+
 from datastep.components.datastep_sql_database import DatastepSqlDatabase
 from datastep.datastep_chains.datastep_check_data_chain import check_data
 from datastep.datastep_chains.datastep_similar_queries import generate_similar_queries
 from datastep.datastep_chains.datastep_sql_chain import DatastepSqlChain
-
 from dto.datastep_prediction_dto import DatastepPredictionDto, DatastepPredictionOutDto
 from dto.query_dto import QueryDto
 from dto.config_dto import DatabasePredictionConfigDto
-from repository.prompt_repository import prompt_repository
-from repository.tenant_repository import tenant_repository
+from scheme.database_prediction_config_scheme import DatabasePredictionConfig
+from scheme.prediction_scheme import DatabasePredictionQuery
+from scheme.tenant_scheme import Tenant
 from util.logger import async_log
 
 
 @async_log("Получение ответа ассистента")
 async def datastep_get_prediction(
-    body: QueryDto,
-    tenant_id: int,
-    prediction_config: DatabasePredictionConfigDto | None
+    body: DatabasePredictionQuery,
+    tenant: Tenant,
+    prediction_config: DatabasePredictionConfig | None
 ) -> DatastepPredictionDto:
-    tenant_db_uri = tenant_repository.get_db_uri_by_tenant_id(tenant_id)
-    tenant_active_prompt_template = prompt_repository.get_active_prompt_by_tenant_id(tenant_id, body.tables[0])
+    tenant_db_uri = tenant.db_uri
+    tenant_active_prompt_template = tenant.active_prompt
 
     datastep_sql_database = DatastepSqlDatabase(
         database_connection_string=tenant_db_uri,
