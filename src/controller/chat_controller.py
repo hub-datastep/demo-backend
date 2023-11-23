@@ -2,12 +2,9 @@ from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 from sqlmodel import Session
 
-from dto.chat_dto import ChatOutDto, ChatCreateDto
-from dto.user_dto import UserDto
 from infra.database import get_session
 from repository import chat_repository
 from scheme.chat_scheme import ChatRead, ChatCreate
-# from service.auth_service import AuthService
 
 
 router = APIRouter(

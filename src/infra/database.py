@@ -1,11 +1,12 @@
 from sqlmodel import create_engine, SQLModel, Session
 
+from model import user_model
 from scheme.chat_scheme import Chat
 from scheme.message_scheme import Message
 from scheme.mode_scheme import Mode
 from scheme.prompt_scheme import Prompt
 from scheme.tenant_scheme import Tenant
-from scheme.user_scheme import User
+from scheme.user_scheme import UserCreate
 
 sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
@@ -74,7 +75,8 @@ Return only SQL query ready for execution"""
             "table": "платежи",
             "tenant_id": tenant_db.id
         })
-        user_db = create_note(session, User, {"username": "admin", "password": "admin", "tenants": [tenant_db]})
+        user_db = user_model.create_user(session, UserCreate(username="admin", password="admin", tenant_id=1))
+        # user_db = create_note(session, User, {"username": "admin", "password": "admin", "tenants": [tenant_db]})
         chat_db = create_note(session, Chat, {"user_id": user_db.id})
         create_note(session, Message, {
             "query": "",

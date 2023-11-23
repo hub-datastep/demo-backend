@@ -7,12 +7,12 @@ from scheme.user_tenant_scheme import UserTenantLink
 class TenantBase(SQLModel):
     name: str
     logo: str
-    db_uri: str
     is_last: bool = False
 
 
 class Tenant(TenantBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
+    db_uri: str
     users: list["User"] = Relationship(back_populates="tenants", link_model=UserTenantLink)
     modes: list["Mode"] = Relationship(back_populates="tenants", link_model=ModeTenantLink)
     prompts: list["Prompt"] = Relationship(back_populates="tenant")
@@ -22,7 +22,7 @@ class Tenant(TenantBase, table=True):
 
 
 class TenantCreate(TenantBase):
-    pass
+    db_uri: str
 
 
 class TenantRead(TenantBase):

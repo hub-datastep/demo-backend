@@ -1,3 +1,5 @@
+from typing import Type
+
 from fastapi import HTTPException
 
 from sqlmodel import Session
@@ -6,6 +8,15 @@ from scheme.tenant_scheme import TenantCreate, Tenant
 
 
 # from util.logger import log
+
+def get_tenant_by_id(session: Session, tenant_id: int) -> Type[Tenant]:
+    tenant_db = session.get(Tenant, tenant_id)
+
+    if tenant_db is None:
+        raise HTTPException(status_code=404, detail=f"Tenant with tenant_id={tenant_id} is not found.")
+
+    return tenant_db
+
 
 
 def create_tenant(session: Session, tenant: TenantCreate) -> Tenant:

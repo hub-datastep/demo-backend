@@ -31,7 +31,7 @@ from controller import (
     chat_controller, message_controller,
     user_controller, tenant_controller,
     mark_controller, review_controller,
-    prediction_controller
+    prediction_controller, auth_controller
 )
 from infra.database import create_db_and_tables, create_mock_data
 
@@ -56,6 +56,7 @@ app = FastAPI()
 # app.include_router(nomenclature_controller.router)
 # app.include_router(config_controller.router)
 
+app.include_router(auth_controller.router)
 app.include_router(chat_controller.router)
 app.include_router(user_controller.router)
 app.include_router(message_controller.router)
