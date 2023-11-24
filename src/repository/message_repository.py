@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-from dto.message_dto import MessageOutDto, MessageCreateDto
+from dto.message_dto import MessageOutDto, MessageCreateDto, FavoriteMessageDto, CreateFavoriteMessageDto
 from infra.supabase import supabase
 
 
@@ -41,6 +41,30 @@ class MessageRepository:
             .eq("chat_id", chat_id)\
             .execute()
         return [MessageOutDto(**message) for message in messages]
+        
+    @classmethod
+    def get_favorites_list(cls, user_id: str) -> list[FavoriteMessageDto]:
+        response = supabase\
+            .table("favorite")\
+            .select("*")\
+            .eq("user_id", user_id)\
+            .execute()
+        return [FavoriteMessageDto(**favorite_question) for favorite_question in response.data]
+    
+    @classmethod
+    def add_favorite_message(cls, body: CreateFavoriteMessageDto):
+        supabase\
+            .table("favorite")\
+            .insert(body.model_dump())\
+            .execute()       
+            
+    @classmethod
+    def remove_favorite_message(cls, favorite_message_id: int):
+        supabase\
+            .table("favorite")\
+            .delete()\
+            .eq("id", favorite_message_id)\
+            .execute()
 
 
 message_repository = MessageRepository()
