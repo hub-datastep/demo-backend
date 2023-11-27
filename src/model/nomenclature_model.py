@@ -5,7 +5,7 @@ from rq.queue import Queue
 from rq.job import Job
 from redis import Redis
 from openpyxl import Workbook
-from openpyxl.styles import PatternFill, Font
+from openpyxl.styles import PatternFill, Font, Alignment
 
 from datastep.components import datastep_nomenclature
 from dto.nomenclature_mapping_job_dto import NomenclatureMappingJobOutDto, NomenclatureMappingUpdateDto, \
@@ -67,11 +67,17 @@ def get_jobs_from_rq(source: str | None) -> list[NomenclatureMappingJobDto]:
 
     result = []
     wanted_jobs = [j for j in jobs if j.get_meta().get("source", None) == source]
+
+    def get_readable_output(output: list[str] | None) -> str:
+        if output is None:
+            return "None"
+        return "\n".join(output)
+
     for job in wanted_jobs:
         result.append(NomenclatureMappingJobDto(
             id=job.get_meta().get("mapping_id", None),
             input=job.args[0],
-            output=str(job.return_value()).replace("\n", "").replace("'", ""),
+            output=get_readable_output(job.return_value()),
             source=job.get_meta().get("source", None),
             status=job.get_status(),
             wide_group=job.get_meta().get("wide_group", None),
@@ -156,6 +162,7 @@ def create_test_excel(job_dict: dict, colored: bool = False):
     shift = 2
     for input, rows in job_dict.items():
         ws.append((input, *rows[0].to_row()))
+        ws.cell(shift, 2).alignment = Alignment(wrapText=True)
         if colored:
             color_cell(ws, shift, 2, input, rows[0].output)
             color_cell(ws, shift, 4, rows[0].correct_wide_group, rows[0].wide_group)
@@ -164,6 +171,7 @@ def create_test_excel(job_dict: dict, colored: bool = False):
         shift += 1
         for job in rows[1:]:
             ws.append(("", *job.to_row()))
+            ws.cell(shift, 2).alignment = Alignment(wrapText=True)
             if colored:
                 color_cell(ws, shift, 2, input, job.output)
                 color_cell(ws, shift, 4, job.correct_wide_group, job.wide_group)
