@@ -1,0 +1,31 @@
+version: "3"
+
+services:
+  redis:
+    image: redis:latest
+    command: redis-server
+    ports:
+      - 6379:6379
+  server:
+    build: .
+    image: server-image
+    container_name: server-image
+    command: python3 /app/src/app.py
+    ports:
+      - 3000:3000
+    depends_on:
+      - redis
+  rq-worker:
+    image: jaredv/rq-docker:0.0.2
+    command: rq worker --path src nomenclature document
+    deploy:
+      replicas: 3
+    depends_on:
+      - redis
+  rq-dashboard:
+    image: jaredv/rq-docker:0.0.2
+    command: rq-dashboard
+    ports:
+      - 9181:9181
+    depends_on:
+      - redis

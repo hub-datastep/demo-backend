@@ -45,7 +45,3 @@ RUN pip install rq-dashboard
 RUN apt install lsb-release curl gpg
 
 COPY . /app
-
-RUN chmod +x /app/start.sh
-
-CMD /app/start.sh
