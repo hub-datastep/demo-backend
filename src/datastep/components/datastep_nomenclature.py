@@ -1,13 +1,14 @@
 import pathlib
 
 from infra.supabase import supabase
+
 from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from rq import get_current_job
 from langchain.callbacks import get_openai_callback
 from langchain.chains.openai_functions import create_structured_output_runnable
+from rq import get_current_job
 
 
 def get_nomenclatures(group: str) -> str:
@@ -39,8 +40,7 @@ group_template = """"Для объекта выбери строго одну п
 {groups}
 """
 
-nomenclature_template = """Найди в списке такой же объект.
-Если в списке нет такого же объекта, напиши 0
+nomenclature_template = """Найди в списке 5 наиболее похожих объектов.
 
 Объект: 
 {input}
@@ -64,12 +64,10 @@ nomenclature_prompt = PromptTemplate(
     input_variables=["input", "groups"]
 )
 
-gpt_3 = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo-1106", max_retries=3, request_timeout=10)
-gpt_4 = ChatOpenAI(temperature=0, model_name="gpt-4-1106-preview", max_retries=3, request_timeout=10)
+gpt_3 = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo", max_retries=3, request_timeout=30)
+gpt_4 = ChatOpenAI(temperature=0, model_name="gpt-4-1106-preview", max_retries=3, request_timeout=30)
 
 group_json_schema = {
-    "title": "category",
-    "description": "category from list",
     "type": "object",
     "properties": {
         "category": {"title": "category", "description": "category number and name", "type": "string"},
@@ -78,11 +76,15 @@ group_json_schema = {
 }
 
 nomenclature_json_schema = {
-    "title": "object",
-    "description": "object from list",
     "type": "object",
     "properties": {
-        "nomenclature": {"title": "object_name", "description": "object name or 0", "type": "string"},
+        "nomenclature": {
+            "type": "array",
+            "description": "the most similar 5 objects",
+            "items": {
+                "type": "string"
+            }
+        }
     },
     "required": ["nomenclature"],
 }
@@ -111,14 +113,14 @@ def map_with_groups(query: str, description: str, filepath: str, group_runnable,
     return response["category"]
 
 
-def map_with_nomenclature(query: str, final_group: str):
+def map_with_nomenclature(query: str, final_group: str) -> list[str]:
     nomenclatures = get_nomenclatures(final_group)
     nomenclatures_chunks = text_splitter.split_text(nomenclatures)
+    inputs = [{"input": query, "groups": c} for c in nomenclatures_chunks]
+    responses = nomenclature_runnable.batch(inputs, {"max_concurrency": 6})
     short_list = []
-    for chunk in nomenclatures_chunks:
-        response = nomenclature_runnable.invoke({"input": query, "groups": chunk})
-        nomenclature_position = response["nomenclature"]
-        short_list.append(nomenclature_position)
+    for r in responses:
+        short_list.extend(r["nomenclature"])
     groups = "\n".join(str(short_list))
     response = nomenclature_runnable.invoke({"input": query, "groups": groups})
     return response["nomenclature"]
@@ -132,7 +134,7 @@ def save_to_database(values: dict):
     return supabase.table("nomenclature_mapping").insert(values).execute()
 
 
-def do_mapping(query: str) -> str:
+def do_mapping(query: str) -> list[str]:
     with get_openai_callback() as cb:
         description = description_chain.run(query)
         job = get_current_job()
@@ -149,7 +151,7 @@ def do_mapping(query: str) -> str:
 
         database_response = save_to_database({
             "input": query,
-            "output": response,
+            "output": ", ".join(response),
             "wide_group": "",
             "middle_group": middle_group,
             "narrow_group": narrow_group,
@@ -164,4 +166,4 @@ def do_mapping(query: str) -> str:
 
 
 if __name__ == "__main__":
-    print("FINAL_RESPONSE", do_mapping("Полка под принтер к теплосчётчику ВИС.Т"))
+    print("FINAL_RESPONSE", do_mapping("Труба ПНД для водопровода питьевая PN20 SDR9 32мм"))
