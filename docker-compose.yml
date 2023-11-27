@@ -12,12 +12,12 @@ services:
     container_name: server-image
     command: python3 /app/src/app.py
     ports:
-      - 3000:3000
+      - 8080:8080
     depends_on:
       - redis
   rq-worker:
     image: jaredv/rq-docker:0.0.2
-    command: rq worker --path src nomenclature document
+    command: rq worker --path app/src nomenclature document
     deploy:
       replicas: 3
     depends_on:
