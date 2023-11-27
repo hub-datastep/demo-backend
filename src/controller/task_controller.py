@@ -21,7 +21,7 @@ router = APIRouter(
 
 
 def get_current_user_job(user_id: str) -> Job | None:
-    redis = Redis(host=os.getenv("REDIS_HOST", "localhost"))
+    redis = Redis(host=os.getenv("REDIS_HOST", "local"))
     q = Queue("document", connection=redis)
     registry = StartedJobRegistry(name="document", connection=redis)
     job_ids: list = registry.get_job_ids()
