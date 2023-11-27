@@ -65,7 +65,7 @@ def save_file(chat_id: int, file_object: UploadFile, current_user: UserDto) -> J
         )
     )
 
-    redis = Redis(host=Redis("redis"))
+    redis = Redis("redis")
     q = Queue("document", connection=redis)
     job = q.enqueue(_save_file, file, storage_file, result_ttl=86400, job_timeout="60m")
     job.meta["user_id"] = current_user.id

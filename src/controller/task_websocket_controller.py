@@ -22,7 +22,7 @@ async def websocket_endpoint(
     job_id: str
 ):
     await websocket.accept()
-    redis = Redis(host=Redis("redis"))
+    redis = Redis("redis")
     while True:
         job = Job.fetch(job_id, connection=redis)
         await websocket.send_text(
