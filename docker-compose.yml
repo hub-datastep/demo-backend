@@ -14,7 +14,7 @@ services:
     ports:
       - 8080:8080
     depends_on:
-      - redis
+      - redis-server
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - SUPABASE_URL=${SUPABASE_URL}
@@ -26,11 +26,11 @@ services:
     deploy:
       replicas: 3
     depends_on:
-      - redis
+      - redis-server
   rq-dashboard:
     image: jaredv/rq-docker:0.0.2
     command: rq-dashboard -H redis-server
     ports:
       - 9181:9181
     depends_on:
-      - redis
+      - redis-server
