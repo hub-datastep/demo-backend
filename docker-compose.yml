@@ -21,14 +21,14 @@ services:
       SUPABASE_KEY: ${SUPABASE_KEY}
   rq-worker:
     image: jaredv/rq-docker:0.0.2
-    command: rq worker --path app/src nomenclature document
+    command: rq worker --path app/src --url redis://redis:6379 nomenclature document
     deploy:
       replicas: 3
     depends_on:
       - redis
   rq-dashboard:
     image: jaredv/rq-docker:0.0.2
-    command: rq-dashboard
+    command: rq-dashboard -H redis
     ports:
       - 9181:9181
     depends_on:
