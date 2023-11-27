@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, WebSocket
 from fastapi_versioning import version
 from redis import Redis
@@ -20,7 +22,7 @@ async def websocket_endpoint(
     job_id: str
 ):
     await websocket.accept()
-    redis = Redis()
+    redis = Redis(host=os.environ.get("REDIS_HOST", "localhost"))
     while True:
         job = Job.fetch(job_id, connection=redis)
         await websocket.send_text(

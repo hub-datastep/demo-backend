@@ -19,6 +19,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_KEY: ${SUPABASE_KEY}
+      REDIS_HOST: redis
   rq-worker:
     image: jaredv/rq-docker:0.0.2
     command: rq worker --path app/src --url redis://redis:6379 nomenclature document
