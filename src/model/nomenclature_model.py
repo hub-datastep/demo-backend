@@ -33,7 +33,7 @@ def create_job(test_case: str, filename: str | None):
     if len(split) > 1:
         narrow_group, middle_group, wide_group = split[1:]
 
-    redis = Redis(host=os.environ.get("REDIS_HOST", "localhost"))
+    redis = Redis(host=os.getenv("REDIS_HOST", "localhost"))
     queue = Queue(name="nomenclature", connection=redis)
     job = queue.enqueue(datastep_nomenclature.do_mapping, query, result_ttl=-1)
 
@@ -56,7 +56,7 @@ def update_nomenclature_mapping(body: NomenclatureMappingUpdateDto):
 
 
 def get_jobs_from_rq(source: str | None) -> list[NomenclatureMappingJobDto]:
-    redis = Redis(host=os.environ.get("REDIS_HOST", "localhost"))
+    redis = Redis(host=os.getenv("REDIS_HOST", "localhost"))
     queue = Queue("nomenclature", connection=redis)
 
     queued_job_ids = queue.get_job_ids()
