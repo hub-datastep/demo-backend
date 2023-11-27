@@ -100,7 +100,7 @@ def get_hypothetical_questions(file: FileOutDto, docs):
         return hypothetical_questions
     except OutputParserException:
         file_model.delete_file(file)
-        send_stop_job_command(Redis("redis"), job.id)
+        send_stop_job_command(Redis("redis-server"), job.id)
 
 
 def get_docs(file_url):

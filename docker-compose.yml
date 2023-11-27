@@ -1,7 +1,7 @@
 version: "3"
 
 services:
-  redis:
+  redis-server:
     image: redis:latest
     command: redis-server
     ports:
@@ -22,14 +22,14 @@ services:
       - REDIS_HOST=redis
   rq-worker:
     image: jaredv/rq-docker:0.0.2
-    command: rq worker --path app/src --url redis://redis:6379 nomenclature document
+    command: rq worker --path app/src --url redis://redis-server:6379 nomenclature document
     deploy:
       replicas: 3
     depends_on:
       - redis
   rq-dashboard:
     image: jaredv/rq-docker:0.0.2
-    command: rq-dashboard -H redis
+    command: rq-dashboard -H redis-server
     ports:
       - 9181:9181
     depends_on:
