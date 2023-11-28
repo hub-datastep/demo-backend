@@ -33,7 +33,7 @@ def create_job(test_case: str, filename: str | None):
     if len(split) > 1:
         narrow_group, middle_group, wide_group = split[1:]
 
-    redis = Redis(host=os.getenv("REDIS_HOST", "localhost"))
+    redis = Redis(host=os.getenv("REDIS_HOST"))
     queue = Queue(name="nomenclature", connection=redis)
     job = queue.enqueue(datastep_nomenclature.do_mapping, query, result_ttl=-1)
 
