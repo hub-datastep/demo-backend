@@ -6,7 +6,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts.prompt import PromptTemplate
 from langchain.utilities import SQLDatabase
 
-from datastep.datastep_chains.datastep_sql2text_chain import describe_sql
+from datastep.datastep_chains.datastep_sql2text_chain import describe_sql_stream
 from util.logger import async_log
 
 datastep_sql_chain_template = """
@@ -78,6 +78,6 @@ class DatastepSqlChain:
 
         sql_description = ""
         if is_sql_description:
-            sql_description = await describe_sql(sql_query)
+            sql_description = describe_sql_stream(sql_query)
 
         return sql_query, sql_description

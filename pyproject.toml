@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Dmitry Bleschunov <bleshunov5b@yandex.ru>"]
 readme = "README.md"
-packages = [{include = "msu_backend"}]
+packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
 python = ">=3.11,<3.12"

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
+from fastapi.responses import StreamingResponse
 
 from dto.datastep_prediction_dto import DatastepPredictionOutDto
 from dto.query_dto import QueryDto
@@ -19,4 +20,8 @@ async def get_prediction(
     body: QueryDto,
     current_user: UserDto = Depends(AuthService.get_current_user),
 ):
-    return await datastep_get_prediction(body, current_user.tenant_id, current_user.database_prediction_config)
+    # return await datastep_get_prediction(body, current_user.tenant_id, current_user.database_prediction_config)
+    return StreamingResponse(
+        await datastep_get_prediction(body, current_user.tenant_id, current_user.database_prediction_config),
+        media_type='application/stream+json'
+    )
