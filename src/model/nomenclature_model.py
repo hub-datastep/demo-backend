@@ -17,10 +17,6 @@ def parse_file(file_object: UploadFile):
     return [s.decode("utf-8").strip() for s in file_object.file.readlines()], file_object.filename
 
 
-def parse_string(file: str):
-    return file.split("\n")
-
-
 def create_job(test_case: str, filename: str | None):
     split = test_case.split(":")
 
@@ -30,7 +26,7 @@ def create_job(test_case: str, filename: str | None):
     wide_group = ""
 
     if len(split) > 1:
-        narrow_group, middle_group, wide_group = split[1:]
+        narrow_group, middle_group = split[1:]
 
     redis = Redis()
     queue = Queue(name="nomenclature", connection=redis)
@@ -108,24 +104,6 @@ def get_all_jobs(source: str | None) -> list[NomenclatureMappingJobDto]:
     # return [*jobs_from_rq, *jobs_from_database]
 
 
-def create_excel(jobs: list[NomenclatureMappingJobOutDto]):
-    wb = Workbook()
-    ws = wb.active
-
-    ws.append(("Вход", "Выход", "Статус", "Широкая группа", "Средняя группа", "Узкая группа", "Источник"))
-    for i in range(1, 8):
-        ws.cell(1, i).font = Font(bold=True)
-
-    for i, j in enumerate(jobs, start=2):
-        ws.append((j.input, *j.to_row()))
-        if j.input == j.output:
-            ws.cell(i, 1).fill = PatternFill("solid", start_color="00FF00")
-        else:
-            ws.cell(i, 1).fill = PatternFill("solid", start_color="FF0000")
-
-    wb.save("sheet.xlsx")
-
-
 def transform_jobs_lists_to_dict(job_lists: list[list[NomenclatureMappingJobDto]]) -> dict:
     """
     result example:
@@ -147,7 +125,7 @@ def transform_jobs_lists_to_dict(job_lists: list[list[NomenclatureMappingJobDto]
 
 def create_test_excel(job_dict: dict, colored: bool = False):
     def color_cell(ws, row: int, column: int, input: str, output: str):
-        if input.strip() == output:
+        if output is not None and input.strip() in output:
             ws.cell(row, column).fill = PatternFill("solid", start_color="00FF00")
         else:
             ws.cell(row, column).fill = PatternFill("solid", start_color="FF0000")
