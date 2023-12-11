@@ -28,6 +28,7 @@ description_prompt = PromptTemplate(
 group_template = """"Для объекта выбери строго одну подходящую категорию из списка.
 Учти описание объекта.
 
+Дополнительные инструкции: {additional_instructions}
 Объект: {input}
 Описание объекта: {description}
 
@@ -36,11 +37,12 @@ group_template = """"Для объекта выбери строго одну п
 """
 group_prompt = PromptTemplate(
     template=group_template,
-    input_variables=["input", "groups", "description"]
+    input_variables=["input", "groups", "description", "additional_instructions"]
 )
 
 nomenclature_template = """Найди в списке 5 объектов с наиболее похожими названиями.
 
+Дополнительные инструкции: {additional_instructions}
 Объект: 
 {input}
 
@@ -49,7 +51,7 @@ nomenclature_template = """Найди в списке 5 объектов с на
 """
 nomenclature_prompt = PromptTemplate(
     template=nomenclature_template,
-    input_variables=["input", "groups"]
+    input_variables=["input", "groups", "additional_instructions"]
 )
 
 group_json_schema = {
@@ -101,17 +103,30 @@ def get_groups(filepath: str, group_number: str = None) -> str:
         return "".join(lines)
 
 
-def map_with_groups(query: str, description: str, filepath: str, group_runnable, prev_response: str = None, index: int = None) -> str:
+def map_with_groups(
+    query: str,
+    description: str,
+    filepath: str,
+    group_runnable,
+    additional_instructions: str = None,
+    prev_response: str = None,
+    index: int = None
+) -> str:
     groups = get_groups(filepath, prev_response[:index] if prev_response else None)
 
     if len(groups) == 0:
         return prev_response
 
-    response = group_runnable.invoke({"input": query, "groups": groups, "description": description})
+    response = group_runnable.invoke({
+        "input": query,
+        "groups": groups,
+        "description": description,
+        "additional_instructions": additional_instructions
+    })
     return response["category"]
 
 
-def map_with_nomenclature(query: str, final_group: str) -> list[str]:
+def map_with_nomenclature(query: str, final_group: str, additional_instructions: str = "") -> list[str]:
     nomenclature_runnable \
         = create_runnable(config["nomenclature_mapping_model"], nomenclature_json_schema, nomenclature_prompt)
     text_splitter = RecursiveCharacterTextSplitter(
@@ -121,13 +136,21 @@ def map_with_nomenclature(query: str, final_group: str) -> list[str]:
     )
     nomenclatures = get_nomenclatures(final_group)
     nomenclatures_chunks = text_splitter.split_text(nomenclatures)
-    inputs = [{"input": query, "groups": c} for c in nomenclatures_chunks]
+    inputs = [{
+        "input": query,
+        "groups": c,
+        "additional_instructions": additional_instructions
+    } for c in nomenclatures_chunks]
     responses = nomenclature_runnable.batch(inputs, {"max_concurrency": 6})
     short_list = []
     for r in responses:
         short_list.extend(r["nomenclature"])
     groups = "\n".join(str(short_list))
-    response = nomenclature_runnable.invoke({"input": query, "groups": groups})
+    response = nomenclature_runnable.invoke({
+        "input": query,
+        "groups": groups,
+        "additional_instructions": additional_instructions
+    })
     return response["nomenclature"]
 
 
@@ -139,7 +162,7 @@ def save_to_database(values: dict):
     return supabase.table("nomenclature_mapping").insert(values).execute()
 
 
-def do_mapping(query: str, use_jobs: bool = True) -> list[str]:
+def do_mapping(query: str, additional_instructions: str = "", use_jobs: bool = True) -> list[str]:
     with get_openai_callback() as cb:
         description = description_chain.run(query)
         if use_jobs:
@@ -149,7 +172,8 @@ def do_mapping(query: str, use_jobs: bool = True) -> list[str]:
             query,
             description,
             f"{get_data_folder_path()}/../data/parent-parent.txt",
-            create_runnable(config["middle_group_mapping_model"], group_json_schema, group_prompt)
+            create_runnable(config["middle_group_mapping_model"], group_json_schema, group_prompt),
+            additional_instructions
         )
         if use_jobs:
             job.meta["middle_group"] = middle_group
@@ -160,6 +184,7 @@ def do_mapping(query: str, use_jobs: bool = True) -> list[str]:
             description,
             f"{get_data_folder_path()}/../data/parent.txt",
             create_runnable(config["narrow_group_mapping_model"], group_json_schema, group_prompt),
+            additional_instructions,
             middle_group,
             6
         )

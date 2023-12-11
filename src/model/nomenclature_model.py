@@ -1,23 +1,36 @@
 import pathlib
+from fastapi import HTTPException
 
 from starlette.datastructures import UploadFile
 from rq.queue import Queue
 from rq.job import Job
 from redis import Redis
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 
 from datastep.components import datastep_nomenclature
-from dto.nomenclature_mapping_job_dto import NomenclatureMappingJobOutDto, NomenclatureMappingUpdateDto, \
-    NomenclatureMappingJobDto
+from dto.nomenclature_mapping_job_dto import NomenclatureMappingUpdateDto, NomenclatureMappingJobDto
 from infra.supabase import supabase
 
 
-def parse_file(file_object: UploadFile):
-    return [s.decode("utf-8").strip() for s in file_object.file.readlines()], file_object.filename
+def parse_txt(file_object: UploadFile) -> (list[tuple], str):
+    # Возращаю массив кортежей, в которых на первом месте номенклатура, а на втором — дополнительные инструкции к промпту
+    return [(s.decode("utf-8").strip(), "") for s in file_object.file.readlines()], file_object.filename
 
 
-def create_job(test_case: str, filename: str | None):
+def parse_sheet(file_object: UploadFile = None) -> (list[tuple], str):
+    wb = load_workbook(file_object.file)
+    ws = wb.active
+    remapping_values = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if row[7] == "+":
+            nomenclature = row[0]
+            additional_instructions = row[8]
+            remapping_values.append((nomenclature, additional_instructions))
+    return remapping_values, file_object.filename
+
+
+def create_job(test_case: str, filename: str | None, additional_instructions: str = ""):
     split = test_case.split(":")
 
     query = split[0]
@@ -30,7 +43,7 @@ def create_job(test_case: str, filename: str | None):
 
     redis = Redis()
     queue = Queue(name="nomenclature", connection=redis)
-    job = queue.enqueue(datastep_nomenclature.do_mapping, query, result_ttl=-1)
+    job = queue.enqueue(datastep_nomenclature.do_mapping, query, additional_instructions, result_ttl=-1)
 
     job.meta["source"] = filename
     job.meta["correct_wide_group"] = wide_group
@@ -40,10 +53,15 @@ def create_job(test_case: str, filename: str | None):
 
 
 def process(nomenclature_object: UploadFile):
-    test_cases, filename = parse_file(nomenclature_object)
+    if nomenclature_object.filename.endswith(".xlsx"):
+        test_cases, filename = parse_sheet(nomenclature_object)
+    elif nomenclature_object.filename.endswith(".txt"):
+        test_cases, filename = parse_txt(nomenclature_object)
+    else:
+        raise HTTPException(status_code=400, detail="Расширение файла не поддерживается. Используйте txt или xlsx")
 
-    for test_case in test_cases:
-        create_job(test_case, filename)
+    for test_case, additional_instructions in test_cases:
+        create_job(test_case, filename, additional_instructions)
 
 
 def update_nomenclature_mapping(body: NomenclatureMappingUpdateDto):
@@ -162,10 +180,12 @@ def create_test_excel(job_dict: dict, colored: bool = False):
 
 
 if __name__ == "__main__":
-    first_test_jobs = get_all_jobs("test_101123_1.txt")
+    remapping = parse_sheet()
+    create_job(remapping[0][0], "remapping_111223_1", remapping[0][1])
+    # first_test_jobs = get_all_jobs("test_101123_1.txt")
     # print(len(first_test_jobs))
     # second_test_jobs = get_all_jobs("test_descr.txt")
-    create_test_excel(transform_jobs_lists_to_dict([first_test_jobs]))
+    # create_test_excel(transform_jobs_lists_to_dict([first_test_jobs]))
     # print(transform_jobs_lists_to_dict([first_test_jobs, second_test_jobs]))
     # create_excel(all_jobs)
 
