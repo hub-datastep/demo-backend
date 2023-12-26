@@ -1,7 +1,7 @@
 import traceback
 
-import sentry_sdk
-import uvicorn as uvicorn
+import uvicorn
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi_versioning import VersionedFastAPI
