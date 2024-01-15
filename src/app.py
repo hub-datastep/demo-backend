@@ -1,8 +1,6 @@
 import traceback
 
-import sentry_sdk
 import uvicorn as uvicorn
-from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi_versioning import VersionedFastAPI
 from requests import Request
@@ -25,14 +23,9 @@ load_dotenv()
 #     nomenclature_controller
 # )
 
-from scheme import mode_scheme
-
-from controller import (
-    chat_controller, message_controller,
-    user_controller, tenant_controller,
-    mark_controller, review_controller,
-    prediction_controller, auth_controller
-)
+from controller.prediction import prediction_controller
+from controller.user import user_controller, tenant_controller, auth_controller
+from controller.chat import message_controller, mark_controller, chat_controller, review_controller
 from infra.database import create_db_and_tables, create_mock_data
 
 load_dotenv()

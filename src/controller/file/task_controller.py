@@ -10,7 +10,7 @@ from dto.file_upload_task_dto import FileUploadTaskDto
 from model import file_model
 from repository import file_repository
 from dto.user_dto import UserDto
-from service.auth_service import AuthService
+# from service.auth_service import AuthService
 
 router = APIRouter(
     prefix="/task",
@@ -33,7 +33,9 @@ def get_current_user_job(user_id: str) -> Job | None:
 
 @router.get("/file_upload/active", response_model=list[FileUploadTaskDto])
 @version(1)
-def get_active_file_upload_tasks(current_user: UserDto = Depends(AuthService.get_current_user)):
+def get_active_file_upload_tasks(
+    # current_user: UserDto = Depends(AuthService.get_current_user)
+):
     current_user_job = get_current_user_job(current_user.id)
     if not current_user_job:
         return []
@@ -51,7 +53,9 @@ def get_active_file_upload_tasks(current_user: UserDto = Depends(AuthService.get
 
 @router.delete("/file_upload/{task_id}", response_model=FileUploadTaskDto)
 @version(1)
-def interrupt_task_by_id(current_user: UserDto = Depends(AuthService.get_current_user)):
+def interrupt_task_by_id(
+    # current_user: UserDto = Depends(AuthService.get_current_user)
+):
     redis = Redis()
     current_user_job = get_current_user_job(current_user.id)
     send_stop_job_command(redis, current_user_job.id)

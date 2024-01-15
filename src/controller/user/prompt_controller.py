@@ -2,17 +2,16 @@ from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 from sqlmodel import Session
 
-from dto.prompt_dto import PromptDto, PromptEditDto
-from dto.user_dto import UserDto
 from infra.database import get_session
 from repository import prompt_repository
 from scheme.prompt_scheme import PromptRead, PromptCreate, PromptUpdate
-from service.auth_service import AuthService
+# from service.auth_service import AuthService
 
 router = APIRouter(
     prefix="/prompt",
     tags=["prompt"],
 )
+
 
 @router.get("/{tenant_id}", response_model=PromptRead)
 @version(1)

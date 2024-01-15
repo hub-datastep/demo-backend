@@ -6,7 +6,7 @@ from dto.file_upload_task_dto import FileUploadTaskDto
 from dto.user_dto import UserDto
 from model import file_model
 from repository import file_repository
-from service.auth_service import AuthService
+# from service.auth_service import AuthService
 
 router = APIRouter(
     prefix="/file",
@@ -16,7 +16,10 @@ router = APIRouter(
 
 @router.get("/{chat_id}", response_model=list[FileOutDto])
 @version(1)
-def get_all_files(chat_id: int, current_user: UserDto = Depends(AuthService.get_current_user)):
+def get_all_files(
+    chat_id: int,
+    # current_user: UserDto = Depends(AuthService.get_current_user)
+):
     return file_repository.get_all_filenames_ru(chat_id, current_user.tenant_id)
 
 
@@ -25,7 +28,7 @@ def get_all_files(chat_id: int, current_user: UserDto = Depends(AuthService.get_
 def upload_file(
     chat_id: int,
     fileObject: UploadFile,
-    current_user: UserDto = Depends(AuthService.get_current_user)
+    # current_user: UserDto = Depends(AuthService.get_current_user)
 ):
     job = file_model.save_file(chat_id, fileObject, current_user)
     return FileUploadTaskDto(
@@ -38,5 +41,8 @@ def upload_file(
 
 @router.delete("/")
 @version(1)
-def delete_file(body: FileOutDto, current_user: UserDto = Depends(AuthService.get_current_user)):
+def delete_file(
+    body: FileOutDto,
+    # current_user: UserDto = Depends(AuthService.get_current_user)
+):
     return file_model.delete_file(body)
