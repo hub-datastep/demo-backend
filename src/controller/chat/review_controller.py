@@ -6,9 +6,7 @@ from infra.database import get_session
 from repository import review_repository
 from scheme.review_scheme import ReviewCreate, ReviewRead
 
-router = APIRouter(
-    prefix="/review"
-)
+router = APIRouter()
 
 
 @router.post("", response_model=ReviewRead)

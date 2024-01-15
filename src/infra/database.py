@@ -60,12 +60,15 @@ Return only SQL query ready for execution"""
         return note_db
 
     with Session(engine) as session:
-        mode_db = create_note(session, Mode, {"name": "wiki"})
+        modes = [
+            create_note(session, Mode, {"name": "wiki"}),
+            create_note(session, Mode, {"name": "databases"})
+        ]
         tenant_db = create_note(session, Tenant, {
                 "name": "datastep",
                 "logo": "/path/to/logo",
                 "db_uri": "mssql+pyodbc://test:!1Testtest@mssql-129364-0.cloudclusters.net:15827/dwh_3?driver=ODBC+Driver+17+for+SQL+Server",
-                "modes": [mode_db],
+                "modes": modes,
                 "is_last": True
             }
         )
@@ -88,7 +91,7 @@ Return only SQL query ready for execution"""
             "chat_id": chat_db.id
         })
         message_db = create_note(session, Message, {
-            "query": "",
+            "query": "Привет, бро!",
             "answer": "",
             "sql": "",
             "table": "",
@@ -98,7 +101,7 @@ Return only SQL query ready for execution"""
         })
         create_note(session, Message, {
             "query": "",
-            "answer": "",
+            "answer": "Хай бро!",
             "sql": "",
             "table": "",
             "table_source": "",

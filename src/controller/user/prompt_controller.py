@@ -7,10 +7,7 @@ from repository import prompt_repository
 from scheme.prompt_scheme import PromptRead, PromptCreate, PromptUpdate
 # from service.auth_service import AuthService
 
-router = APIRouter(
-    prefix="/prompt",
-    tags=["prompt"],
-)
+router = APIRouter()
 
 
 @router.get("/{tenant_id}", response_model=PromptRead)

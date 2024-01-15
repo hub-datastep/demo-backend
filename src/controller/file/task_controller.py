@@ -12,10 +12,7 @@ from repository import file_repository
 from dto.user_dto import UserDto
 # from service.auth_service import AuthService
 
-router = APIRouter(
-    prefix="/task",
-    tags=["task"],
-)
+router = APIRouter()
 
 
 def get_current_user_job(user_id: str) -> Job | None:

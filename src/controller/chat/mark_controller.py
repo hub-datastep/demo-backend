@@ -6,9 +6,7 @@ from infra.database import get_session
 from repository import mark_repository
 from scheme.mark_scheme import MarkRead, MarkCreate
 
-router = APIRouter(
-    prefix="/mark"
-)
+router = APIRouter()
 
 
 @router.post("", response_model=MarkRead)

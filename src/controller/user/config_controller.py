@@ -6,10 +6,7 @@ from dto.user_dto import UserDto
 from repository import config_repository
 # from service.auth_service import AuthService
 
-router = APIRouter(
-    prefix="/config",
-    tags=["config"],
-)
+router = APIRouter()
 
 
 @router.get("/database_prediction", response_model=DatabasePredictionConfigDto | None)

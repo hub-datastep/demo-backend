@@ -7,10 +7,7 @@ from asyncio import sleep
 
 from dto.file_upload_task_dto import FileUploadTaskDto
 
-router = APIRouter(
-    prefix="/task/ws",
-    tags=["task"],
-)
+router = APIRouter()
 
 
 @router.websocket("/{job_id}")

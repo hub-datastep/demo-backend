@@ -11,9 +11,7 @@ from scheme.prediction_scheme import (
     DocumentPredictionRead, DocumentPredictionQuery
 )
 
-router = APIRouter(
-    prefix=""
-)
+router = APIRouter()
 
 
 @router.post("/assistant/prediction", response_model=DatabasePredictionRead)

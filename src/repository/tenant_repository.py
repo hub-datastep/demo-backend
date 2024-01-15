@@ -2,7 +2,7 @@ from typing import Type
 
 from fastapi import HTTPException
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from scheme.tenant_scheme import TenantCreate, Tenant
 
@@ -17,6 +17,24 @@ def get_tenant_by_id(session: Session, tenant_id: int) -> Type[Tenant]:
 
     return tenant_db
 
+
+def get_tenant_by_user_id(session: Session, user_id: str) -> int:
+    statement = select(Tenant).where(Tenant.users)
+    result = session.exec(statement)
+
+    response = supabase\
+        .table("user_tenant")\
+        .select("tenant_id")\
+        .eq("user_id", user_id)\
+        .execute()
+
+    if len(response.data) == 0:
+        raise HTTPException(
+            status_code=404,
+            detail=f"User with id={user_id} does not belong to any tenant"
+        )
+
+    return response.data[0]["tenant_id"]
 
 
 def create_tenant(session: Session, tenant: TenantCreate) -> Tenant:

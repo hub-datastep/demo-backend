@@ -1,26 +1,31 @@
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi_versioning import version
+from sqlmodel import Session
 
 from dto.file_dto import FileOutDto
 from dto.file_upload_task_dto import FileUploadTaskDto
 from dto.user_dto import UserDto
+from infra.database import get_session
 from model import file_model
+from model.auth_model import get_current_user
 from repository import file_repository
+from repository.file_repository import get_all_filenames_by_tenant_id
+from scheme.file_scheme import FileRead
+from scheme.user_scheme import UserRead
+
 # from service.auth_service import AuthService
 
-router = APIRouter(
-    prefix="/file",
-    tags=["file"],
-)
+router = APIRouter()
 
 
-@router.get("/{chat_id}", response_model=list[FileOutDto])
+@router.get("/{chat_id}", response_model=list[FileRead])
 @version(1)
 def get_all_files(
-    chat_id: int,
-    # current_user: UserDto = Depends(AuthService.get_current_user)
+    *,
+    session: Session = Depends(get_session),
+    current_user: UserRead = Depends(get_current_user)
 ):
-    return file_repository.get_all_filenames_ru(chat_id, current_user.tenant_id)
+    return get_all_filenames_by_tenant_id(session, current_user.tenants[0].id)
 
 
 @router.post("/{chat_id}", response_model=FileUploadTaskDto)

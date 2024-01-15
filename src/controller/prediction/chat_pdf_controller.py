@@ -7,10 +7,7 @@ from dto.user_dto import UserDto
 from model import datastep_pdf_model
 # from service.auth_service import AuthService
 
-router = APIRouter(
-    prefix="/chat_pdf",
-    tags=["chat_pdf"],
-)
+router = APIRouter()
 
 
 @router.post("/prediction", response_model=DatastepPredictionOutDto)

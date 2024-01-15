@@ -1,6 +1,14 @@
-# from dto.file_dto import FileDto, FileOutDto
-#
-#
+from dto.file_dto import FileDto, FileOutDto
+from sqlmodel import Session, select
+
+from scheme.file_scheme import File
+
+
+def get_all_filenames_by_tenant_id(session: Session, tenant_id: int) -> list[File]:
+    statement = select(File).where(File.tenant_id == tenant_id)
+    result = session.exec(statement)
+    return list(result.all())
+
 # def get_all_filenames_ru(chat_id: int, tenant_id: int) -> list[FileOutDto]:
 #     (_, mutual_files_ids), _ = supabase\
 #         .table("file_tenant")\
@@ -26,8 +34,8 @@
 #
 #     all_files = [*mutual_files, *personal_files]
 #     return [FileOutDto(**filename) for filename in all_files]
-#
-#
+
+
 # def get_mutual_file_by_filename_ru(tenant_id: int, filename_ru: str) -> list[FileOutDto]:
 #     (_, files), _ = supabase \
 #         .table("file") \
@@ -47,8 +55,8 @@
 #         .execute()
 #
 #     return [FileOutDto(**file) for file in mutual_files]
-#
-#
+
+
 # def get_personal_file_by_filename_ru(chat_id: int, filename_ru: str) -> list[FileOutDto]:
 #     (_, files), _ = supabase\
 #         .table("file")\
@@ -58,8 +66,8 @@
 #         .eq("chat_id", chat_id)\
 #         .execute()
 #     return [FileOutDto(**file) for file in files]
-#
-#
+
+
 # def get_file_by_task_id(task_id: int) -> FileOutDto:
 #     (_, filename), _ = supabase \
 #         .table("file") \
@@ -67,9 +75,9 @@
 #         .eq("file_upload_task_id", task_id) \
 #         .execute()
 #     return FileOutDto(**filename[0])
-#
-#
-# def get_file_by_id(file_id: int) -> FileOutDto:
+
+
+# def get_file_by_id(session: Session, file_id: int) -> FileOutDto:
 #     (_, filename), _ = supabase \
 #         .table("file") \
 #         .select("*") \
@@ -77,16 +85,16 @@
 #         .neq("status", "deleted") \
 #         .execute()
 #     return FileOutDto(**filename[0])
-#
-#
+
+
 # def save_file(body: FileDto) -> FileOutDto:
 #     (_, [file]), _ = supabase\
 #         .table("file")\
 #         .insert(body.model_dump())\
 #         .execute()
 #     return FileOutDto(**file)
-#
-#
+
+
 # def is_file_exists(chat_id: int, name_ru: str) -> bool:
 #     (_, files), _ = supabase\
 #         .table("file")\
@@ -100,7 +108,7 @@
 #         return False
 #     return True
 #
-#
+
 # def is_file_exists_in_other_chats(chat_id: int, name_ru: str) -> bool:
 #     (_, files), _ = supabase\
 #         .table("file")\
@@ -112,17 +120,17 @@
 #     if len(files) == 0:
 #         return False
 #     return True
-#
-#
+
+
 # def update(match: dict, update: dict):
 #     supabase\
 #         .table("file")\
 #         .update(update)\
 #         .match(match)\
 #         .execute()
-#
-#
-# if __name__ == "__main__":
-#     files = get_all_filenames_ru(18, 1)
-#     for f in files:
-#         print(f.id, f.name_ru)
+
+
+if __name__ == "__main__":
+    files = get_all_filenames_ru(18, 1)
+    for f in files:
+        print(f.id, f.name_ru)

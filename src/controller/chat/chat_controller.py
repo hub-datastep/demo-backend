@@ -7,9 +7,7 @@ from repository import chat_repository
 from scheme.chat_scheme import ChatRead, ChatCreate
 
 
-router = APIRouter(
-    prefix="/chat"
-)
+router = APIRouter()
 
 
 @router.get("/{user_id}", response_model=ChatRead)

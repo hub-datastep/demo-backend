@@ -9,10 +9,7 @@ from dto.user_dto import UserDto
 from model import nomenclature_model
 # from service.auth_service import AuthService
 
-router = APIRouter(
-    prefix="/nomenclature",
-    tags=["nomenclature"],
-)
+router = APIRouter()
 
 
 @router.get("/job/{source}", response_model=list[NomenclatureMappingJobOutDto])

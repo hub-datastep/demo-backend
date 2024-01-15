@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from sqlmodel import SQLModel, Relationship, Field
 
@@ -17,7 +18,7 @@ class MessageBase(SQLModel):
 class Message(MessageBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     chat: "Chat" = Relationship(back_populates="messages")
-    reviews: "Review" = Relationship(back_populates="message")
+    reviews: list["Review"] = Relationship(back_populates="message")
     mark: "Mark" = Relationship(back_populates="message")
     created_at: datetime | None = Field(default=datetime.utcnow())
 
@@ -29,7 +30,7 @@ class MessageCreate(MessageBase):
 class MessageRead(MessageBase):
     id: int
     reviews: list["Review"]
-    mark: "Mark"
+    mark: Optional["Mark"]
 
 
 from scheme.chat_scheme import Chat

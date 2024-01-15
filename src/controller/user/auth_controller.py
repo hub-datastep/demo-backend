@@ -11,9 +11,7 @@ from scheme.token_scheme import Token
 from scheme.user_scheme import User, UserRead
 from sqlmodel import Session
 
-router = APIRouter(
-    prefix="/auth"
-)
+router = APIRouter()
 
 
 @router.post("/sign_in", response_model=Token)
@@ -27,8 +25,3 @@ async def sign_in(session: Session = Depends(get_session), form_data: OAuth2Pass
 #     token = auth_model.get_refreshed_token(session, refresh_token)
 #     return token
 
-
-@router.get("/users/me", response_model=UserRead)
-@version(1)
-def get_me(current_user: User = Depends(get_current_user)):
-    return current_user

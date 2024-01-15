@@ -10,9 +10,7 @@ from dto.user_dto import UserDto
 from repository import instruction_repository
 # from service.auth_service import AuthService
 
-router = APIRouter(
-    prefix="/tenant"
-)
+router = APIRouter()
 
 
 @router.post("", response_model=TenantRead)

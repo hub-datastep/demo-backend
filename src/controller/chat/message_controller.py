@@ -10,9 +10,7 @@ from scheme.chat_scheme import ChatRead
 from scheme.message_scheme import MessageRead, MessageCreate
 # from service.auth_service import AuthService
 
-router = APIRouter(
-    prefix="/message"
-)
+router = APIRouter()
 
 
 @router.post("", response_model=MessageRead)
