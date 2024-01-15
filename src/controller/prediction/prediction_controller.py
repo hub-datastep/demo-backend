@@ -12,8 +12,7 @@ from scheme.prediction_scheme import (
 )
 
 router = APIRouter(
-    prefix="",
-    tags=["prediction"],
+    prefix=""
 )
 
 

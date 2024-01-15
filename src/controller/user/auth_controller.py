@@ -12,8 +12,7 @@ from scheme.user_scheme import User, UserRead
 from sqlmodel import Session
 
 router = APIRouter(
-    prefix="/auth",
-    tags=["auth"],
+    prefix="/auth"
 )
 
 

@@ -7,8 +7,7 @@ from repository import mark_repository
 from scheme.mark_scheme import MarkRead, MarkCreate
 
 router = APIRouter(
-    prefix="/mark",
-    tags=["mark"],
+    prefix="/mark"
 )
 
 

@@ -8,8 +8,7 @@ from scheme.chat_scheme import ChatRead, ChatCreate
 
 
 router = APIRouter(
-    prefix="/chat",
-    tags=["chat"],
+    prefix="/chat"
 )
 
 

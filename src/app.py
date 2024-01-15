@@ -9,6 +9,8 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from dotenv import load_dotenv
 
+from controller.tags_and_metadata import tags_metadata
+
 load_dotenv()
 
 # from controller import (
@@ -30,7 +32,7 @@ from infra.database import create_db_and_tables, create_mock_data
 
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(openapi_tags=tags_metadata)
 
 # app.include_router(auth_controller.router)
 # app.include_router(datastep_controller.router)
@@ -49,14 +51,14 @@ app = FastAPI()
 # app.include_router(nomenclature_controller.router)
 # app.include_router(config_controller.router)
 
-app.include_router(auth_controller.router)
-app.include_router(chat_controller.router)
-app.include_router(user_controller.router)
-app.include_router(message_controller.router)
-app.include_router(tenant_controller.router)
-app.include_router(mark_controller.router)
-app.include_router(review_controller.router)
-app.include_router(prediction_controller.router)
+app.include_router(auth_controller.router, tags=["auth"])
+app.include_router(chat_controller.router, tags=["chat"])
+app.include_router(user_controller.router, tags=["user"])
+app.include_router(message_controller.router, tags=["message"])
+app.include_router(tenant_controller.router, tags=["tenant"])
+app.include_router(mark_controller.router, tags=["mark"])
+app.include_router(review_controller.router, tags=["review"])
+app.include_router(prediction_controller.router, tags=["prediction"])
 
 
 @app.middleware("http")

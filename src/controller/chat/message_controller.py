@@ -10,11 +10,8 @@ from scheme.chat_scheme import ChatRead
 from scheme.message_scheme import MessageRead, MessageCreate
 # from service.auth_service import AuthService
 
-
-
 router = APIRouter(
-    prefix="/message",
-    tags=["message"],
+    prefix="/message"
 )
 
 

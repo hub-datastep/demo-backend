@@ -7,8 +7,7 @@ from repository import review_repository
 from scheme.review_scheme import ReviewCreate, ReviewRead
 
 router = APIRouter(
-    prefix="/review",
-    tags=["review"],
+    prefix="/review"
 )
 
 

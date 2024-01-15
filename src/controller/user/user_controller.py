@@ -9,8 +9,7 @@ from scheme.user_scheme import UserCreate, UserRead
 # from service.auth_service import AuthService
 
 router = APIRouter(
-    prefix="/user",
-    tags=["user"],
+    prefix="/user"
 )
 
 

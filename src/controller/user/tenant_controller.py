@@ -11,8 +11,7 @@ from repository import instruction_repository
 # from service.auth_service import AuthService
 
 router = APIRouter(
-    prefix="/tenant",
-    tags=["tenant"],
+    prefix="/tenant"
 )
 
 
