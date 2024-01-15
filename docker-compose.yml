@@ -1,7 +1,42 @@
 # Command for restoring .dmp
 # pg_restore -d postgres -v -F c -h localhost -p 5432 -U postgres -W database_datastep_120123.dmp
 
+version: "3"
+
 services:
+  server:
+    build: .
+    image: server-image
+    container_name: server
+    command: python3 /app/src/app.py
+    ports:
+      - 8080:8080
+    depends_on:
+      - redis-server
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - REDIS_HOST=${REDIS_HOST}
+  redis-server:
+    image: redis:latest
+    command: redis-server
+    ports:
+      - 6379:6379
+  rq-worker:
+    image: jaredv/rq-docker:0.0.2
+    command: rq worker --path app/src --url redis://redis-server:6379 nomenclature document
+    deploy:
+      replicas: 3
+    depends_on:
+      - redis-server
+  rq-dashboard:
+    image: jaredv/rq-docker:0.0.2
+    command: rq-dashboard -H redis-server
+    ports:
+      - 9181:9181
+    depends_on:
+      - redis-server
   db:
     image: postgres
     volumes:
@@ -19,3 +54,4 @@ services:
 volumes:
   datastep-db:
   datastep-dbeaver:
+
