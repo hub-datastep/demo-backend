@@ -1,0 +1,21 @@
+# Command for restoring .dmp
+# pg_restore -d postgres -v -F c -h localhost -p 5432 -U postgres -W database_datastep_120123.dmp
+
+services:
+  db:
+    image: postgres
+    volumes:
+      - datastep-db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: admin
+    ports:
+      - 5432:5432
+  dbeaver:
+    image: dbeaver/cloudbeaver
+    volumes:
+      - datastep-dbeaver:/opt/cloudbeaver/workspace
+    ports:
+      - 8080:8978
+volumes:
+  datastep-db:
+  datastep-dbeaver:
