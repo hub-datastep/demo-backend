@@ -5,7 +5,7 @@ from rq.queue import Queue
 from rq.job import Job
 from redis import Redis
 from openpyxl import Workbook
-from openpyxl.styles import PatternFill, Font
+from openpyxl.styles import PatternFill, Font, Alignment
 
 from datastep.components import datastep_nomenclature
 from dto.nomenclature_mapping_job_dto import NomenclatureMappingJobOutDto, NomenclatureMappingUpdateDto, \
@@ -17,10 +17,6 @@ def parse_file(file_object: UploadFile):
     return [s.decode("utf-8").strip() for s in file_object.file.readlines()], file_object.filename
 
 
-def parse_string(file: str):
-    return file.split("\n")
-
-
 def create_job(test_case: str, filename: str | None):
     split = test_case.split(":")
 
@@ -30,7 +26,7 @@ def create_job(test_case: str, filename: str | None):
     wide_group = ""
 
     if len(split) > 1:
-        narrow_group, middle_group, wide_group = split[1:]
+        narrow_group, middle_group = split[1:]
 
     redis = Redis()
     queue = Queue(name="nomenclature", connection=redis)
@@ -67,11 +63,17 @@ def get_jobs_from_rq(source: str | None) -> list[NomenclatureMappingJobDto]:
 
     result = []
     wanted_jobs = [j for j in jobs if j.get_meta().get("source", None) == source]
+
+    def get_readable_output(output: list[str] | None) -> str:
+        if output is None:
+            return "None"
+        return "\n".join(output)
+
     for job in wanted_jobs:
         result.append(NomenclatureMappingJobDto(
             id=job.get_meta().get("mapping_id", None),
             input=job.args[0],
-            output=str(job.return_value()).replace("\n", "").replace("'", ""),
+            output=get_readable_output(job.return_value()),
             source=job.get_meta().get("source", None),
             status=job.get_status(),
             wide_group=job.get_meta().get("wide_group", None),
@@ -102,24 +104,6 @@ def get_all_jobs(source: str | None) -> list[NomenclatureMappingJobDto]:
     # return [*jobs_from_rq, *jobs_from_database]
 
 
-def create_excel(jobs: list[NomenclatureMappingJobOutDto]):
-    wb = Workbook()
-    ws = wb.active
-
-    ws.append(("Вход", "Выход", "Статус", "Широкая группа", "Средняя группа", "Узкая группа", "Источник"))
-    for i in range(1, 8):
-        ws.cell(1, i).font = Font(bold=True)
-
-    for i, j in enumerate(jobs, start=2):
-        ws.append((j.input, *j.to_row()))
-        if j.input == j.output:
-            ws.cell(i, 1).fill = PatternFill("solid", start_color="00FF00")
-        else:
-            ws.cell(i, 1).fill = PatternFill("solid", start_color="FF0000")
-
-    wb.save("sheet.xlsx")
-
-
 def transform_jobs_lists_to_dict(job_lists: list[list[NomenclatureMappingJobDto]]) -> dict:
     """
     result example:
@@ -141,7 +125,7 @@ def transform_jobs_lists_to_dict(job_lists: list[list[NomenclatureMappingJobDto]
 
 def create_test_excel(job_dict: dict, colored: bool = False):
     def color_cell(ws, row: int, column: int, input: str, output: str):
-        if input.strip() == output:
+        if output is not None and input.strip() in output:
             ws.cell(row, column).fill = PatternFill("solid", start_color="00FF00")
         else:
             ws.cell(row, column).fill = PatternFill("solid", start_color="FF0000")
@@ -156,6 +140,7 @@ def create_test_excel(job_dict: dict, colored: bool = False):
     shift = 2
     for input, rows in job_dict.items():
         ws.append((input, *rows[0].to_row()))
+        ws.cell(shift, 2).alignment = Alignment(wrapText=True)
         if colored:
             color_cell(ws, shift, 2, input, rows[0].output)
             color_cell(ws, shift, 4, rows[0].correct_wide_group, rows[0].wide_group)
@@ -164,6 +149,7 @@ def create_test_excel(job_dict: dict, colored: bool = False):
         shift += 1
         for job in rows[1:]:
             ws.append(("", *job.to_row()))
+            ws.cell(shift, 2).alignment = Alignment(wrapText=True)
             if colored:
                 color_cell(ws, shift, 2, input, job.output)
                 color_cell(ws, shift, 4, job.correct_wide_group, job.wide_group)
