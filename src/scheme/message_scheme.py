@@ -5,12 +5,12 @@ from sqlmodel import SQLModel, Relationship, Field
 
 
 class MessageBase(SQLModel):
-    query: str
-    answer: str
-    sql: str
-    table: str
-    table_source: str
-    is_deleted: bool | None = Field(default=False)
+    query: str = ""
+    answer: str = ""
+    sql: str = ""
+    table: str = ""
+    table_source: str = ""
+    is_deleted: bool = Field(default=False)
     connected_message_id: int | None = Field(default=None, foreign_key="message.id")
     chat_id: int = Field(foreign_key="chat.id")
 

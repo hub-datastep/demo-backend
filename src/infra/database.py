@@ -9,11 +9,11 @@ from scheme.tenant_scheme import Tenant
 from scheme.user_scheme import UserCreate
 
 sqlite_file_name = "database.db"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
+sqlite_url = "postgresql://postgres:admin@db:5432"
 
 # TODO: remove 'connect_args' after transfer to postgresql
 connect_args = {"check_same_thread": False}
-engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
+engine = create_engine(sqlite_url, echo=True)
 
 
 def create_db_and_tables():
@@ -22,30 +22,60 @@ def create_db_and_tables():
 
 
 def create_mock_data():
-    prompt_template = """You are a MS SQL expert. Given an input question, create a syntactically correct MS SQL query to run.
+#     prompt_template = """You are a MS SQL expert. Given an input question, create a syntactically correct MS SQL query to run.
+# Never query for all the columns from a specific table, only ask for a the few relevant columns given the question.
+# Unless the user specifies in his question a specific number of examples he wishes to obtain, always limit your query to at most {limit} results using the TOP clause as per MS SQL.
+# You must put TOP right after SELECT.
+# Wrap each column name in square brackets ([]) to denote them as delimited identifiers.
+# Use Russian language.
+#
+# Use LIKE operator for every text columns, for example LIKE "%название%".
+# Name every column.
+# You must use FORMAT function to display numbers in russian culture. You can put function into function, for example FORMAT(SUM(...)...).
+# Current date is {current_date}
+#
+# Some of the columns in the table:
+# "Тип документа" — income or debiting; possible values are "Списание", "Поступление"
+# "План/Факт" — possible values are "План", "Факт". Use "Факт" if there is not stated other in the query.
+# "Сумма" — actual transfer amount of money. Negative value means it was sent to counterparty. Positive value mean it was sent to МСУ.
+# "Сумма договора" — contract amount.
+# "Период" — date of the payment. Do not use FORMAT with this column.
+# "Контрагент" — name of the counterpart/company/organization, this column can be used to detect company.
+# "Группа статей ДДС" — purpose of the payment.
+#
+# Note that sometimes "Сумма" in the query means to calculate sum on the column "Сумма".
+# Note that "фот" means filter WHERE "Группа статей ДДС"="Расходы на оплату труда"
+# Note that "соц. страхование" means filter "WHERE c.[Группа статей ДДС] like '%соц%' OR c.[Группа статей ДДС] like '%страх%'
+#
+# Use only the following tables:
+# {table_info}
+#
+# Question: {input}
+# Return only SQL query ready for execution"""
+
+    prompt_template = """You are a PostgreSQL expert. Given an input question, create a syntactically correct PostgreSQL query to run.
 Never query for all the columns from a specific table, only ask for a the few relevant columns given the question.
-Unless the user specifies in his question a specific number of examples he wishes to obtain, always limit your query to at most {limit} results using the TOP clause as per MS SQL.
-You must put TOP right after SELECT.
-Wrap each column name in square brackets ([]) to denote them as delimited identifiers.
+Unless the user specifies in his question a specific number of examples he wishes to obtain, always limit your query to at most {limit} results using the LIMIT clause as per PostgreSQL.
 Use Russian language.
 
 Use LIKE operator for every text columns, for example LIKE "%название%".
 Name every column.
-You must use FORMAT function to display numbers in russian culture. You can put function into function, for example FORMAT(SUM(...)...).
+You must use CAST(_ as money) function to display numbers. You can put function into function, for example CAST(SUM(...)...).
 Current date is {current_date}
 
 Some of the columns in the table:
-"Тип документа" — income or debiting; possible values are "Списание", "Поступление"
+"Тип документа" — income or debiting; possible values are "Списания", "Поступления"
 "План/Факт" — possible values are "План", "Факт". Use "Факт" if there is not stated other in the query.
-"Сумма" — actual transfer amount of money. Negative value means it was sent to counterparty. Positive value mean it was sent to МСУ.
+"Сумма" — actual transfer amount of money. Negative value means it was sent to counterparty. Positive value mean it was sent to us.
 "Сумма договора" — contract amount.
-"Период" — date of the payment. Do not use FORMAT with this column.
+"Период" — date of the payment. Do not use CAST with this column.
 "Контрагент" — name of the counterpart/company/organization, this column can be used to detect company.
-"Группа статей ДДС" — purpose of the payment.
+"Группа статей" — purpose of the payment.
  
 Note that sometimes "Сумма" in the query means to calculate sum on the column "Сумма". 
-Note that "фот" means filter WHERE "Группа статей ДДС"="Расходы на оплату труда"
-Note that "соц. страхование" means filter "WHERE c.[Группа статей ДДС] like '%соц%' OR c.[Группа статей ДДС] like '%страх%'
+Note that "фот" means filter WHERE "Группа статей"="Расходы на оплату труда"
+Note that "соц. страхование" means filter "WHERE c.[Группа статей] like '%соц%' OR c.[Группа статей] like '%страх%'
+Note that "заработко" or "чистая прибыль" is "Поступления" minus "Расходы"
 
 Use only the following tables:
 {table_info}
@@ -67,7 +97,8 @@ Return only SQL query ready for execution"""
         tenant_db = create_note(session, Tenant, {
                 "name": "datastep",
                 "logo": "/path/to/logo",
-                "db_uri": "mssql+pyodbc://test:!1Testtest@mssql-129364-0.cloudclusters.net:15827/dwh_3?driver=ODBC+Driver+17+for+SQL+Server",
+                # "db_uri": "mssql+pyodbc://test:!1Testtest@mssql-129364-0.cloudclusters.net:15827/dwh_3?driver=ODBC+Driver+17+for+SQL+Server",
+                "db_uri": "postgresql://qvzibsah:7wNHUBB3BMnY6QiFi0ggBejNd3SmlRf2@trumpet.db.elephantsql.com/qvzibsah",
                 "modes": modes,
                 "is_last": True
             }

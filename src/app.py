@@ -30,7 +30,7 @@ load_dotenv()
 from controller.prediction import prediction_controller, chat_pdf_controller
 from controller.user import user_controller, tenant_controller, auth_controller, prompt_controller, config_controller
 from controller.chat import message_controller, mark_controller, chat_controller, review_controller
-from infra.database import create_db_and_tables, create_mock_data
+from infra.database import create_db_and_tables, create_mock_data, get_session
 
 load_dotenv()
 
@@ -45,7 +45,7 @@ app.include_router(chat_controller.router, tags=["chat"], prefix="/chat")
 app.include_router(message_controller.router, tags=["message"], prefix="/message")
 app.include_router(mark_controller.router, tags=["mark"], prefix="/mark")
 app.include_router(review_controller.router, tags=["review"], prefix="/review")
-app.include_router(prediction_controller.router, tags=["prediction"], prefix="/assistant")
+app.include_router(prediction_controller.router, tags=["prediction"])
 # app.include_router(nomenclature_controller.router, tags=["nomenclature"], prefix="/nomenclature")
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
 app.include_router(task_controller.router, tags=["task"], prefix="/task")
@@ -86,11 +86,8 @@ app.include_router(task_websocket_controller.router, tags=["task"], prefix="/tas
 
 @app.on_event("startup")
 def on_startup():
-    print("start")
     create_db_and_tables()
-    print("middle")
-    create_mock_data()
-    print("end")
+    # create_mock_data()
 
 
 if __name__ == "__main__":
