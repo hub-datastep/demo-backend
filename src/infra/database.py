@@ -8,16 +8,12 @@ from scheme.prompt_scheme import Prompt
 from scheme.tenant_scheme import Tenant
 from scheme.user_scheme import UserCreate
 
-sqlite_file_name = "database.db"
-sqlite_url = "postgresql://postgres:admin@db:5432"
+db_url = "postgresql://postgres:admin@localhost:5432"
 
-# TODO: remove 'connect_args' after transfer to postgresql
-connect_args = {"check_same_thread": False}
-engine = create_engine(sqlite_url, echo=True)
+engine = create_engine(db_url, echo=True)
 
 
 def create_db_and_tables():
-    SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
 
 
@@ -110,36 +106,6 @@ Return only SQL query ready for execution"""
             "tenant_id": tenant_db.id
         })
         user_db = user_model.create_user(session, UserCreate(username="admin", password="admin", tenant_id=1))
-        # user_db = create_note(session, User, {"username": "admin", "password": "admin", "tenants": [tenant_db]})
-        chat_db = create_note(session, Chat, {"user_id": user_db.id})
-        create_note(session, Message, {
-            "query": "",
-            "answer": "",
-            "sql": "",
-            "table": "",
-            "table_source": "",
-            "is_deleted": True,
-            "chat_id": chat_db.id
-        })
-        message_db = create_note(session, Message, {
-            "query": "Привет, бро!",
-            "answer": "",
-            "sql": "",
-            "table": "",
-            "table_source": "",
-            "is_deleted": False,
-            "chat_id": chat_db.id
-        })
-        create_note(session, Message, {
-            "query": "",
-            "answer": "Хай бро!",
-            "sql": "",
-            "table": "",
-            "table_source": "",
-            "is_deleted": False,
-            "connected_message_id": message_db.id,
-            "chat_id": chat_db.id
-        })
 
 
 def get_session() -> Session:

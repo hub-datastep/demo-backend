@@ -34,6 +34,7 @@ openpyxl = "^3.1.2"
 sqlmodel = "^0.0.12"
 passlib = "^1.7.4"
 langchain-community = "^0.0.12"
+alembic = "^1.13.1"
 
 
 [build-system]
