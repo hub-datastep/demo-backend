@@ -18,7 +18,9 @@ def create_chat(session: Session, chat: ChatCreate) -> Chat:
 def get_chat_by_user_id(session: Session, user_id: int) -> Chat:
     statement = select(Chat).where(Chat.user_id == user_id)
     result = session.exec(statement)
-    chat_db = result.one()
+    chat_db = result.first()
+    if not chat_db:
+        raise HTTPException(status_code=404, detail="No chat found")
     return chat_db
 
 
