@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlmodel import Session, select
 
 from scheme.user_scheme import UserCreate, User
+from util.hashing import get_password_hash
 
 
 def get_user_by_id(session: Session, user_id: int) -> Type[User]:
@@ -27,6 +28,7 @@ def get_user_by_username(session: Session, username: str) -> User:
 
 
 def create_user(session: Session, user: UserCreate) -> User:
+    user.password = get_password_hash(user.password)
     user_db = User.from_orm(user)
     session.add(user_db)
     session.commit()
