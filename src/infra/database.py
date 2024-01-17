@@ -1,3 +1,5 @@
+import os
+
 from sqlmodel import create_engine, SQLModel, Session
 
 from model import user_model
@@ -8,7 +10,7 @@ from scheme.prompt_scheme import Prompt
 from scheme.tenant_scheme import Tenant
 from scheme.user_scheme import UserCreate
 
-db_url = "postgresql://postgres:admin@localhost:5432"
+db_url = os.getenv("DB_CONNECTION_STRING")
 
 engine = create_engine(db_url, echo=True)
 
