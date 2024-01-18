@@ -2,11 +2,9 @@ from sqlmodel import SQLModel, Field
 
 
 class FileBase(SQLModel):
-    mark: bool
-    name_ru: str
-    name_en: str
-    url: str
-    status: str
+    original_filename: str
+    storage_filename: str
+    file_path: str
 
 
 class File(FileBase, table=True):
@@ -15,7 +13,8 @@ class File(FileBase, table=True):
 
 
 class FileCreate(FileBase):
-    pass
+    tenant_id: int
+    file_path: str
 
 
 class FileRead(FileBase):

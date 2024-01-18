@@ -1,13 +1,21 @@
 from dto.file_dto import FileDto, FileOutDto
 from sqlmodel import Session, select
 
-from scheme.file_scheme import File
+from scheme.file_scheme import File, FileCreate
 
 
 def get_all_filenames_by_tenant_id(session: Session, tenant_id: int) -> list[File]:
     statement = select(File).where(File.tenant_id == tenant_id)
     result = session.exec(statement)
     return list(result.all())
+
+
+def save_file(session: Session, file: FileCreate) -> File:
+    file_db = File.from_orm(file)
+    session.add(file_db)
+    session.commit()
+    return file_db
+
 
 # def get_all_filenames_ru(chat_id: int, tenant_id: int) -> list[FileOutDto]:
 #     (_, mutual_files_ids), _ = supabase\

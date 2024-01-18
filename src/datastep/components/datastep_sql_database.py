@@ -1,4 +1,4 @@
-from langchain.utilities import SQLDatabase
+from langchain_community.utilities import SQLDatabase
 
 # from util.logger import log
 

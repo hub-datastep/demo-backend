@@ -18,7 +18,7 @@ from scheme.user_scheme import UserRead
 router = APIRouter()
 
 
-@router.get("/{chat_id}", response_model=list[FileRead])
+@router.get("", response_model=list[FileRead])
 @version(1)
 def get_all_files(
     *,
@@ -28,20 +28,22 @@ def get_all_files(
     return get_all_filenames_by_tenant_id(session, current_user.tenants[0].id)
 
 
-@router.post("/{chat_id}", response_model=FileUploadTaskDto)
+@router.post("")
 @version(1)
 def upload_file(
-    chat_id: int,
+    *,
+    session: Session = Depends(get_session),
     fileObject: UploadFile,
-    # current_user: UserDto = Depends(AuthService.get_current_user)
+    current_user: UserRead = Depends(get_current_user)
 ):
-    job = file_model.save_file(chat_id, fileObject, current_user)
-    return FileUploadTaskDto(
-        id=job.id,
-        status=job.get_status(refresh=True),
-        progress=job.get_meta(refresh=True).get("progress", None),
-        full_work=job.get_meta(refresh=True).get("full_work", None)
-    )
+    job = file_model.process_file(session, fileObject, current_user.id, current_user.tenants[0].id)
+    return ""
+    # return FileUploadTaskDto(
+    #     id=job.id,
+    #     # status=job.get_status(refresh=True),
+    #     progress=job.get_meta(refresh=True).get("progress", None),
+    #     full_work=job.get_meta(refresh=True).get("full_work", None)
+    # )
 
 
 @router.delete("/")

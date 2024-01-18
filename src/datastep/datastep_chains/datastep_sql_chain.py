@@ -2,9 +2,9 @@ import datetime
 import re
 
 from langchain.chains import LLMChain
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.prompts.prompt import PromptTemplate
-from langchain.utilities import SQLDatabase
+from langchain_community.utilities import SQLDatabase
 
 from datastep.datastep_chains.datastep_sql2text_chain import describe_sql
 from util.logger import async_log

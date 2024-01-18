@@ -3,7 +3,7 @@ import pathlib
 from infra.supabase import supabase
 
 from langchain.prompts import PromptTemplate
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.callbacks import get_openai_callback

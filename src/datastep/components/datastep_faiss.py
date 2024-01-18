@@ -1,16 +1,19 @@
 import os
-import pathlib
+from pathlib import Path
 import shutil
 
 from dotenv import load_dotenv
-from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores.faiss import FAISS
+from langchain_community.vectorstores.faiss import FAISS
 from langchain.prompts import PromptTemplate
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 
+from datastep.components.file_path_util import get_file_folder_path
+
 load_dotenv()
+
 
 def get_chain():
     # TODO: попробовать 3.5-instruct
@@ -31,26 +34,24 @@ def get_chain():
     return LLMChain(llm=llm, prompt=prompt)
 
 
-def get_store_file_path(source_id: str) -> str:
-    return f"{pathlib.Path(__file__).parent.resolve()}/../../../data/{source_id}/faiss"
+def save_document(storage_filename: str):
+    file_folder_path = get_file_folder_path(storage_filename)
+    file_path = file_folder_path / storage_filename
 
-
-def save_document(source_id: str, file_url: str):
-    store_file_path = get_store_file_path(source_id)
-    if os.path.isdir(store_file_path):
-        return
-
-    loader = PyPDFLoader(file_url)
+    loader = PyPDFLoader(str(file_path))
     pages = loader.load_and_split()
     faiss_index = FAISS.from_documents(pages, OpenAIEmbeddings())
-    store_file_path = get_store_file_path(source_id)
-    faiss_index.save_local(store_file_path)
+
+    faiss_folder_path = file_folder_path / "faiss"
+    faiss_index.save_local(str(faiss_folder_path))
 
 
-def search(source_id: str, query: str):
-    store_file_path = get_store_file_path(source_id)
+def search(storage_filename: str, query: str):
+    file_folder_path = get_file_folder_path(storage_filename)
+    faiss_folder_path = file_folder_path / "faiss"
+
     faiss_index = FAISS.load_local(
-        store_file_path,
+        str(faiss_folder_path),
         OpenAIEmbeddings()
     )
     doc = faiss_index.similarity_search(query, k=1)
@@ -67,9 +68,9 @@ def query(source_id: str, query: str):
     return doc.metadata["page"], response
 
 
-def delete_document(source_id: str):
-    store_file_path = get_store_file_path(source_id)
-    shutil.rmtree(store_file_path)
+# def delete_document(source_id: str):
+#     store_file_path = get_store_file_path(source_id)
+#     shutil.rmtree(store_file_path)
 
 
 if __name__ == "__main__":

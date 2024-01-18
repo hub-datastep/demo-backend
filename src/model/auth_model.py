@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Type
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -89,8 +90,10 @@ def jwt_decode(token: str) -> TokenData:
         raise credentials_exception
 
 
-def get_current_user(session: Session = Depends(get_session), token: str = Depends(oauth2_scheme)):
-    print(token)
+def get_current_user(
+    session: Session = Depends(get_session),
+    token: str = Depends(oauth2_scheme)
+) -> Type[User]:
     token_data = jwt_decode(token)
     user_db = user_repository.get_user_by_id(session, token_data.user_id)
     return user_db

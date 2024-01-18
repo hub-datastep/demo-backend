@@ -1,3 +1,4 @@
+data
 set_fly_secrets.sh
 fly.toml
 venv

@@ -1,7 +1,9 @@
 import traceback
+from pathlib import Path
 
 import uvicorn as uvicorn
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi_versioning import VersionedFastAPI
 from requests import Request
 from starlette.middleware import Middleware
@@ -83,7 +85,7 @@ app = VersionedFastAPI(
 )
 
 app.include_router(task_websocket_controller.router, tags=["task"], prefix="/task/ws")
-
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"), name="static")
 
 @app.on_event("startup")
 def on_startup():

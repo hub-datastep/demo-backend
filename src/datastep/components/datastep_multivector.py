@@ -1,6 +1,6 @@
 import os
-import pathlib
 import uuid
+from pathlib import Path
 
 from rq import get_current_job
 from rq.job import Job
@@ -8,10 +8,10 @@ from rq.command import send_stop_job_command
 from redis import Redis
 
 from langchain.schema.document import Document
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 from langchain.storage import LocalFileStore
 from langchain.storage._lc_store import create_kv_docstore
-from langchain.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
@@ -20,11 +20,12 @@ from langchain.prompts.chat import ChatPromptTemplate
 from langchain.retrievers.multi_vector import MultiVectorRetriever
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
-from langchain.chat_models import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.schema.output import LLMResult
 from langchain.schema import OutputParserException
 
+from datastep.components.file_path_util import get_file_folder_path
 from dto.file_dto import FileOutDto
 from model import file_model
 from repository import file_repository
@@ -53,15 +54,11 @@ class UpdateTaskHandler(BaseCallbackHandler):
         self.job.save_meta()
 
 
-def get_storage_path(source_id):
-    return f"{pathlib.Path(__file__).parent.resolve()}/../../../data/{source_id}/multivector"
-
-
 def get_doc_ids(docs):
     return [str(uuid.uuid4()) for _ in docs]
 
 
-def get_hypothetical_questions(file: FileOutDto, docs):
+def get_hypothetical_questions(docs):
     functions = [
         {
             "name": "hypothetical_questions",
@@ -99,32 +96,43 @@ def get_hypothetical_questions(file: FileOutDto, docs):
         )
         return hypothetical_questions
     except OutputParserException:
-        file_model.delete_file(file)
-        send_stop_job_command(Redis(), job.id)
+        pass
+        # file_model.delete_file(file)
+        # send_stop_job_command(Redis(), job.id)
 
 
-def get_docs(file_url):
-    loader = PyPDFLoader(file_url)
+def get_docs(file_path: Path):
+    loader = PyPDFLoader(str(file_path))
     docs = loader.load()
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000)
     return text_splitter.split_documents(docs)
 
 
-def get_vectorstore(source_id):
+def get_vectorstore(storage_filename: str):
+    file_folder_path = get_file_folder_path(storage_filename)
+    chroma_folder_path = file_folder_path / "multivector" / "chroma"
+
     return Chroma(
-        persist_directory=get_storage_path(source_id) + "/chroma",
+        persist_directory=str(chroma_folder_path),
         embedding_function=OpenAIEmbeddings()
     )
 
 
-def save_store(source_id, docs, doc_ids):
-    fs = LocalFileStore(get_storage_path(source_id) + "/documents")
+def save_store(storage_filename: str, docs, doc_ids):
+    # Split the original filename into name and extension
+    file_folder_name, _ = os.path.splitext(storage_filename)
+    chroma_folder_path = f"/app/data/{file_folder_name}/multivector/documents/"
+
+    fs = LocalFileStore(chroma_folder_path)
     store = create_kv_docstore(fs)
     store.mset(list(zip(doc_ids, docs)))
 
 
-def get_store(source_id):
-    fs = LocalFileStore(get_storage_path(source_id) + "/documents")
+def get_store(storage_filename: str):
+    file_folder_name, _ = os.path.splitext(storage_filename)
+    chroma_folder_path = f"/app/data/{file_folder_name}/multivector/documents/"
+
+    fs = LocalFileStore(chroma_folder_path)
     return create_kv_docstore(fs)
 
 
@@ -155,24 +163,29 @@ def get_retriever_qa(retriever):
     )
 
 
-def save_chroma(file: FileOutDto, source_id, docs, doc_ids):
-    hypothetical_questions = get_hypothetical_questions(file, docs)
+def save_chroma(storage_filename: str, docs, doc_ids):
+    hypothetical_questions = get_hypothetical_questions(docs)
 
     question_docs = []
     for i, question_list in enumerate(hypothetical_questions):
         question_docs.extend([Document(page_content=s, metadata={id_key: doc_ids[i]}) for s in question_list])
 
+    file_folder_path = get_file_folder_path(storage_filename)
+    chroma_folder_path = file_folder_path / "multivector" / "chroma"
+
     Chroma.from_documents(
         question_docs,
         OpenAIEmbeddings(),
-        persist_directory=get_storage_path(source_id) + "/chroma"
+        persist_directory=str(chroma_folder_path)
     )
 
 
-def save_document(file: FileOutDto, source_id: str, file_url: str):
-    store_file_path = get_storage_path(source_id)
+def save_document(storage_filename: str):
+    file_folder_path = get_file_folder_path(storage_filename)
+    chroma_folder_path = file_folder_path / "multivector"
+    file_path = file_folder_path / storage_filename
 
-    docs = get_docs(file_url)
+    docs = get_docs(file_path)
 
     job = get_current_job()
     job.meta["progress"] = 0
@@ -181,13 +194,11 @@ def save_document(file: FileOutDto, source_id: str, file_url: str):
 
     doc_ids = get_doc_ids(docs)
 
-    if not os.path.isdir(store_file_path + "/documents"):
-        save_store(source_id, docs, doc_ids)
+    if not os.path.isdir(chroma_folder_path / "documents"):
+        save_store(storage_filename, docs, doc_ids)
 
-    if not os.path.isdir(store_file_path + "/chroma"):
-        save_chroma(file, source_id, docs, doc_ids)
-
-    file_repository.update({"id": file.id}, {"status": "active"})
+    if not os.path.isdir(chroma_folder_path / "chroma"):
+        save_chroma(storage_filename, docs, doc_ids)
 
 
 def query(source_id, query):
