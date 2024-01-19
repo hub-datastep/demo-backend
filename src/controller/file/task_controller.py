@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 from redis import Redis
 from rq.command import send_stop_job_command
@@ -8,14 +8,15 @@ from rq.registry import StartedJobRegistry
 
 from dto.file_upload_task_dto import FileUploadTaskDto
 from model import file_model
+from model.auth_model import get_current_user
 from repository import file_repository
+from scheme.user_scheme import UserRead
 
-# from service.auth_service import AuthService
 
 router = APIRouter()
 
 
-def get_current_user_job(user_id: str) -> Job | None:
+def get_current_user_job(user_id: int) -> Job | None:
     redis = Redis()
     q = Queue("document", connection=redis)
     registry = StartedJobRegistry(name="document", connection=redis)
@@ -31,7 +32,8 @@ def get_current_user_job(user_id: str) -> Job | None:
 @router.get("/file_upload/active", response_model=list[FileUploadTaskDto])
 @version(1)
 def get_active_file_upload_tasks(
-    # current_user: UserDto = Depends(AuthService.get_current_user)
+    *,
+    current_user: UserRead = Depends(get_current_user)
 ):
     current_user_job = get_current_user_job(current_user.id)
     if not current_user_job:
@@ -51,7 +53,8 @@ def get_active_file_upload_tasks(
 @router.delete("/file_upload/{task_id}", response_model=FileUploadTaskDto)
 @version(1)
 def interrupt_task_by_id(
-    # current_user: UserDto = Depends(AuthService.get_current_user)
+    *,
+    current_user: UserRead = Depends(get_current_user)
 ):
     redis = Redis()
     current_user_job = get_current_user_job(current_user.id)

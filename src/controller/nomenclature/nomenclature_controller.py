@@ -7,7 +7,6 @@ from fastapi_versioning import version
 from dto.nomenclature_mapping_job_dto import NomenclatureMappingUpdateDto, NomenclatureMappingJobOutDto
 from model import nomenclature_model
 
-# from service.auth_service import AuthService
 
 router = APIRouter()
 

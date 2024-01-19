@@ -2,7 +2,7 @@ from dto.config_dto import DatabasePredictionConfigDto
 # from infra.supabase import supabase
 
 
-def get_database_prediction_config(user_id: str) -> DatabasePredictionConfigDto | None:
+def get_database_prediction_config(user_id: int) -> DatabasePredictionConfigDto | None:
     pass
     # response = supabase\
     #     .table("database_prediction_config")\
@@ -16,7 +16,7 @@ def get_database_prediction_config(user_id: str) -> DatabasePredictionConfigDto 
     # return DatabasePredictionConfigDto(**response.data[0])
 
 
-def update_database_prediction_config(user_id: str, update: DatabasePredictionConfigDto) -> DatabasePredictionConfigDto:
+def update_database_prediction_config(user_id: int, update: DatabasePredictionConfigDto) -> DatabasePredictionConfigDto:
     pass
     # response = supabase \
     #     .table("database_prediction_config") \

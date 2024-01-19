@@ -28,7 +28,7 @@ def drop_all_messages_by_chat_id(session: Session, chat_id: int) -> list[Message
     return list(messages)
 
 
-def get_favorites_list(user_id: str) -> list[FavoriteMessageDto]:
+def get_favorites_list(user_id: int) -> list[FavoriteMessageDto]:
     pass
     # response = supabase\
     #     .table("favorite")\
