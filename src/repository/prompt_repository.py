@@ -1,7 +1,6 @@
 from fastapi import HTTPException
-from sqlmodel import select
-
 from sqlmodel import Session
+from sqlmodel import select
 
 from scheme.prompt_scheme import PromptCreate, Prompt, PromptUpdate
 

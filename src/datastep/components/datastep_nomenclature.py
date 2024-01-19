@@ -1,15 +1,14 @@
 import pathlib
 
-from infra.supabase import supabase
-
-from langchain.prompts import PromptTemplate
-from langchain_community.chat_models import ChatOpenAI
-from langchain.chains import LLMChain
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.callbacks import get_openai_callback
+from langchain.chains import LLMChain
 from langchain.chains.openai_functions import create_structured_output_runnable
+from langchain.prompts import PromptTemplate
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.chat_models import ChatOpenAI
 from rq import get_current_job
 
+from infra.supabase import supabase
 
 config = {
     "middle_group_mapping_model": "gpt-3.5-turbo",

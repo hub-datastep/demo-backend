@@ -3,8 +3,6 @@ import os
 from sqlmodel import create_engine, SQLModel, Session
 
 from model import user_model
-from scheme.chat_scheme import Chat
-from scheme.message_scheme import Message
 from scheme.mode_scheme import Mode
 from scheme.prompt_scheme import Prompt
 from scheme.tenant_scheme import Tenant

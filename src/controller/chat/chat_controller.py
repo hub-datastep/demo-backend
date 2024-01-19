@@ -6,7 +6,6 @@ from infra.database import get_session
 from repository import chat_repository
 from scheme.chat_scheme import ChatRead, ChatCreate
 
-
 router = APIRouter()
 
 

@@ -1,15 +1,15 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi_versioning import version
 from redis import Redis
-from rq.job import Job
 from rq.command import send_stop_job_command
-from rq.registry import StartedJobRegistry
+from rq.job import Job
 from rq.queue import Queue
+from rq.registry import StartedJobRegistry
 
 from dto.file_upload_task_dto import FileUploadTaskDto
 from model import file_model
 from repository import file_repository
-from dto.user_dto import UserDto
+
 # from service.auth_service import AuthService
 
 router = APIRouter()

@@ -1,9 +1,9 @@
+from asyncio import sleep
+
 from fastapi import APIRouter, WebSocket
 from fastapi_versioning import version
 from redis import Redis
 from rq.job import Job
-
-from asyncio import sleep
 
 from dto.file_upload_task_dto import FileUploadTaskDto
 

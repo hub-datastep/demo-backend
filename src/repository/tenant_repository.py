@@ -1,7 +1,6 @@
 from typing import Type
 
 from fastapi import HTTPException
-
 from sqlmodel import Session, select
 
 from scheme.tenant_scheme import TenantCreate, Tenant

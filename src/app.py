@@ -2,6 +2,7 @@ import traceback
 from pathlib import Path
 
 import uvicorn as uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi_versioning import VersionedFastAPI
@@ -9,7 +10,6 @@ from requests import Request
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
-from dotenv import load_dotenv
 
 from controller.file import task_controller, file_controller, task_websocket_controller
 
@@ -29,10 +29,10 @@ load_dotenv()
 #     nomenclature_controller
 # )
 
-from controller.prediction import prediction_controller, chat_pdf_controller
+from controller.prediction import prediction_controller
 from controller.user import user_controller, tenant_controller, auth_controller, prompt_controller, config_controller
 from controller.chat import message_controller, mark_controller, chat_controller, review_controller
-from infra.database import create_db_and_tables, create_mock_data, get_session
+from infra.database import create_db_and_tables
 
 load_dotenv()
 

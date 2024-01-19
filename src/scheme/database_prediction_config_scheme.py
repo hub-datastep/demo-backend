@@ -1,8 +1,4 @@
-from datetime import datetime
-
 from sqlmodel import SQLModel, Field, Relationship
-
-from scheme.message_scheme import Message
 
 
 class DatabasePredictionConfigBase(SQLModel):

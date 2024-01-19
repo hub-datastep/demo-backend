@@ -3,11 +3,11 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from dto.message_dto import CreateFavoriteMessageDto
-from dto.user_dto import UserDto
 from infra.database import get_session
 from repository import message_repository
 from scheme.chat_scheme import ChatRead
 from scheme.message_scheme import MessageRead, MessageCreate
+
 # from service.auth_service import AuthService
 
 router = APIRouter()

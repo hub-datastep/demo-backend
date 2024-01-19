@@ -4,7 +4,6 @@ from typing import Type
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-
 from sqlmodel import Session
 
 from infra.database import get_session

@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 from sqlmodel import Session
 
-from infra.database import get_session
-from repository import tenant_repository, instruction_repository
-from scheme.tenant_scheme import TenantRead, TenantCreate
 from dto.instruction_dto import InstructionDto
-from dto.user_dto import UserDto
+from infra.database import get_session
 from repository import instruction_repository
+from repository import tenant_repository
+from scheme.tenant_scheme import TenantRead, TenantCreate
+
 # from service.auth_service import AuthService
 
 router = APIRouter()

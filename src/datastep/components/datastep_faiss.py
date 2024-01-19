@@ -1,14 +1,10 @@
-import os
-from pathlib import Path
-import shutil
-
 from dotenv import load_dotenv
-from langchain_community.document_loaders import PyPDFLoader
+from langchain.chains import LLMChain
 from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain_community.vectorstores.faiss import FAISS
 from langchain.prompts import PromptTemplate
 from langchain_community.chat_models import ChatOpenAI
-from langchain.chains import LLMChain
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.vectorstores.faiss import FAISS
 
 from datastep.components.file_path_util import get_file_folder_path
 

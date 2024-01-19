@@ -1,12 +1,12 @@
 import pathlib
 
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, UploadFile
 from fastapi.responses import FileResponse
 from fastapi_versioning import version
 
 from dto.nomenclature_mapping_job_dto import NomenclatureMappingUpdateDto, NomenclatureMappingJobOutDto
-from dto.user_dto import UserDto
 from model import nomenclature_model
+
 # from service.auth_service import AuthService
 
 router = APIRouter()

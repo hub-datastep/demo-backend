@@ -2,12 +2,11 @@ from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from gotrue import UserResponse
 from gotrue.errors import AuthApiError
-from infra.database import get_session
 from sqlmodel import Session
 
 from dto.auth_dto import AuthDto
-from dto.user_dto import UserDto
 from dto.config_dto import DatabasePredictionConfigDto
+from infra.database import get_session
 from infra.supabase import supabase
 from repository import config_repository, user_repository
 # from repository.tenant_repository import tenant_repository

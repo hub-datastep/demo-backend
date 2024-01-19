@@ -1,6 +1,6 @@
-from langchain.prompts.prompt import PromptTemplate
 from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
+from langchain.prompts.prompt import PromptTemplate
 
 from util.logger import async_log
 

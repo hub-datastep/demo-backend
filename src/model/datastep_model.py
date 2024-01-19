@@ -1,15 +1,12 @@
 import asyncio
-import pandas as pd
 
-from dotenv import load_dotenv
+import pandas as pd
 
 from datastep.components.datastep_sql_database import DatastepSqlDatabase
 from datastep.datastep_chains.datastep_check_data_chain import check_data
 from datastep.datastep_chains.datastep_similar_queries import generate_similar_queries
 from datastep.datastep_chains.datastep_sql_chain import DatastepSqlChain
 from dto.datastep_prediction_dto import DatastepPredictionDto, DatastepPredictionOutDto
-from dto.query_dto import QueryDto
-from dto.config_dto import DatabasePredictionConfigDto
 from scheme.database_prediction_config_scheme import DatabasePredictionConfig
 from scheme.prediction_scheme import DatabasePredictionQuery
 from scheme.tenant_scheme import Tenant

@@ -1,5 +1,5 @@
-from langchain.prompts.prompt import PromptTemplate
 from langchain.chains import LLMChain
+from langchain.prompts.prompt import PromptTemplate
 from langchain_community.chat_models import ChatOpenAI
 
 from datastep.components.datastep_sql_database import DatastepSqlDatabase

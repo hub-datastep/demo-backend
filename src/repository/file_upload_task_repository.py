@@ -1,7 +1,8 @@
+from dotenv import load_dotenv
+from postgrest.base_request_builder import APIResponse
+
 from dto.file_upload_task_dto import FileUploadTaskDto
 from infra.supabase import supabase
-from postgrest.base_request_builder import APIResponse
-from dotenv import load_dotenv
 
 load_dotenv()
 

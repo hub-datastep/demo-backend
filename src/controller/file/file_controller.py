@@ -3,12 +3,9 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from dto.file_dto import FileOutDto
-from dto.file_upload_task_dto import FileUploadTaskDto
-from dto.user_dto import UserDto
 from infra.database import get_session
 from model import file_model
 from model.auth_model import get_current_user
-from repository import file_repository
 from repository.file_repository import get_all_filenames_by_tenant_id
 from scheme.file_scheme import FileRead
 from scheme.user_scheme import UserRead

@@ -5,6 +5,7 @@ from sqlmodel import Session
 from infra.database import get_session
 from repository import prompt_repository
 from scheme.prompt_scheme import PromptRead, PromptCreate, PromptUpdate
+
 # from service.auth_service import AuthService
 
 router = APIRouter()

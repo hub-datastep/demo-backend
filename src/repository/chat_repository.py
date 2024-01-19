@@ -1,11 +1,8 @@
 from fastapi import HTTPException
+from sqlmodel import Session, select
 
-from dto.chat_dto import ChatCreateDto, ChatOutDto
 # from infra.supabase import supabase
-from scheme.chat_scheme import ChatCreate, Chat, ChatRead
-from sqlmodel import Session, select, any_
-
-from scheme.message_scheme import Message
+from scheme.chat_scheme import ChatCreate, Chat
 
 
 def create_chat(session: Session, chat: ChatCreate) -> Chat:

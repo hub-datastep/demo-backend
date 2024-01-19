@@ -1,16 +1,14 @@
 import os
 import re
+import shutil
 from datetime import datetime
 from pathlib import Path
-import shutil
-from typing import BinaryIO
 
-import aiofiles
-from sqlmodel import Session
 from fastapi import UploadFile
-from rq import Queue, get_current_job
-from rq.job import Job
 from redis import Redis
+from rq import Queue
+from rq.job import Job
+from sqlmodel import Session
 
 from datastep.components import datastep_faiss, datastep_multivector
 from repository import file_repository

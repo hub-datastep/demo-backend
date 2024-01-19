@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi_versioning import version
 
-from dto.datastep_prediction_dto import DatastepPredictionOutDto, DatastepPredictionDto
+from dto.datastep_prediction_dto import DatastepPredictionOutDto
 from dto.query_dto import QueryDto
-from dto.user_dto import UserDto
 from model import datastep_pdf_model
+
 # from service.auth_service import AuthService
 
 router = APIRouter()

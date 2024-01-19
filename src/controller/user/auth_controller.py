@@ -1,15 +1,10 @@
-from datetime import timedelta
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi_versioning import version
+from sqlmodel import Session
 
 from infra.database import get_session
 from model import auth_model
-from model.auth_model import get_current_user
 from scheme.token_scheme import Token
-from scheme.user_scheme import User, UserRead
-from sqlmodel import Session
 
 router = APIRouter()
 

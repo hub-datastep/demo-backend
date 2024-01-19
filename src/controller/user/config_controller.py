@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from fastapi_versioning import version
 
 from dto.config_dto import DatabasePredictionConfigDto
-from dto.user_dto import UserDto
 from repository import config_repository
+
 # from service.auth_service import AuthService
 
 router = APIRouter()
