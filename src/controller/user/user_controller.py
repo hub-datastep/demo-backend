@@ -11,15 +11,15 @@ from scheme.user_scheme import UserCreate, UserRead, User
 router = APIRouter()
 
 
-# @router.post("", response_model=UserRead)
-# @version(1)
-# def create_user(
-#     *,
-#     current_user: UserRead = Depends(get_current_user),
-#     session: Session = Depends(get_session),
-#     user: UserCreate
-# ):
-#     return user_repository.create_user(session, user)
+@router.post("", response_model=UserRead)
+@version(1)
+def create_user(
+    *,
+    current_user: UserRead = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    user: UserCreate
+):
+    return user_repository.create_user(session, user)
 
 
 # @router.post("/{user_id}", response_model=UserRead)

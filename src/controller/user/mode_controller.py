@@ -4,22 +4,22 @@ from sqlmodel import Session
 
 from infra.database import get_session
 from model.auth_model import get_current_user
-from repository import tenant_repository
-from scheme.tenant_scheme import TenantRead, TenantCreate
+from repository import mode_repository
+from scheme.mode_scheme import ModeRead, ModeCreate
 from scheme.user_scheme import UserRead
 
 router = APIRouter()
 
 
-@router.post("", response_model=TenantRead)
+@router.post("", response_model=ModeRead)
 @version(1)
-def create_tenant(
+def create_mode(
     *,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-    tenant: TenantCreate
+    mode: ModeCreate
 ):
-    return tenant_repository.create_tenant(session, tenant)
+    return mode_repository.create_mode(session, mode)
 
 
 # @router.get("/{tenant_id}/instruction", response_model=InstructionDto)

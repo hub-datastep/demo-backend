@@ -11,15 +11,15 @@ from scheme.user_scheme import UserRead
 router = APIRouter()
 
 
-@router.get("/{tenant_id}", response_model=PromptRead)
-@version(1)
-def get_prompt_by_tenant_id(
-    *,
-    current_user: UserRead = Depends(get_current_user),
-    session: Session = Depends(get_session),
-    tenant_id: int
-):
-    return prompt_repository.get_prompt_by_tenant_id(session, tenant_id)
+# @router.get("/{tenant_id}", response_model=PromptRead)
+# @version(1)
+# def get_prompt_by_tenant_id(
+#     *,
+#     current_user: UserRead = Depends(get_current_user),
+#     session: Session = Depends(get_session),
+#     tenant_id: int
+# ):
+#     return prompt_repository.get_prompt_by_tenant_id(session, tenant_id)
 
 
 @router.post("", response_model=PromptRead)
@@ -33,12 +33,12 @@ def create_prompt(
     return prompt_repository.create_prompt(session, prompt)
 
 
-@router.put("", response_model=PromptRead)
-@version(1)
-def update_prompt(
-    *,
-    current_user: UserRead = Depends(get_current_user),
-    session: Session = Depends(get_session),
-    prompt: PromptUpdate
-):
-    return prompt_repository.update_prompt(session, prompt)
+# @router.put("", response_model=PromptRead)
+# @version(1)
+# def update_prompt(
+#     *,
+#     current_user: UserRead = Depends(get_current_user),
+#     session: Session = Depends(get_session),
+#     prompt: PromptUpdate
+# ):
+#     return prompt_repository.update_prompt(session, prompt)

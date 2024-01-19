@@ -23,6 +23,7 @@ class Tenant(TenantBase, table=True):
 
 class TenantCreate(TenantBase):
     db_uri: str
+    modes: list[int]
 
 
 class TenantRead(TenantBase):

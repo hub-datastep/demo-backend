@@ -15,18 +15,18 @@ load_dotenv()
 
 from controller.file import file_controller
 from controller.prediction import prediction_controller
-from controller.user import user_controller, auth_controller
+from controller.user import user_controller, auth_controller, tenant_controller, mode_controller, prompt_controller
 from controller.chat import message_controller, chat_controller
-from infra.database import create_db_and_tables
 
 
 app = FastAPI()
 
 app.include_router(auth_controller.router, tags=["auth"], prefix="/auth")
 app.include_router(user_controller.router, tags=["user"], prefix="/user")
-# app.include_router(tenant_controller.router, tags=["tenant"], prefix="/tenant")
+app.include_router(tenant_controller.router, tags=["tenant"], prefix="/tenant")
+app.include_router(mode_controller.router, tags=["mode"], prefix="/mode")
 # app.include_router(config_controller.router, tags=["config"], prefix="/config")
-# app.include_router(prompt_controller.router, tags=["prompt"], prefix="/prompt")
+app.include_router(prompt_controller.router, tags=["prompt"], prefix="/prompt")
 app.include_router(chat_controller.router, tags=["chat"], prefix="/chat")
 app.include_router(message_controller.router, tags=["message"], prefix="/message")
 # app.include_router(mark_controller.router, tags=["mark"], prefix="/mark")
@@ -76,9 +76,7 @@ app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"
 
 @app.on_event("startup")
 def on_startup():
-    create_db_and_tables()
-    # create_mock_data()
-
+    pass
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8080, reload=False)

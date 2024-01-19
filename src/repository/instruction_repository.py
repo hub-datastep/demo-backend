@@ -1,4 +1,4 @@
-from dto.instruction_dto import InstructionDto
+# from dto.instruction_dto import InstructionDto
 # from infra.supabase import supabase
 
 

@@ -3,7 +3,6 @@ import os
 from sqlmodel import create_engine, SQLModel, Session
 
 db_url = os.getenv("DB_CONNECTION_STRING")
-
 engine = create_engine(db_url, echo=True)
 
 
