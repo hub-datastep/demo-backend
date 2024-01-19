@@ -1,17 +1,14 @@
 from datastep.components import datastep_faiss, datastep_multivector
-from dto.datastep_prediction_dto import DatastepPredictionOutDto
+from scheme.prediction_scheme import DocumentPredictionRead
 
 
 def get_prediction(filename, query):
     page, response = datastep_faiss.query(filename, query)
     if "Нет" in str(response):
         response = datastep_multivector.query(filename, query)
-    return DatastepPredictionOutDto(
+    return DocumentPredictionRead(
         answer=response,
         page=page,
-        sql="",
-        table="",
-        similar_queries=[]
     )
 
 

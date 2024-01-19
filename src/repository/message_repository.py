@@ -1,10 +1,6 @@
 from sqlmodel import Session, select
 
-from dto.message_dto import FavoriteMessageDto, CreateFavoriteMessageDto
 from scheme.message_scheme import MessageCreate, Message
-
-
-# from infra.supabase import supabase
 
 
 def create_message(session: Session, message: MessageCreate) -> Message:
@@ -28,8 +24,7 @@ def drop_all_messages_by_chat_id(session: Session, chat_id: int) -> list[Message
     return list(messages)
 
 
-def get_favorites_list(user_id: int) -> list[FavoriteMessageDto]:
-    pass
+# def get_favorites_list(user_id: int) -> list[FavoriteMessageDto]:
     # response = supabase\
     #     .table("favorite")\
     #     .select("*")\
@@ -38,16 +33,14 @@ def get_favorites_list(user_id: int) -> list[FavoriteMessageDto]:
     # return [FavoriteMessageDto(**favorite_question) for favorite_question in response.data]
 
 
-def add_favorite_message(body: CreateFavoriteMessageDto):
-    pass
+# def add_favorite_message(body: CreateFavoriteMessageDto):
     # supabase\
     #     .table("favorite")\
     #     .insert(body.model_dump())\
     #     .execute()
 
 
-def remove_favorite_message(favorite_message_id: int):
-    pass
+# def remove_favorite_message(favorite_message_id: int):
     # supabase\
     #     .table("favorite")\
     #     .delete()\

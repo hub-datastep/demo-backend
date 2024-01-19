@@ -6,9 +6,8 @@ from datastep.components.datastep_sql_database import DatastepSqlDatabase
 from datastep.datastep_chains.datastep_check_data_chain import check_data
 from datastep.datastep_chains.datastep_similar_queries import generate_similar_queries
 from datastep.datastep_chains.datastep_sql_chain import DatastepSqlChain
-from dto.datastep_prediction_dto import DatastepPredictionDto, DatastepPredictionOutDto
 from scheme.database_prediction_config_scheme import DatabasePredictionConfig
-from scheme.prediction_scheme import DatabasePredictionQuery
+from scheme.prediction_scheme import DatabasePredictionQuery, DatabasePredictionRead
 from scheme.tenant_scheme import Tenant
 from util.logger import async_log
 
@@ -18,7 +17,7 @@ async def datastep_get_prediction(
     body: DatabasePredictionQuery,
     tenant: Tenant,
     prediction_config: DatabasePredictionConfig | None
-) -> DatastepPredictionDto:
+) -> DatabasePredictionRead:
     tenant_db_uri = tenant.db_uri
     tenant_active_prompt_template = tenant.active_prompt
 
@@ -55,7 +54,7 @@ async def datastep_get_prediction(
     similar_queries = results[1]
     sql_query, sql_description = results[-1]
     if result.lower() == "нет":
-        return DatastepPredictionOutDto(
+        return DatabasePredictionRead(
             answer=description,
             sql="",
             table="",
@@ -69,7 +68,7 @@ async def datastep_get_prediction(
     sql_query_result_table_source = pd.DataFrame(sql_query_result)\
         .to_json(orient="table", force_ascii=False, index=False)
 
-    return DatastepPredictionOutDto(
+    return DatabasePredictionRead(
         answer=sql_description,
         sql=f"~~~sql\n{sql_query}\n~~~",
         table=sql_query_result_markdown,

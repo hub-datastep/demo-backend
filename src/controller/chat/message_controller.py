@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 from sqlmodel import Session
 
-from dto.message_dto import CreateFavoriteMessageDto
 from infra.database import get_session
 from model.auth_model import get_current_user
 from repository import message_repository
