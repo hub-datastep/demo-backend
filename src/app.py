@@ -1,3 +1,4 @@
+import os
 import traceback
 from pathlib import Path
 
@@ -57,13 +58,7 @@ app = VersionedFastAPI(
     middleware=[
         Middleware(
             CORSMiddleware,
-            allow_origins=[
-                "https://msu-frontend.fly.dev",
-                "https://msu-frontend-dev.fly.dev",
-                "https://datastep-frontend-mock.fly.dev",
-                "http://localhost:3000",
-                "http://45.8.98.160:3000"
-            ],
+            allow_origins=[os.getenv("FRONTEND_HOST")],
             allow_methods=["POST", "GET", "PUT", "DELETE"],
             allow_headers=["*"],
         )
