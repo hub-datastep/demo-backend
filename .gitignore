@@ -4,5 +4,5 @@ set_fly_secrets.sh
 *log
 __pycache__/
 .vscode
-data
 dump.rdb
+database.db
