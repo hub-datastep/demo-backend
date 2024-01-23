@@ -1,173 +1,167 @@
-import pathlib
+import ast
+import json
+import os
+import uuid
 
-from openpyxl import Workbook
-from openpyxl.styles import PatternFill, Font, Alignment
+import joblib
+import numpy as np
+import pandas as pd
+from dotenv import load_dotenv
+from fastapi import HTTPException
+from fastembed.embedding import FlagEmbedding
 from redis import Redis
+from rq import get_current_job
 from rq.job import Job
 from rq.queue import Queue
-from starlette.datastructures import UploadFile
+from tqdm import tqdm
 
-from datastep.components import datastep_nomenclature
-from dto.nomenclature_mapping_job_dto import NomenclatureMappingUpdateDto, \
-    NomenclatureMappingJobDto
-from infra.supabase import supabase
+from scheme.nomenclature_scheme import NomenclaturesUpload, OneNomenclatureRead, OneNomenclatureUpload, \
+    NomenclaturesRead, JobIdRead
 
-
-def parse_file(file_object: UploadFile):
-    return [s.decode("utf-8").strip() for s in file_object.file.readlines()], file_object.filename
+tqdm.pandas()
+np.set_printoptions(threshold=np.inf)
 
 
-def create_job(test_case: str, filename: str | None):
-    split = test_case.split(":")
+def map_on_group(noms: pd.DataFrame) -> list:
+    model = joblib.load(f"{os.getenv('DATA_FOLDER_PATH')}/linear_svc_model_141223.pkl")
+    count_vect = joblib.load(f"{os.getenv('DATA_FOLDER_PATH')}/vectorizer_141223.pkl")
+    return model.predict(count_vect.transform(noms["nomenclature"]))
 
-    query = split[0]
-    narrow_group = ""
-    middle_group = ""
-    wide_group = ""
 
-    if len(split) > 1:
-        narrow_group, middle_group = split[1:]
+def map_on_nom(nom: str, candidates: pd.DataFrame, n=1):
+    def cosine_similarity(a, b):
+        return np.dot(a, b)
+    nom_embeddings = get_embeddings(nom)
+    candidates["similarities"] = candidates.embeddings.apply(lambda x: cosine_similarity(nom_embeddings, x))
+    res = candidates.sort_values("similarities", ascending=False).head(n)
+    return res["nomenclature"].str.cat(sep='\n')
 
-    redis = Redis()
+
+def parse_txt_file(nomenclatures: list[OneNomenclatureUpload]) -> pd.DataFrame:
+    nomenclatures_as_json = [n.dict().values() for n in nomenclatures]
+    return pd.DataFrame(nomenclatures_as_json, columns=["row_number", "nomenclature"])
+
+
+def get_nom_candidates(groups: list[str]) -> pd.DataFrame:
+    groups_str = ", ".join([f"'{g}'" for g in groups])
+    candidates = pd.read_sql(
+        f'SELECT * FROM nomenclature WHERE "group" in ({groups_str})',
+        os.getenv("DB_CONNECTION_STRING")
+    )
+    candidates = candidates.replace({np.nan: "[]"})
+    candidates.embeddings = candidates.embeddings.progress_apply(ast.literal_eval).progress_apply(np.array)
+    return candidates
+
+
+# def enhance_db_noms_with_embeddings(db: pd.DataFrame, candidates: pd.DataFrame):
+#     c = candidates.copy()
+#     c.embeddings = c.embeddings.progress_apply(lambda x: np.array2string(x, separator=","))
+#     db.update(c)
+
+
+def get_embeddings(string: str) -> np.ndarray:
+    embedding_model = FlagEmbedding(
+        model_name="intfloat/multilingual-e5-large"
+    )
+    result = list(embedding_model.query_embed([string]))[0]
+    return result
+
+
+def create_job(nomenclatures: NomenclaturesUpload) -> JobIdRead:
+    nomenclature_id = uuid.uuid4()
+    redis = Redis(host=os.getenv("REDIS_HOST"))
     queue = Queue(name="nomenclature", connection=redis)
-    job = queue.enqueue(datastep_nomenclature.do_mapping, query, result_ttl=-1)
+    job = queue.enqueue(process, nomenclatures.nomenclatures, result_ttl=-1, job_timeout=3600*24)
+    job.meta["nomenclature_id"] = nomenclature_id
+    job.meta["status"] = "queued"
+    job.save_meta()
+    return JobIdRead(nomenclature_id=nomenclature_id)
 
-    job.meta["source"] = filename
-    job.meta["correct_wide_group"] = wide_group
-    job.meta["correct_middle_group"] = middle_group
-    job.meta["correct_narrow_group"] = narrow_group
+
+def process(nomenclatures: list[OneNomenclatureUpload]):
+    job = get_current_job()
+
+    noms: pd.DataFrame = parse_txt_file(nomenclatures)
+    job.meta["total_count"] = len(noms)
+    job.meta["ready_count"] = 0
     job.save_meta()
 
+    noms["group"] = map_on_group(noms)
+    noms["mapping"] = None
 
-def process(nomenclature_object: UploadFile):
-    test_cases, filename = parse_file(nomenclature_object)
+    candidates = get_nom_candidates(noms.group.unique())
+    candidates.embeddings = candidates.progress_apply(
+        lambda x: get_embeddings(x.nomenclature)
+        if len(x.embeddings) == 0
+        else x.embeddings,
+        axis=1
+    )
+    # enhance_db_noms_with_embeddings(db, candidates)
 
-    for test_case in test_cases:
-        create_job(test_case, filename)
+    with tqdm(total=len(noms)) as pbar:
+        for i, nom in noms.iterrows():
+            c = candidates[candidates["group"] == nom.group]
+            nom.mapping = map_on_nom(nom.nomenclature, c)
+            noms.loc[i] = nom
+            job.meta["ready_count"] += 1
+            job.save_meta()
+            pbar.update()
+
+    job.meta["status"] = "finished"
+    job.save_meta()
+    return noms.to_json(orient="records")
 
 
-def update_nomenclature_mapping(body: NomenclatureMappingUpdateDto):
-    supabase.table("nomenclature_mapping").update({"correctness": body.correctness}).eq("id", body.id).execute()
+def get_jobs_from_rq(nomenclature_id: uuid.UUID) -> NomenclaturesRead:
+    def get_all_jobs():
+        queued_job_ids = queue.get_job_ids()
+        started_job_ids = queue.started_job_registry.get_job_ids()
+        finished_job_ids = queue.finished_job_registry.get_job_ids()
+        failed_job_ids = queue.failed_job_registry.get_job_ids()
 
+        return Job.fetch_many([*queued_job_ids, *started_job_ids, *finished_job_ids, *failed_job_ids], connection=redis)
 
-def get_jobs_from_rq(source: str | None) -> list[NomenclatureMappingJobDto]:
-    redis = Redis()
+    redis = Redis(host=os.getenv("REDIS_HOST"))
     queue = Queue("nomenclature", connection=redis)
 
-    queued_job_ids = queue.get_job_ids()
-    started_job_ids = queue.started_job_registry.get_job_ids()
-    finished_job_ids = queue.finished_job_registry.get_job_ids()
-    failed_job_ids = queue.failed_job_registry.get_job_ids()
+    jobs = get_all_jobs()
 
-    jobs = Job.fetch_many([*queued_job_ids, *started_job_ids, *finished_job_ids, *failed_job_ids], connection=redis)
+    wanted_jobs = [j for j in jobs if j.get_meta().get("nomenclature_id", None) == nomenclature_id]
 
-    result = []
-    wanted_jobs = [j for j in jobs if j.get_meta().get("source", None) == source]
+    if len(wanted_jobs) == 0:
+        raise HTTPException(status_code=404, detail="Такого UUID не существует")
 
-    def get_readable_output(output: list[str] | None) -> str:
-        if output is None:
-            return "None"
-        return "\n".join(output)
+    job = wanted_jobs[0]
 
-    for job in wanted_jobs:
-        result.append(NomenclatureMappingJobDto(
-            id=job.get_meta().get("mapping_id", None),
-            input=job.args[0],
-            output=get_readable_output(job.return_value()),
-            source=job.get_meta().get("source", None),
-            status=job.get_status(),
-            wide_group=job.get_meta().get("wide_group", None),
-            middle_group=job.get_meta().get("middle_group", None),
-            narrow_group=job.get_meta().get("narrow_group", None),
-            correct_wide_group=job.get_meta().get("correct_wide_group", None),
-            correct_middle_group=job.get_meta().get("correct_middle_group", None),
-            correct_narrow_group=job.get_meta().get("correct_narrow_group", None)
-        ))
+    job_meta = job.get_meta()
+    job_result = NomenclaturesRead(
+        nomenclature_id=nomenclature_id,
+        ready_count=job_meta["ready_count"],
+        total_count=job_meta["total_count"],
+        general_status=job_meta["status"],
+        nomenclatures=[]
+    )
 
-    return result
+    if job_meta["status"] == "finished":
+        result_json = job.return_value()
+        result_dict = json.loads(result_json)
+        job_result.nomenclatures = [OneNomenclatureRead(**d, status="finished") for d in result_dict]
+
+    return job_result
 
 
-def get_jobs_from_database(source: str | None) -> list[NomenclatureMappingJobDto]:
-    response = supabase.table("nomenclature_mapping").select("*").order("id").eq("source", source).execute()
-
-    result = []
-    for job in response.data:
-        result.append(NomenclatureMappingJobDto(**job))
-
-    return result
-
-
-def get_all_jobs(source: str | None) -> list[NomenclatureMappingJobDto]:
-    jobs_from_rq = get_jobs_from_rq(source)
-    # jobs_from_database = get_jobs_from_database(source)
+def get_all_jobs(nomenclature_id: uuid.UUID) -> NomenclaturesRead:
+    jobs_from_rq = get_jobs_from_rq(nomenclature_id)
     return jobs_from_rq
-    # return [*jobs_from_rq, *jobs_from_database]
-
-
-def transform_jobs_lists_to_dict(job_lists: list[list[NomenclatureMappingJobDto]]) -> dict:
-    """
-    result example:
-        {'Блок для ручной кладки ЦСК-100 400х200х200мм\n':
-            [
-                Job('Блок газобетонный D600 B3,5 F50 600х200х200мм', 'None', '01. Строительные материалы', '01.07. Кирпич, камень, блоки', '01.07.01. Блоки газосиликатные', 'source_3.txt'),
-                Job('Блок газобетонный D600 B3,5 F50 600х200х200мм', 'None', '01. Строительные материалы', '01.07. Кирпич, камень, блоки', '01.07.01. Блоки газосиликатные', 'source_4.txt')
-            ],
-            ...
-        }
-
-    """
-    result = {j.input: [] for j in job_lists[0]}
-    for job_list in job_lists:
-        for job in job_list:
-            result[job.input].append(job)
-    return result
-
-
-def create_test_excel(job_dict: dict, colored: bool = False):
-    def color_cell(ws, row: int, column: int, input: str, output: str):
-        if output is not None and input.strip() in output:
-            ws.cell(row, column).fill = PatternFill("solid", start_color="00FF00")
-        else:
-            ws.cell(row, column).fill = PatternFill("solid", start_color="FF0000")
-
-    wb = Workbook()
-    ws = wb.active
-
-    ws.append(("Вход", "Выход", "Статус", "Широкая группа", "Средняя группа", "Узкая группа", "Источник"))
-    for i in range(1, 8):
-        ws.cell(1, i).font = Font(bold=True)
-
-    shift = 2
-    for input, rows in job_dict.items():
-        ws.append((input, *rows[0].to_row()))
-        ws.cell(shift, 2).alignment = Alignment(wrapText=True)
-        if colored:
-            color_cell(ws, shift, 2, input, rows[0].output)
-            color_cell(ws, shift, 4, rows[0].correct_wide_group, rows[0].wide_group)
-            color_cell(ws, shift, 5, rows[0].correct_middle_group, rows[0].middle_group)
-            color_cell(ws, shift, 6, rows[0].correct_narrow_group, rows[0].narrow_group)
-        shift += 1
-        for job in rows[1:]:
-            ws.append(("", *job.to_row()))
-            ws.cell(shift, 2).alignment = Alignment(wrapText=True)
-            if colored:
-                color_cell(ws, shift, 2, input, job.output)
-                color_cell(ws, shift, 4, job.correct_wide_group, job.wide_group)
-                color_cell(ws, shift, 5, job.correct_middle_group, job.middle_group)
-                color_cell(ws, shift, 6, job.correct_narrow_group, job.narrow_group)
-            shift += 1
-
-    filepath = f"{pathlib.Path(__file__).parent.resolve()}/../../data/sheet.xlsx"
-    wb.save(filepath)
 
 
 if __name__ == "__main__":
-    first_test_jobs = get_all_jobs("test_101123_1.txt")
-    # print(len(first_test_jobs))
-    # second_test_jobs = get_all_jobs("test_descr.txt")
-    create_test_excel(transform_jobs_lists_to_dict([first_test_jobs]))
-    # print(transform_jobs_lists_to_dict([first_test_jobs, second_test_jobs]))
-    # create_excel(all_jobs)
-
-    # for job in all_jobs:
-    #     print(job.status, job.correctness, job.id)
+    load_dotenv()
+    FlagEmbedding(
+        model_name="intfloat/multilingual-e5-large"
+    )
+    # noms = [OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой АВВГнг(А)-LS 4х120мс(N)-1 ТРТС"), OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский")]
+    # nomenclature_id = create_job(NomenclaturesUpload(nomenclatures=noms))
+    # print(get_all_jobs(nomenclature_id))
+    # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+    #     print(res)

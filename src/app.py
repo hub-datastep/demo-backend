@@ -14,6 +14,7 @@ from starlette.responses import JSONResponse
 
 load_dotenv()
 
+from controller.nomenclature import nomenclature_controller
 from controller.file import file_controller
 from controller.prediction import prediction_controller
 from controller.user import user_controller, auth_controller, tenant_controller, mode_controller, prompt_controller
@@ -33,7 +34,7 @@ app.include_router(message_controller.router, tags=["message"], prefix="/message
 # app.include_router(mark_controller.router, tags=["mark"], prefix="/mark")
 # app.include_router(review_controller.router, tags=["review"], prefix="/review")
 app.include_router(prediction_controller.router, tags=["prediction"])
-# app.include_router(nomenclature_controller.router, tags=["nomenclature"], prefix="/nomenclature")
+app.include_router(nomenclature_controller.router, tags=["nomenclature"], prefix="/nomenclature")
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
 
 
@@ -72,6 +73,7 @@ app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"
 @app.on_event("startup")
 def on_startup():
     pass
+
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8080, reload=False)

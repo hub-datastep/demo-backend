@@ -1,16 +1,11 @@
 import os
 from logging.config import fileConfig
 
+from alembic import context
+from dotenv import load_dotenv
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-
-from alembic import context
-
 from sqlmodel import SQLModel
-
-from dotenv import load_dotenv
-
-
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -22,7 +17,6 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 load_dotenv()
-print(os.getenv("DB_CONNECTION_STRING"))
 config.set_main_option('sqlalchemy.url', os.getenv("DB_CONNECTION_STRING"))
 
 # add your model's MetaData object here

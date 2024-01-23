@@ -1,56 +1,67 @@
-import pathlib
+from uuid import UUID
 
-from fastapi import APIRouter, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 
-from dto.nomenclature_mapping_job_dto import NomenclatureMappingUpdateDto, NomenclatureMappingJobOutDto
 from model import nomenclature_model
-
+from model.auth_model import get_current_user
+from scheme.nomenclature_scheme import JobIdRead, NomenclaturesUpload, NomenclaturesRead
+from scheme.user_scheme import UserRead
 
 router = APIRouter()
 
 
-@router.get("/job/{source}", response_model=list[NomenclatureMappingJobOutDto])
+# @router.get("/job/{source}", response_model=list[NomenclatureMappingJobOutDto])
+# @version(1)
+# def get_nomenclature_mapping_jobs(
+#     source: str | None = None,
+#     # current_user: UserDto = Depends(AuthService.get_current_user)
+# ):
+#     return nomenclature_model.get_all_jobs(source=source)
+
+
+# @router.put("")
+# @version(1)
+# def update_nomenclature_mapping(
+#     body: NomenclatureMappingUpdateDto,
+#     # current_user: UserDto = Depends(AuthService.get_current_user)
+# ):
+#     return nomenclature_model.update_nomenclature_mapping(body)
+
+
+# @router.get("/file/{source}")
+# @version(1)
+# def get_file(
+#     source: str,
+#     # current_user: UserDto = Depends(AuthService.get_current_user)
+# ):
+#     first_test_jobs = nomenclature_model.get_all_jobs(source)
+#     nomenclature_model.create_test_excel(
+#         nomenclature_model.transform_jobs_lists_to_dict([first_test_jobs])
+#     )
+#     filepath = f"{pathlib.Path(__file__).parent.resolve()}/../../data/sheet.xlsx"
+#     return FileResponse(filepath, media_type='application/octet-stream', filename="results.xlsx")
+
+
+@router.get("/{nomenclature_id}", response_model=NomenclaturesRead)
 @version(1)
-def get_nomenclature_mapping_jobs(
-    source: str | None = None,
-    # current_user: UserDto = Depends(AuthService.get_current_user)
+def get_nomenclature_mappings(
+    *,
+    current_user: UserRead = Depends(get_current_user),
+    nomenclature_id: UUID
 ):
-    return nomenclature_model.get_all_jobs(source=source)
+    return nomenclature_model.get_all_jobs(nomenclature_id)
 
 
-@router.put("")
+@router.post("", response_model=JobIdRead)
 @version(1)
-def update_nomenclature_mapping(
-    body: NomenclatureMappingUpdateDto,
-    # current_user: UserDto = Depends(AuthService.get_current_user)
+def upload_nomenclature(
+    *,
+    current_user: UserRead = Depends(get_current_user),
+    nomenclatures: NomenclaturesUpload
 ):
-    return nomenclature_model.update_nomenclature_mapping(body)
+    return nomenclature_model.create_job(nomenclatures)
 
 
-@router.get("/file/{source}")
-@version(1)
-def get_file(
-    source: str,
-    # current_user: UserDto = Depends(AuthService.get_current_user)
-):
-    first_test_jobs = nomenclature_model.get_all_jobs(source)
-    nomenclature_model.create_test_excel(
-        nomenclature_model.transform_jobs_lists_to_dict([first_test_jobs])
-    )
-    filepath = f"{pathlib.Path(__file__).parent.resolve()}/../../data/sheet.xlsx"
-    return FileResponse(filepath, media_type='application/octet-stream', filename="results.xlsx")
-
-
-@router.post("/file")
-@version(1)
-def upload_file(
-    file_object: UploadFile,
-    # current_user: UserDto = Depends(AuthService.get_current_user)
-):
-    return nomenclature_model.process(file_object)
-
-
-if __name__ == "__main__":
-    get_nomenclature_mapping_jobs()
+# if __name__ == "__main__":
+#     get_nomenclature_mapping_jobs()
