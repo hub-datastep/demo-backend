@@ -1,4 +1,5 @@
 import asyncio
+from typing import Type
 
 import pandas as pd
 
@@ -15,7 +16,7 @@ from util.logger import async_log
 @async_log("Получение ответа ассистента")
 async def datastep_get_prediction(
     body: DatabasePredictionQuery,
-    tenant: Tenant,
+    tenant: Type[Tenant],
     prediction_config: DatabasePredictionConfig | None
 ) -> DatabasePredictionRead:
     tenant_db_uri = tenant.db_uri
