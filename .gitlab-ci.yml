@@ -19,7 +19,7 @@ BuildPushImg:
     - master
     - dev
 
-Redeploy_backend:
+Redeploy_backend_prod:
   image: docker/compose
   tags:
     - prod
@@ -27,14 +27,14 @@ Redeploy_backend:
   before_script:
     - docker login -u $nexus_login -p $nexus_pass $nexus_repo
     - docker pull $CONTAINER_IMAGE:$CI_PIPELINE_ID
-    - echo ${env_dev} > .env.run; for i in $(cat .env.run);do export $i;done
+    - echo ${env_prod} > .env.run; for i in $(cat .env.run);do export $i;done
   script:
     - docker-compose -f docker-compose.yml down || true
     - docker-compose -f docker-compose.yml up -d
   only:
     - master
 
-Redeploy_backend:
+Redeploy_backend_dev:
   image: docker/compose
   tags:
     - develop
@@ -42,7 +42,7 @@ Redeploy_backend:
   before_script:
     - docker login -u $nexus_login -p $nexus_pass $nexus_repo
     - docker pull $CONTAINER_IMAGE:$CI_PIPELINE_ID
-    - echo ${env_prod} > .env.run; for i in $(cat .env.run);do export $i;done
+    - echo -e ${env_dev} > .env.run; for i in $(cat .env.run);do export $i;done
   script:
     - docker-compose -f docker-compose.yml down || true
     - docker-compose -f docker-compose.yml up -d
