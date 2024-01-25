@@ -19,7 +19,7 @@ BuildPushImg:
     - master
     - dev
 
-Redeploy_backend:
+Redeploy_backend_prod:
   image: docker/compose
   tags:
     - prod
@@ -34,7 +34,7 @@ Redeploy_backend:
   only:
     - master
 
-Redeploy_backend:
+Redeploy_backend_dev:
   image: docker/compose
   tags:
     - develop
