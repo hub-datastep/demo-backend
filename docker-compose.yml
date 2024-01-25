@@ -12,13 +12,13 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - path: .env.run
+      - path: ./.env.run
     volumes:
       - /opt/chat-gpt-inf/data/server:/app/data
   rq-worker:
     image: ${CONTAINER_IMAGE}:${CI_PIPELINE_ID}
     command: rq worker --path /app/src --url redis://${REDIS_HOST}:6379 nomenclature document
     env_file:
-      - path: .env.run
+      - path: ./.env.run
     volumes:
       - /opt/chat-gpt-inf/data/server:/app/data
