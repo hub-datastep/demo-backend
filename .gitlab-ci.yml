@@ -6,9 +6,9 @@ stages:
   - reload-app
 
 BuildPushImg:
-  image: docker
+  image: docker:git
   before_script:
-    - docker login -u nexus_user -p $nexus_pass $nexus_repo
+    - docker login -u $nexus_login -p $nexus_pass $nexus_repo
   tags:
     - docker-builder
   stage: build-img
@@ -25,7 +25,7 @@ Redeploy_backend:
     - prod
   stage: reload-app
   before_script:
-    - docker login -u nexus_user -p $nexus_pass $nexus_repo
+    - docker login -u $nexus_login -p $nexus_pass $nexus_repo
     - docker pull $CONTAINER_IMAGE:$CI_PIPELINE_ID
     - echo ${env_dev} > .env.run; for i in $(cat .env.run);do export $i;done
   script:
@@ -40,7 +40,7 @@ Redeploy_backend:
     - develop
   stage: reload-app
   before_script:
-    - docker login -u nexus_user -p $nexus_pass $nexus_repo
+    - docker login -u $nexus_login -p $nexus_pass $nexus_repo
     - docker pull $CONTAINER_IMAGE:$CI_PIPELINE_ID
     - echo ${env_prod} > .env.run; for i in $(cat .env.run);do export $i;done
   script:
