@@ -1,0 +1,50 @@
+variables:
+  CONTAINER_IMAGE: $nexus_repo/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME
+
+stages:
+  - build-img
+  - reload-app
+
+BuildPushImg:
+  image: docker
+  before_script:
+    - docker login -u nexus_user -p $nexus_pass $nexus_repo
+  tags:
+    - docker-builder
+  stage: build-img
+  script:
+    - docker build -t $CONTAINER_IMAGE:$CI_PIPELINE_ID .
+    - docker push $CONTAINER_IMAGE:$CI_PIPELINE_ID
+  only:
+    - master
+    - dev
+
+Redeploy_backend:
+  image: docker/compose
+  tags:
+    - prod
+  stage: reload-app
+  before_script:
+    - docker login -u nexus_user -p $nexus_pass $nexus_repo
+    - docker pull $CONTAINER_IMAGE:$CI_PIPELINE_ID
+    - echo ${env_dev} > .env.run; for i in $(cat .env.run);do export $i;done
+  script:
+    - docker-compose -f docker-compose.yml down || true
+    - docker-compose -f docker-compose.yml up -d
+  only:
+    - master
+
+Redeploy_backend:
+  image: docker/compose
+  tags:
+    - develop
+  stage: reload-app
+  before_script:
+    - docker login -u nexus_user -p $nexus_pass $nexus_repo
+    - docker pull $CONTAINER_IMAGE:$CI_PIPELINE_ID
+    - echo ${env_prod} > .env.run; for i in $(cat .env.run);do export $i;done
+  script:
+    - docker-compose -f docker-compose.yml down || true
+    - docker-compose -f docker-compose.yml up -d
+  only:
+    - dev
