@@ -6,7 +6,7 @@ stages:
   - reload-app
 
 BuildPushImg:
-  image: docker
+  image: docker:git
   before_script:
     - docker login -u $nexus_login -p $nexus_pass $nexus_repo
   tags:
