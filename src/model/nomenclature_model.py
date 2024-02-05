@@ -71,10 +71,13 @@ def create_job(nomenclatures: NomenclaturesUpload) -> JobIdRead:
     nomenclature_id = uuid.uuid4()
     redis = Redis(host=os.getenv("REDIS_HOST"))
     queue = Queue(name="nomenclature", connection=redis)
-    job = queue.enqueue(process, nomenclatures.nomenclatures, result_ttl=-1, job_timeout=3600*24)
-    job.meta["nomenclature_id"] = nomenclature_id
-    job.meta["status"] = "queued"
-    job.save_meta()
+    queue.enqueue(
+        process,
+        nomenclatures.nomenclatures,
+        meta={"nomenclature_id": nomenclature_id, "status": "queued"},
+        result_ttl=-1,
+        job_timeout=3600*24
+    )
     return JobIdRead(nomenclature_id=nomenclature_id)
 
 
@@ -126,7 +129,7 @@ def get_jobs_from_rq(nomenclature_id: uuid.UUID) -> NomenclaturesRead:
 
     jobs = get_all_jobs()
 
-    wanted_jobs = [j for j in jobs if j.get_meta().get("nomenclature_id", None) == nomenclature_id]
+    wanted_jobs = [j for j in jobs if j.get_meta(refresh=True).get("nomenclature_id", None) == nomenclature_id]
 
     if len(wanted_jobs) == 0:
         raise HTTPException(status_code=404, detail="Такого UUID не существует")
