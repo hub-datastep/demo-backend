@@ -48,7 +48,7 @@ router = APIRouter()
 def get_nomenclature_mappings(
     *,
     current_user: UserRead = Depends(get_current_user),
-    nomenclature_id: UUID
+    nomenclature_id: str
 ):
     return nomenclature_model.get_all_jobs(nomenclature_id)
 

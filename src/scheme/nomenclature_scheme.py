@@ -29,7 +29,7 @@ class NomenclaturesUpload(SQLModel):
 
 
 class NomenclaturesRead(SQLModel):
-    nomenclature_id: UUID
+    nomenclature_id: str
     ready_count: int
     total_count: int
     general_status: Literal["progress", "finished", "queued"]
@@ -37,4 +37,4 @@ class NomenclaturesRead(SQLModel):
 
 
 class JobIdRead(SQLModel):
-    nomenclature_id: UUID
+    nomenclature_id: str

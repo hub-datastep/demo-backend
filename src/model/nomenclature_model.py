@@ -68,17 +68,16 @@ def get_embeddings(string: str) -> np.ndarray:
 
 
 def create_job(nomenclatures: NomenclaturesUpload) -> JobIdRead:
-    nomenclature_id = uuid.uuid4()
     redis = Redis(host=os.getenv("REDIS_HOST"))
     queue = Queue(name="nomenclature", connection=redis)
-    queue.enqueue(
+    job = queue.enqueue(
         process,
         nomenclatures.nomenclatures,
-        meta={"nomenclature_id": nomenclature_id, "status": "queued"},
+        meta={"status": "queued"},
         result_ttl=-1,
         job_timeout=3600*24
     )
-    return JobIdRead(nomenclature_id=nomenclature_id)
+    return JobIdRead(nomenclature_id=job.id)
 
 
 def process(nomenclatures: list[OneNomenclatureUpload]):
@@ -115,30 +114,12 @@ def process(nomenclatures: list[OneNomenclatureUpload]):
     return noms.to_json(orient="records")
 
 
-def get_jobs_from_rq(nomenclature_id: uuid.UUID) -> NomenclaturesRead:
-    def get_all_jobs():
-        queued_job_ids = queue.get_job_ids()
-        started_job_ids = queue.started_job_registry.get_job_ids()
-        finished_job_ids = queue.finished_job_registry.get_job_ids()
-        failed_job_ids = queue.failed_job_registry.get_job_ids()
-
-        return Job.fetch_many([*queued_job_ids, *started_job_ids, *finished_job_ids, *failed_job_ids], connection=redis)
-
+def get_jobs_from_rq(nomenclature_id: str) -> NomenclaturesRead:
     redis = Redis(host=os.getenv("REDIS_HOST"))
-    queue = Queue("nomenclature", connection=redis)
-
-    jobs = get_all_jobs()
-
-    wanted_jobs = [j for j in jobs if j.get_meta(refresh=True).get("nomenclature_id", None) == nomenclature_id]
-
-    if len(wanted_jobs) == 0:
-        raise HTTPException(status_code=404, detail="Такого UUID не существует")
-
-    job = wanted_jobs[0]
-
+    job = Job.fetch(nomenclature_id, connection=redis)
     job_meta = job.get_meta()
     job_result = NomenclaturesRead(
-        nomenclature_id=nomenclature_id,
+        nomenclature_id=job.id,
         ready_count=job_meta["ready_count"],
         total_count=job_meta["total_count"],
         general_status=job_meta["status"],
@@ -153,7 +134,7 @@ def get_jobs_from_rq(nomenclature_id: uuid.UUID) -> NomenclaturesRead:
     return job_result
 
 
-def get_all_jobs(nomenclature_id: uuid.UUID) -> NomenclaturesRead:
+def get_all_jobs(nomenclature_id: str) -> NomenclaturesRead:
     jobs_from_rq = get_jobs_from_rq(nomenclature_id)
     return jobs_from_rq
 
