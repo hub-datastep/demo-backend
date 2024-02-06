@@ -1,13 +1,10 @@
 import ast
 import json
 import os
-import uuid
 
 import joblib
 import numpy as np
 import pandas as pd
-from dotenv import load_dotenv
-from fastapi import HTTPException
 from fastembed.embedding import FlagEmbedding
 from redis import Redis
 from rq import get_current_job
@@ -31,10 +28,14 @@ def map_on_group(noms: pd.DataFrame) -> list:
 def map_on_nom(nom: str, candidates: pd.DataFrame, n=1):
     def cosine_similarity(a, b):
         return np.dot(a, b)
+
     nom_embeddings = get_embeddings(nom)
-    candidates["similarities"] = candidates.embeddings.apply(lambda x: cosine_similarity(nom_embeddings, x))
-    res = candidates.sort_values("similarities", ascending=False).head(n)
-    return res["nomenclature"].str.cat(sep='\n')
+    # candidates["similarities"] = candidates.embeddings.apply(lambda x: cosine_similarity(nom_embeddings, x))
+    # res = candidates.sort_values("similarities", ascending=False).head(n)
+    # return res["nomenclature"].str.cat(sep='\n')
+    similarities = candidates.embeddings.apply(lambda x: cosine_similarity(nom_embeddings, x))
+    res = candidates.iloc[np.argsort(similarities)[-n:]].sort_values("similarities", ascending=False)
+    return '\n'.join(res["nomenclature"])
 
 
 def parse_txt_file(nomenclatures: list[OneNomenclatureUpload]) -> pd.DataFrame:
@@ -67,17 +68,46 @@ def get_embeddings(string: str) -> np.ndarray:
     return result
 
 
-def create_job(nomenclatures: NomenclaturesUpload) -> JobIdRead:
+def split_nomenclatures_by_segments(
+    nomenclatures: list[OneNomenclatureUpload],
+    segment_length: int = 300
+) -> list[list[OneNomenclatureUpload]]:
+    segments: list[list[OneNomenclatureUpload]] = []
+    for i in range(segment_length, len(nomenclatures) + segment_length, segment_length):
+        segments.append(nomenclatures[i - segment_length: i])
+
+    return segments
+
+
+def create_job(nomenclatures: list[OneNomenclatureUpload], previous_job_id: str | None) -> JobIdRead:
     redis = Redis(host=os.getenv("REDIS_HOST"))
     queue = Queue(name="nomenclature", connection=redis)
     job = queue.enqueue(
         process,
-        nomenclatures.nomenclatures,
-        meta={"status": "queued"},
+        nomenclatures,
+        meta={
+            "status": "queued",
+            "previous_nomenclature_id": previous_job_id
+        },
         result_ttl=-1,
-        job_timeout=3600*24
+        job_timeout=3600 * 24
     )
     return JobIdRead(nomenclature_id=job.id)
+
+
+def start_mapping(nomenclatures: NomenclaturesUpload) -> JobIdRead:
+    nomenclatures_list = nomenclatures.nomenclatures
+    nomenclatures_segments = split_nomenclatures_by_segments(nomenclatures_list)
+
+    last_nomenclature_id = None
+    for segment in nomenclatures_segments:
+        job = create_job(
+            nomenclatures=segment,
+            previous_job_id=last_nomenclature_id
+        )
+        last_nomenclature_id = job.nomenclature_id
+
+    return JobIdRead(nomenclature_id=last_nomenclature_id)
 
 
 def process(nomenclatures: list[OneNomenclatureUpload]):
@@ -114,38 +144,49 @@ def process(nomenclatures: list[OneNomenclatureUpload]):
     return noms.to_json(orient="records")
 
 
-def get_jobs_from_rq(nomenclature_id: str) -> NomenclaturesRead:
+def get_jobs_from_rq(nomenclature_id: str) -> list[NomenclaturesRead]:
     redis = Redis(host=os.getenv("REDIS_HOST"))
-    job = Job.fetch(nomenclature_id, connection=redis)
-    job_meta = job.get_meta()
-    job_result = NomenclaturesRead(
-        nomenclature_id=job.id,
-        ready_count=job_meta["ready_count"],
-        total_count=job_meta["total_count"],
-        general_status=job_meta["status"],
-        nomenclatures=[]
-    )
+    jobs_list: list[NomenclaturesRead] = []
 
-    if job_meta["status"] == "finished":
-        result_json = job.return_value()
-        result_dict = json.loads(result_json)
-        job_result.nomenclatures = [OneNomenclatureRead(**d, status="finished") for d in result_dict]
+    prev_job_id = nomenclature_id
+    while prev_job_id is not None:
+        job = Job.fetch(prev_job_id, connection=redis)
+        job_meta = job.get_meta()
+        job_result = NomenclaturesRead(
+            nomenclature_id=job.id,
+            ready_count=job_meta["ready_count"],
+            total_count=job_meta["total_count"],
+            general_status=job_meta["status"],
+            nomenclatures=[]
+        )
 
-    return job_result
+        if job_meta["status"] == "finished":
+            result_json = job.return_value()
+            result_dict = json.loads(result_json)
+            job_result.nomenclatures = [OneNomenclatureRead(**d, status="finished") for d in result_dict]
+
+        jobs_list.append(job_result)
+        prev_job_id = job_meta["previous_nomenclature_id"]
+
+    return jobs_list
 
 
-def get_all_jobs(nomenclature_id: str) -> NomenclaturesRead:
+def get_all_jobs(nomenclature_id: str) -> list[NomenclaturesRead]:
     jobs_from_rq = get_jobs_from_rq(nomenclature_id)
     return jobs_from_rq
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    FlagEmbedding(
-        model_name="intfloat/multilingual-e5-large"
-    )
+    # from dotenv import load_dotenv
+    #
+    # load_dotenv()
+    # FlagEmbedding(
+    #     model_name="intfloat/multilingual-e5-large"
+    # )
     # noms = [OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой АВВГнг(А)-LS 4х120мс(N)-1 ТРТС"), OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский")]
     # nomenclature_id = create_job(NomenclaturesUpload(nomenclatures=noms))
     # print(get_all_jobs(nomenclature_id))
     # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
     #     print(res)
+
+    pass
