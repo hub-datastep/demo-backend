@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 
@@ -43,7 +41,7 @@ router = APIRouter()
 #     return FileResponse(filepath, media_type='application/octet-stream', filename="results.xlsx")
 
 
-@router.get("/{nomenclature_id}", response_model=NomenclaturesRead)
+@router.get("/{nomenclature_id}", response_model=list[NomenclaturesRead])
 @version(1)
 def get_nomenclature_mappings(
     *,
@@ -60,8 +58,7 @@ def upload_nomenclature(
     current_user: UserRead = Depends(get_current_user),
     nomenclatures: NomenclaturesUpload
 ):
-    return nomenclature_model.create_job(nomenclatures)
-
+    return nomenclature_model.start_mapping(nomenclatures)
 
 # if __name__ == "__main__":
 #     get_nomenclature_mapping_jobs()
