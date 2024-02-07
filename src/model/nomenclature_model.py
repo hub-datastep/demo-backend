@@ -30,12 +30,9 @@ def map_on_nom(nom: str, candidates: pd.DataFrame, n=1):
         return np.dot(a, b)
 
     nom_embeddings = get_embeddings(nom)
-    # candidates["similarities"] = candidates.embeddings.apply(lambda x: cosine_similarity(nom_embeddings, x))
-    # res = candidates.sort_values("similarities", ascending=False).head(n)
-    # return res["nomenclature"].str.cat(sep='\n')
-    similarities = candidates.embeddings.apply(lambda x: cosine_similarity(nom_embeddings, x))
-    res = candidates.iloc[np.argsort(similarities)[-n:]].sort_values("similarities", ascending=False)
-    return '\n'.join(res["nomenclature"])
+    candidates["similarities"] = candidates.embeddings.apply(lambda x: cosine_similarity(nom_embeddings, x))
+    res = candidates.sort_values("similarities", ascending=False).head(n)
+    return res["nomenclature"].str.cat(sep='\n')
 
 
 def parse_txt_file(nomenclatures: list[OneNomenclatureUpload]) -> pd.DataFrame:
@@ -68,19 +65,17 @@ def get_embeddings(string: str) -> np.ndarray:
     return result
 
 
-def split_nomenclatures_by_segments(
+def nomenclature_segments(
     nomenclatures: list[OneNomenclatureUpload],
     segment_length: int = 300
 ) -> list[list[OneNomenclatureUpload]]:
-    segments: list[list[OneNomenclatureUpload]] = []
-    for i in range(segment_length, len(nomenclatures) + segment_length, segment_length):
-        segments.append(nomenclatures[i - segment_length: i])
-
-    return segments
+    # https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
+    for i in range(0, len(nomenclatures), segment_length):
+        yield nomenclatures[i:i+segment_length]
 
 
 def create_job(nomenclatures: list[OneNomenclatureUpload], previous_job_id: str | None) -> JobIdRead:
-    redis = Redis(host=os.getenv("REDIS_HOST"))
+    redis = Redis(host=os.getenv("REDIS_HOST"), password=os.getenv("REDIS_PASSWORD"))
     queue = Queue(name="nomenclature", connection=redis)
     job = queue.enqueue(
         process,
@@ -97,10 +92,9 @@ def create_job(nomenclatures: list[OneNomenclatureUpload], previous_job_id: str 
 
 def start_mapping(nomenclatures: NomenclaturesUpload) -> JobIdRead:
     nomenclatures_list = nomenclatures.nomenclatures
-    nomenclatures_segments = split_nomenclatures_by_segments(nomenclatures_list)
 
     last_nomenclature_id = None
-    for segment in nomenclatures_segments:
+    for segment in nomenclature_segments(nomenclatures_list):
         job = create_job(
             nomenclatures=segment,
             previous_job_id=last_nomenclature_id
@@ -145,7 +139,7 @@ def process(nomenclatures: list[OneNomenclatureUpload]):
 
 
 def get_jobs_from_rq(nomenclature_id: str) -> list[NomenclaturesRead]:
-    redis = Redis(host=os.getenv("REDIS_HOST"))
+    redis = Redis(host=os.getenv("REDIS_HOST"), password=os.getenv("REDIS_PASSWORD"))
     jobs_list: list[NomenclaturesRead] = []
 
     prev_job_id = nomenclature_id
@@ -154,8 +148,8 @@ def get_jobs_from_rq(nomenclature_id: str) -> list[NomenclaturesRead]:
         job_meta = job.get_meta()
         job_result = NomenclaturesRead(
             nomenclature_id=job.id,
-            ready_count=job_meta["ready_count"],
-            total_count=job_meta["total_count"],
+            ready_count=job_meta.get("ready_count", None),
+            total_count=job_meta.get("total_count", None),
             general_status=job_meta["status"],
             nomenclatures=[]
         )

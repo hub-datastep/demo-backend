@@ -30,8 +30,8 @@ class NomenclaturesUpload(SQLModel):
 
 class NomenclaturesRead(SQLModel):
     nomenclature_id: str
-    ready_count: int
-    total_count: int
+    ready_count: int | None
+    total_count: int | None
     general_status: Literal["progress", "finished", "queued"]
     nomenclatures: list[OneNomenclatureRead]
 
