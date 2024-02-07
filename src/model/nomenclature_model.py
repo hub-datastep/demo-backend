@@ -67,7 +67,7 @@ def get_embeddings(string: str) -> np.ndarray:
 
 def nomenclature_segments(
     nomenclatures: list[OneNomenclatureUpload],
-    segment_length: int = 300
+    segment_length: int = 100
 ) -> list[list[OneNomenclatureUpload]]:
     # https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
     for i in range(0, len(nomenclatures), segment_length):
