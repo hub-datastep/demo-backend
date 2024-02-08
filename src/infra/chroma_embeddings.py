@@ -37,7 +37,7 @@ nomenclature_collection = chroma_client.create_collection(
 
 
 def save_nom_embeddings(ids: list[str], nomenclatures: list[str], groups: list[str], embeddings: ...):
-    nomenclature_collection.upsert(
+    nomenclature_collection.add(
         ids=ids,
         documents=nomenclatures,
         metadatas=[{"group": group} for group in groups],
