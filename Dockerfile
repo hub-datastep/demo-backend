@@ -45,4 +45,4 @@ RUN poetry config virtualenvs.create false \
 # RUN apt install lsb-release curl gpg -y
 
 COPY . /app
-
+COPY data /app/data
