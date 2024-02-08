@@ -71,7 +71,7 @@ def nomenclature_segments(
 ) -> list[list[OneNomenclatureUpload]]:
     # https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
     for i in range(0, len(nomenclatures), segment_length):
-        yield nomenclatures[i:i+segment_length]
+        yield nomenclatures[i:i + segment_length]
 
 
 def create_job(nomenclatures: list[OneNomenclatureUpload], previous_job_id: str | None) -> JobIdRead:
