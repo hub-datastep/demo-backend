@@ -8,9 +8,10 @@ import pandas as pd
 from fastembed.embedding import FlagEmbedding
 from redis import Redis
 from rq import get_current_job
-from rq.job import Job
+from rq.job import Job, JobStatus
 from rq.queue import Queue
 from tqdm import tqdm
+from chromadb import HttpClient
 
 from scheme.nomenclature_scheme import NomenclaturesUpload, OneNomenclatureRead, OneNomenclatureUpload, \
     NomenclaturesRead, JobIdRead
@@ -25,14 +26,17 @@ def map_on_group(noms: pd.DataFrame) -> list:
     return model.predict(count_vect.transform(noms["nomenclature"]))
 
 
-def map_on_nom(nom: str, candidates: pd.DataFrame, n=1):
-    def cosine_similarity(a, b):
-        return np.dot(a, b)
+def map_on_nom(nom_embeddings: np.ndarray,  group: str):
+    chroma = HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
+    collection = chroma.get_collection(name="nomenclature")
 
-    nom_embeddings = get_embeddings(nom)
-    candidates["similarities"] = candidates.embeddings.apply(lambda x: cosine_similarity(nom_embeddings, x))
-    res = candidates.sort_values("similarities", ascending=False).head(n)
-    return res["nomenclature"].str.cat(sep='\n')
+    nom_embeddings = nom_embeddings.tolist()
+    response = collection.query(
+        query_embeddings=[nom_embeddings],
+        n_results=1,
+        where={"group": group}
+    )
+    return response["documents"][0]
 
 
 def parse_txt_file(nomenclatures: list[OneNomenclatureUpload]) -> pd.DataFrame:
@@ -57,11 +61,12 @@ def get_nom_candidates(groups: list[str]) -> pd.DataFrame:
 #     db.update(c)
 
 
-def get_embeddings(string: str) -> np.ndarray:
+def get_embeddings(strings: list[str]) -> list[np.ndarray]:
     embedding_model = FlagEmbedding(
         model_name="intfloat/multilingual-e5-large"
     )
-    result = list(embedding_model.query_embed([string]))[0]
+    strings = [f"query: {s}" for s in strings]
+    result = list(embedding_model.embed(strings))
     return result
 
 
@@ -81,7 +86,6 @@ def create_job(nomenclatures: list[OneNomenclatureUpload], previous_job_id: str 
         process,
         nomenclatures,
         meta={
-            "status": "queued",
             "previous_nomenclature_id": previous_job_id
         },
         result_ttl=-1,
@@ -94,7 +98,7 @@ def start_mapping(nomenclatures: NomenclaturesUpload) -> JobIdRead:
     nomenclatures_list = nomenclatures.nomenclatures
 
     last_nomenclature_id = None
-    for segment in nomenclature_segments(nomenclatures_list):
+    for segment in nomenclature_segments(nomenclatures_list, segment_length=nomenclatures.job_size):
         job = create_job(
             nomenclatures=segment,
             previous_job_id=last_nomenclature_id
@@ -115,19 +119,13 @@ def process(nomenclatures: list[OneNomenclatureUpload]):
     noms["group"] = map_on_group(noms)
     noms["mapping"] = None
 
-    candidates = get_nom_candidates(noms.group.unique())
-    candidates.embeddings = candidates.progress_apply(
-        lambda x: get_embeddings(x.nomenclature)
-        if len(x.embeddings) == 0
-        else x.embeddings,
-        axis=1
-    )
     # enhance_db_noms_with_embeddings(db, candidates)
+
+    noms["embeddings"] = get_embeddings(noms.nomenclature.to_list())
 
     with tqdm(total=len(noms)) as pbar:
         for i, nom in noms.iterrows():
-            c = candidates[candidates["group"] == nom.group]
-            nom.mapping = map_on_nom(nom.nomenclature, c)
+            nom.mapping = map_on_nom(nom.embeddings, nom.group)
             noms.loc[i] = nom
             job.meta["ready_count"] += 1
             job.save_meta()
@@ -135,7 +133,7 @@ def process(nomenclatures: list[OneNomenclatureUpload]):
 
     job.meta["status"] = "finished"
     job.save_meta()
-    return noms.to_json(orient="records")
+    return noms.to_json(orient="records", force_ascii=False)
 
 
 def get_jobs_from_rq(nomenclature_id: str) -> list[NomenclaturesRead]:
@@ -145,19 +143,20 @@ def get_jobs_from_rq(nomenclature_id: str) -> list[NomenclaturesRead]:
     prev_job_id = nomenclature_id
     while prev_job_id is not None:
         job = Job.fetch(prev_job_id, connection=redis)
-        job_meta = job.get_meta()
+        job_meta = job.get_meta(refresh=True)
+        job_status = job.get_status(refresh=True)
         job_result = NomenclaturesRead(
             nomenclature_id=job.id,
             ready_count=job_meta.get("ready_count", None),
             total_count=job_meta.get("total_count", None),
-            general_status=job_meta["status"],
+            general_status=job_status,
             nomenclatures=[]
         )
 
-        if job_meta["status"] == "finished":
+        if job_status == JobStatus.FINISHED:
             result_json = job.return_value()
             result_dict = json.loads(result_json)
-            job_result.nomenclatures = [OneNomenclatureRead(**d, status="finished") for d in result_dict]
+            job_result.nomenclatures = [OneNomenclatureRead(**d) for d in result_dict]
 
         jobs_list.append(job_result)
         prev_job_id = job_meta["previous_nomenclature_id"]
@@ -171,14 +170,32 @@ def get_all_jobs(nomenclature_id: str) -> list[NomenclaturesRead]:
 
 
 if __name__ == "__main__":
+    import pprint
+    from dotenv import load_dotenv
+    load_dotenv()
     # from dotenv import load_dotenv
     #
     # load_dotenv()
     # FlagEmbedding(
     #     model_name="intfloat/multilingual-e5-large"
     # )
-    # noms = [OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой АВВГнг(А)-LS 4х120мс(N)-1 ТРТС"), OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский")]
-    # nomenclature_id = create_job(NomenclaturesUpload(nomenclatures=noms))
+    noms = [
+        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой АВВГнг(А)-LS 4х120мс(N)-1 ТРТС"),
+        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
+        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
+        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
+        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
+        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
+        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
+        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
+        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
+        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский")
+    ]
+    result = process(noms)
+    # for open("file.txt", "w") as f:
+    #     f.write(result)
+    # print(result, encoding)
+    # pprint.pprint(result)
     # print(get_all_jobs(nomenclature_id))
     # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
     #     print(res)
