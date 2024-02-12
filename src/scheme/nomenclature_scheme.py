@@ -1,6 +1,3 @@
-from typing import Literal
-from uuid import UUID
-
 from sqlmodel import SQLModel, Field
 
 
@@ -19,20 +16,20 @@ class OneNomenclatureUpload(SQLModel):
 class OneNomenclatureRead(SQLModel):
     row_number: int
     nomenclature: str
-    status: Literal["progress", "finished", "queued", "error"]
-    group: str | None
-    mapping: str | None
+    group: str
+    mapping: list[str]
 
 
 class NomenclaturesUpload(SQLModel):
     nomenclatures: list[OneNomenclatureUpload]
+    job_size: int
 
 
 class NomenclaturesRead(SQLModel):
     nomenclature_id: str
     ready_count: int | None
     total_count: int | None
-    general_status: Literal["progress", "finished", "queued"]
+    general_status: str
     nomenclatures: list[OneNomenclatureRead]
 
 
