@@ -37,8 +37,11 @@ if __name__ == "__main__":
     documents = df.nomenclature.to_list()
     metadatas = [{"group": g} for g in df.group.to_list()]
 
+    print("1")
     convert_sql_to_chroma(collection, documents[:40000], embeddings[:40000], metadatas[:40000], ids[:40000])
+    print("2")
     convert_sql_to_chroma(collection, documents[40000:80000], embeddings[40000:80000], metadatas[40000:80000], ids[40000:80000])
+    print("3")
     convert_sql_to_chroma(collection, documents[80000:], embeddings[80000:], metadatas[80000:], ids[80000:])
 
     print(collection.count())
