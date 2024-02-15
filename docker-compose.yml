@@ -13,10 +13,21 @@ services:
       - "8080:8080"
     env_file:
       - .env.run
-
   rq-worker:
     image: ${CONTAINER_IMAGE}:${CI_PIPELINE_ID}
     command: rq worker --path /app/src --url redis://${REDIS_HOST}:6379 nomenclature document
     env_file:
       - .env.run
+  chroma-db:
+    image: chromadb/chroma
+    container_name: chroma-db
+    environment:
+      - IS_PERSISTENT=TRUE
+    volumes:
+      - chroma-data:/chroma/chroma/
+    ports:
+      - "8001:8000"
+volumes:
+  chroma-data:
+    driver: local
 
