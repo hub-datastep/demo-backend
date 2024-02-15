@@ -27,7 +27,7 @@ services:
       - chroma-data:/chroma/chroma/
     ports:
       - "8001:8000"
-    mem_limit: 2Gb
+    mem_limit: 2G
 volumes:
   chroma-data:
     driver: local
