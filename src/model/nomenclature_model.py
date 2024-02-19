@@ -99,10 +99,8 @@ def create_job(
     queue = Queue(name="nomenclature", connection=redis)
     job = queue.enqueue(
         process,
-        {
-            "nomenclatures": nomenclatures,
-            "most_similar_count": most_similar_count,
-        },
+        nomenclatures,
+        most_similar_count,
         meta={
             "previous_nomenclature_id": previous_job_id
         },
