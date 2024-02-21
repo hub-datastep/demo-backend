@@ -1,3 +1,5 @@
+import os
+
 from dotenv import load_dotenv
 from langchain.chains import LLMChain
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -13,7 +15,7 @@ load_dotenv()
 
 def get_chain():
     # TODO: попробовать 3.5-instruct
-    llm = ChatOpenAI(temperature=0, model_name="gpt-4")
+    llm = ChatOpenAI(temperature=0, model_name="gpt-4", openai_api_base=os.getenv("OPENAI_API_BASE"))
     template = """По данному тексту ответь на вопрос. Если для ответа на вопрос не хватает информации, напиши: Нет.
 
     Вопрос:
