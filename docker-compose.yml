@@ -13,25 +13,12 @@ services:
       - "8080:8080"
     env_file:
       - .env.run
+    volumes:
+      - /opt/chat-gpt-inf/data/server:/app/data
   rq-worker:
     image: ${CONTAINER_IMAGE}:${CI_PIPELINE_ID}
     command: rq worker --path /app/src --url redis://${REDIS_HOST}:6379 nomenclature document
     env_file:
       - .env.run
-  chroma-db:
-    image: chromadb/chroma
-    container_name: chroma-db
-    environment:
-      - IS_PERSISTENT=TRUE
     volumes:
-      - chroma-data:/chroma/chroma/
-    ports:
-      - "8001:8000"
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-volumes:
-  chroma-data:
-    driver: local
-
+      - /opt/chat-gpt-inf/data/server:/app/data
