@@ -41,14 +41,14 @@ router = APIRouter()
 #     return FileResponse(filepath, media_type='application/octet-stream', filename="results.xlsx")
 
 
-@router.get("/{nomenclature_id}", response_model=list[NomenclaturesRead])
+@router.get("/{job_id}", response_model=list[NomenclaturesRead])
 @version(1)
 def get_nomenclature_mappings(
     *,
     current_user: UserRead = Depends(get_current_user),
-    nomenclature_id: str
+    job_id: str
 ):
-    return nomenclature_model.get_all_jobs(nomenclature_id)
+    return nomenclature_model.get_all_jobs(job_id)
 
 
 @router.post("", response_model=JobIdRead)

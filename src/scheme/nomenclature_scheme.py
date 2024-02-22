@@ -13,20 +13,27 @@ class OneNomenclatureUpload(SQLModel):
     nomenclature: str
 
 
+class MappingRead(SQLModel):
+    nomenclature_guid: str
+    nomenclature: str
+    similarity_score: float
+
+
 class OneNomenclatureRead(SQLModel):
     row_number: int
-    nomenclature: str
+    nomenclature: str | None
     group: str
-    mapping: list[str]
+    mappings: list[MappingRead]
 
 
 class NomenclaturesUpload(SQLModel):
     nomenclatures: list[OneNomenclatureUpload]
+    most_similar_count: int = 1
     job_size: int
 
 
 class NomenclaturesRead(SQLModel):
-    nomenclature_id: str
+    job_id: str
     ready_count: int | None
     total_count: int | None
     general_status: str
@@ -34,4 +41,4 @@ class NomenclaturesRead(SQLModel):
 
 
 class JobIdRead(SQLModel):
-    nomenclature_id: str
+    job_id: str
