@@ -5,7 +5,7 @@ import os
 import joblib
 import numpy as np
 import pandas as pd
-from chromadb import HttpClient
+from chromadb import HttpClient, QueryResult
 from fastembed.embedding import FlagEmbedding
 from redis import Redis
 from rq import get_current_job
@@ -14,7 +14,7 @@ from rq.queue import Queue
 from tqdm import tqdm
 
 from scheme.nomenclature_scheme import NomenclaturesUpload, OneNomenclatureRead, OneNomenclatureUpload, \
-    NomenclaturesRead, JobIdRead, MappedNomenclature
+    NomenclaturesRead, JobIdRead
 
 tqdm.pandas()
 np.set_printoptions(threshold=np.inf)
@@ -31,7 +31,7 @@ def map_on_nom(nom_embeddings: np.ndarray, group: str, most_similar_count: int):
     collection = chroma.get_collection(name="nomenclature")
 
     nom_embeddings = nom_embeddings.tolist()
-    response = collection.query(
+    response: QueryResult = collection.query(
         query_embeddings=[nom_embeddings],
         n_results=most_similar_count,
         where={"group": group}
@@ -39,13 +39,11 @@ def map_on_nom(nom_embeddings: np.ndarray, group: str, most_similar_count: int):
 
     mapped_noms = []
     for i in range(most_similar_count):
-        mapped_noms.append(MappedNomenclature(
-            nomenclature_guid=response["ids"][i],
-            nomenclature=response["documents"][i],
-            similarity_score=response["distances"][i],
-        ))
-    # Sort from most similar to lower
-    mapped_noms.sort(key=lambda nom: nom.similarity_score, reverse=True)
+        mapped_noms.append({
+            "nomenclature_guid": response["ids"][0][i],
+            "nomenclature": response["documents"][0][i],
+            "similarity_score": response["distances"][0][i]
+        })
 
     return mapped_noms
 
@@ -126,16 +124,19 @@ def start_mapping(nomenclatures: NomenclaturesUpload) -> JobIdRead:
     return JobIdRead(job_id=last_job_id)
 
 
-def process(nomenclatures: list[OneNomenclatureUpload], most_similar_count: int):
-    job = get_current_job()
+def process(nomenclatures: list[OneNomenclatureUpload], most_similar_count: int, use_jobs: bool = True):
+    if use_jobs:
+        job = get_current_job()
 
     noms: pd.DataFrame = parse_txt_file(nomenclatures)
-    job.meta["total_count"] = len(noms)
-    job.meta["ready_count"] = 0
-    job.save_meta()
+
+    if use_jobs:
+        job.meta["total_count"] = len(noms)
+        job.meta["ready_count"] = 0
+        job.save_meta()
 
     noms["group"] = map_on_group(noms)
-    noms["mapping"] = None
+    noms["mappings"] = None
 
     # enhance_db_noms_with_embeddings(db, candidates)
 
@@ -143,14 +144,16 @@ def process(nomenclatures: list[OneNomenclatureUpload], most_similar_count: int)
 
     with tqdm(total=len(noms)) as pbar:
         for i, nom in noms.iterrows():
-            nom.mapping = map_on_nom(nom.embeddings, nom.group, most_similar_count)
+            nom.mappings = map_on_nom(nom.embeddings, nom.group, most_similar_count)
             noms.loc[i] = nom
-            job.meta["ready_count"] += 1
-            job.save_meta()
+            if use_jobs:
+                job.meta["ready_count"] += 1
+                job.save_meta()
             pbar.update()
 
-    job.meta["status"] = "finished"
-    job.save_meta()
+    if use_jobs:
+        job.meta["status"] = "finished"
+        job.save_meta()
     return noms.to_json(orient="records", force_ascii=False)
 
 
@@ -188,9 +191,6 @@ def get_all_jobs(nomenclature_id: str) -> list[NomenclaturesRead]:
 
 
 if __name__ == "__main__":
-    from dotenv import load_dotenv
-
-    load_dotenv()
     # from dotenv import load_dotenv
     #
     # load_dotenv()
@@ -209,7 +209,8 @@ if __name__ == "__main__":
         OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
         OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский")
     ]
-    result = process(noms)
+    result = process(noms, most_similar_count=2, use_jobs=False)
+    print(result)
     # for open("file.txt", "w") as f:
     #     f.write(result)
     # print(result, encoding)

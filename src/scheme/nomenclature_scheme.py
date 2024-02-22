@@ -13,7 +13,7 @@ class OneNomenclatureUpload(SQLModel):
     nomenclature: str
 
 
-class MappedNomenclature(SQLModel):
+class MappingRead(SQLModel):
     nomenclature_guid: str
     nomenclature: str
     similarity_score: float
@@ -23,7 +23,7 @@ class OneNomenclatureRead(SQLModel):
     row_number: int
     nomenclature: str | None
     group: str
-    mapping: list[MappedNomenclature]
+    mappings: list[MappingRead]
 
 
 class NomenclaturesUpload(SQLModel):
