@@ -75,7 +75,7 @@ def get_hypothetical_questions(docs):
         | ChatPromptTemplate.from_template(
             "Generate a list of 3 hypothetical questions in russian that the below document could be used to answer:\n\n{doc}"
         )
-        | ChatOpenAI(max_retries=6, model="gpt-3.5-turbo-1106", request_timeout=10).bind(
+        | ChatOpenAI(max_retries=6, model="gpt-3.5-turbo-1106", request_timeout=10, openai_api_base=os.getenv("OPENAI_API_BASE")).bind(
                 functions=functions,
                 function_call={"name": "hypothetical_questions"}
         )
@@ -149,7 +149,7 @@ def get_retriever_qa(retriever):
     )
     chain_type_kwargs = {"prompt": PROMPT}
     return RetrievalQA.from_chain_type(
-        llm=ChatOpenAI(model_name="gpt-3.5-turbo-16k"),
+        llm=ChatOpenAI(model_name="gpt-3.5-turbo-16k", openai_api_base=os.getenv("OPENAI_API_BASE")),
         chain_type="stuff",
         retriever=retriever, chain_type_kwargs=chain_type_kwargs,
         return_source_documents=False

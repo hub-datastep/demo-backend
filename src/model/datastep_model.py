@@ -1,5 +1,6 @@
 import asyncio
 from typing import Type
+from uuid import UUID
 
 import pandas as pd
 
@@ -66,8 +67,14 @@ async def datastep_get_prediction(
     # TODO: разобраться, как сделать подключение к базе асинк
     sql_query_result = datastep_sql_database.run(sql_query)
     sql_query_result_markdown = pd.DataFrame(sql_query_result).to_markdown(index=False, floatfmt=".3f")
+
+    def uuid_json_encoder(obj):
+        if isinstance(obj, UUID):
+            # if the obj is uuid, we simply return the value of uuid
+            return obj.hex
+
     sql_query_result_table_source = pd.DataFrame(sql_query_result)\
-        .to_json(orient="table", force_ascii=False, index=False)
+        .to_json(orient="table", force_ascii=False, index=False, default_handler=uuid_json_encoder)
 
     return DatabasePredictionRead(
         answer=sql_description,

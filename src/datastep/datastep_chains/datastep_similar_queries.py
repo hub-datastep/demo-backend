@@ -1,3 +1,5 @@
+import os
+
 from langchain.chains import LLMChain
 from langchain.prompts.prompt import PromptTemplate
 from langchain_community.chat_models import ChatOpenAI
@@ -22,7 +24,12 @@ def get_chain():
         template=similar_queries_template,
         input_variables=["table_info", "input"]
     )
-    llm = ChatOpenAI(temperature=0.8, verbose=False, model_name="gpt-3.5-turbo")
+    llm = ChatOpenAI(
+        temperature=0.8,
+        verbose=False,
+        model_name="gpt-3.5-turbo",
+        openai_api_base=os.getenv("OPENAI_API_BASE")
+    )
     similar_queries_chain = LLMChain(llm=llm, prompt=similar_queries_prompt, verbose=False)
     return similar_queries_chain
 

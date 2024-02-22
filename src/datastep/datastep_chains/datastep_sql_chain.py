@@ -1,4 +1,5 @@
 import datetime
+import os
 import re
 
 from langchain.chains import LLMChain
@@ -49,7 +50,12 @@ class DatastepSqlChain:
     ):
         self.sql_database = sql_database
 
-        llm = ChatOpenAI(temperature=temperature, verbose=verbose, model_name="gpt-4")
+        llm = ChatOpenAI(
+            temperature=temperature,
+            verbose=verbose,
+            model_name="gpt-4",
+            openai_api_base=os.getenv("OPENAI_API_BASE")
+        )
 
         datastep_sql_chain_prompt = PromptTemplate(
             template=prompt_template,
