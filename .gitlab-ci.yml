@@ -13,7 +13,7 @@ BuildPushImg:
     - docker-builder
   stage: build-img
   script:
-    - docker build -t $CONTAINER_IMAGE:$CI_PIPELINE_ID .
+    - docker build -t $CONTAINER_IMAGE:$CI_PIPELINE_ID -f mssql.Dockerfile .
     - docker push $CONTAINER_IMAGE:$CI_PIPELINE_ID
   only:
     - master
