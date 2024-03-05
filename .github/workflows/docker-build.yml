@@ -13,4 +13,4 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Build the Docker image
-      run: docker-compose build backend --file docker-compose.demo.yml --tag ${{secrets.DOCKER_USERNAME}}/${{secrets.BACKEND_REPOSITORY}}:${{github.run_id}}
+      run: docker-compose build --file docker-compose.demo.yml --tag ${{secrets.DOCKER_USERNAME}}/${{secrets.BACKEND_REPOSITORY}}:${{github.run_id}} backend
