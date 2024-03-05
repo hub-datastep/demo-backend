@@ -25,8 +25,6 @@ jobs:
         env SERVER_DOCKERFILE=${{ secrets.SERVER_DOCKERFILE }} \
         DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} \
         DOCKER_BACKEND_REPOSITORY=${{ secrets.DOCKER_BACKEND_REPOSITORY }} \
-        REDIS_HOST=${{ secrets.REDIS_HOST }} \
-        REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }} \
         RUN_ID=${{ github.run_id }} \
         docker-compose --file docker-compose.demo.yml build backend
 
