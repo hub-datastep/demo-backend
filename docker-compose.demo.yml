@@ -36,7 +36,7 @@ services:
     volumes:
       - redis-server:${DATA_FOLDER_PATH}
   rq-worker:
-    image: server-image
+    image: bleschunov/msu-backend
     command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379 nomenclature document
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
