@@ -3,9 +3,8 @@ version: "3"
 services:
   backend:
     build:
-      context: ${SERVER_CONTEXT}
       dockerfile: ${SERVER_DOCKERFILE}
-    image: bleschunov/msu-backend
+    image: ${DOCKER_USERNAME}/${DOCKER_REPOSITORY}:${RUN_ID}
     container_name: backend
     command: bash -c "
       cd /app/src 
@@ -36,7 +35,7 @@ services:
     volumes:
       - redis-server:${DATA_FOLDER_PATH}
   rq-worker:
-    image: bleschunov/msu-backend
+    image: ${DOCKER_USERNAME}/${DOCKER_REPOSITORY}:${RUN_ID}
     command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379 nomenclature document
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
