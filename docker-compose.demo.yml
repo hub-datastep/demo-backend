@@ -3,6 +3,7 @@ version: "3"
 services:
   backend:
     build:
+      context: .
       dockerfile: ${SERVER_DOCKERFILE}
     image: ${DOCKER_USERNAME}/${DOCKER_REPOSITORY}:${RUN_ID}
     container_name: backend
