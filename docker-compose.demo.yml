@@ -1,0 +1,83 @@
+version: "3"
+
+services:
+  backend:
+    build:
+      context: ${SERVER_CONTEXT}
+      dockerfile: ${SERVER_DOCKERFILE}
+    image: bleschunov/msu-backend
+    container_name: backend
+    command: bash -c "
+      cd /app/src 
+      && python -m alembic upgrade head 
+      && cd /
+      && python3 /app/src/app.py"
+    ports:
+      - "8080:8080"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_BASE=${OPENAI_API_BASE}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
+      - CHROMA_HOST=${CHROMA_HOST}
+      - CHROMA_PORT=${CHROMA_PORT}
+      - FRONTEND_HOST=${FRONTEND_HOST}
+      - DATA_FOLDER_PATH=${DATA_FOLDER_PATH}
+      - FASTEMBED_CACHE_PATH=${FASTEMBED_CACHE_PATH}
+    volumes:
+      - server:${DATA_FOLDER_PATH}
+  redis-server:
+    image: redis/redis-stack-server
+    container_name: redis-server
+    command: bash -c "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-server:${DATA_FOLDER_PATH}
+  rq-worker:
+    image: server-image
+    command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379 nomenclature document
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_BASE=${OPENAI_API_BASE}
+      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
+      - CHROMA_HOST=${CHROMA_HOST}
+      - CHROMA_PORT=${CHROMA_PORT}
+      - DATA_FOLDER_PATH=${DATA_FOLDER_PATH}
+      - FASTEMBED_CACHE_PATH=${DATA_FOLDER_PATH}/fastembed
+    volumes:
+      - server:${DATA_FOLDER_PATH}
+  db:
+    image: postgres
+    container_name: db
+    ports:
+      - "5432:5432"
+    volumes:
+      - datastep-db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  dbeaver:
+    image: dbeaver/cloudbeaver
+    container_name: dbeaver
+    volumes:
+      - datastep-dbeaver:/opt/cloudbeaver/workspace
+    ports:
+      - "8978:8978"
+  chroma-db:
+    image: chromadb/chroma
+    container_name: chroma-db
+    environment:
+      - IS_PERSISTENT=TRUE
+    volumes:
+      - chroma-data:/chroma/chroma/
+    ports:
+      - "8001:8000"
+volumes:
+  server:
+  redis-server:
+  datastep-db:
+  datastep-dbeaver:
+  chroma-data:
+    driver: local
+
