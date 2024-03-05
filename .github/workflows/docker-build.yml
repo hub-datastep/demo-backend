@@ -29,7 +29,9 @@ jobs:
         docker-compose --file docker-compose.demo.yml build backend
 
     - name: Push to Docker Hub
-      run: docker-compose --file docker-compose.demo.yml push backend
+      run: |
+        docker-compose --file docker-compose.demo.yml \
+        push ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_BACKEND_REPOSITORY }}:${{ github.run_id }}
 
   pull_and_deploy:
     needs: build_and_push
