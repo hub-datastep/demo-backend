@@ -51,6 +51,7 @@ jobs:
           script: |
             cd msu-backend
             git checkout dev
+            git pull
             echo "Stop containers"
             docker-compose --file docker-compose.demo.yml stop backend rq-worker
             echo "Remove containers"
