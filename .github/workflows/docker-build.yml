@@ -27,7 +27,7 @@ jobs:
       run: docker-compose --file docker-compose.demo.yml push backend
 
   pull_and_deploy:
-    needs: push_to_registry
+    needs: build_and_push
     name: Update server by ssh
     runs-on: ubuntu-latest
     steps:
