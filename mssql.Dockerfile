@@ -1,5 +1,16 @@
 FROM python:3.11
 
+RUN (echo "[ default_conf ] \
+ssl_conf = ssl_sect \
+[ssl_sect] \
+system_default = system_default_sect \
+[system_default_sect] \
+MinProtocol = TLSv1.2 \
+CipherString = DEFAULT@SECLEVEL=0 \
+")> /etc/ssl/openssl.cnf
+
+RUN sed -i 's/openssl_init/default_conf/' /etc/ssl/openssl.cnf
+
 RUN pip install poetry
 ENV PATH="${PATH}:/root/.local/bin"
 
