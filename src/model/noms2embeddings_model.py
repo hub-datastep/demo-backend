@@ -19,7 +19,7 @@ def get_chroma_collection_length(collection_name: str) -> int:
     return collection.count()
 
 
-def create_and_save_embeddings(nom_db_con_str: str, collection_name: str):
+def create_and_save_embeddings(nom_db_con_str: str, collection_name: str, top_n: int = None):
     def get_embeddings(strings: list[str], total: int) -> list[np.ndarray]:
         embedding_model = TextEmbedding(
             model_name="intfloat/multilingual-e5-large"
@@ -47,7 +47,8 @@ def create_and_save_embeddings(nom_db_con_str: str, collection_name: str):
                 ids=ids[i:i+batch_size]
             )
 
-    df = pd.read_sql("SELECT * FROM src1c.spr_nomenclature", nom_db_con_str)
+    st = "SELECT * FROM src1c.spr_nomenclature" if not top_n else f"SELECT TOP {top_n} * FROM src1c.spr_nomenclature"
+    df = pd.read_sql(st, nom_db_con_str)
     print(f"Number of nomenclatures: {len(df)}")
 
     df["embeddings"] = get_embeddings(df.Name.to_list(), len(df))

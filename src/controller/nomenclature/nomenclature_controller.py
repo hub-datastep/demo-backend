@@ -60,6 +60,7 @@ def create_and_save_embeddings(
     background_tasks.add_task(
         noms2embeddings_model.create_and_save_embeddings,
         body.nom_db_con_str,
-        body.chroma_collection_name
+        body.chroma_collection_name,
+        body.top_n
     )
     return
