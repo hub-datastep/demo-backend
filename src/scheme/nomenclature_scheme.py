@@ -46,5 +46,8 @@ class JobIdRead(SQLModel):
 
 class CreateAndSaveEmbeddings(SQLModel):
     nom_db_con_str: str
+    table_name: str
+    top_n: int
+    order_by: str
+    offset: int
     chroma_collection_name: str
-    top_n: int | None
