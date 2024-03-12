@@ -44,7 +44,7 @@ def create_and_save_embeddings(
     def _fetch_noms() -> pd.DataFrame:
         st = f"SELECT * " \
              f"FROM {table_name} " \
-             f"WHERE группа IS NOT NULL" \
+             f"WHERE группа IS NOT NULL " \
              f"ORDER BY {order_by} " \
              f"OFFSET {offset} ROWS " \
              f"FETCH NEXT {top_n} ROWS ONLY"
