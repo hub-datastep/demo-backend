@@ -29,6 +29,16 @@ def upload_nomenclature(
     return nomenclature_model.start_mapping(nomenclatures)
 
 
+@router.post("/collection/{collection_name}")
+@version(1)
+def create_chroma_collection(
+    *,
+    current_user: UserRead = Depends(get_current_user),
+    collection_name: str
+):
+    return noms2embeddings_model.create_chroma_collection(collection_name=collection_name)
+
+
 @router.get("/collection/{collection_name}")
 @version(1)
 def get_chroma_collection_length(
@@ -49,7 +59,7 @@ def delete_chroma_collection(
     return noms2embeddings_model.delete_chroma_collection(collection_name=collection_name)
 
 
-@router.post("/collection")
+@router.put("/collection")
 @version(1)
 def create_and_save_embeddings(
     *,

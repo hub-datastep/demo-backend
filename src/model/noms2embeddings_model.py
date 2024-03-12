@@ -50,9 +50,7 @@ def create_and_save_embeddings(
 
         return pd.read_sql(st, nom_db_con_str)
 
-    def _save_embeddings(ids: list, documents: list, metadatas: list):
-        batch_size = 40000
-
+    def _save_embeddings(ids: list, documents: list, metadatas: list, batch_size: int = 256):
         chroma_client = chromadb.HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
         collection = chroma_client.get_collection(
             name=chroma_collection_name,
