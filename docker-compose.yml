@@ -27,10 +27,6 @@ services:
       - chroma-data:/chroma/chroma/
     ports:
       - "8001:8000"
-    deploy:
-      resources:
-        limits:
-          memory: 2G
 volumes:
   chroma-data:
     driver: local
