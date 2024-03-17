@@ -11,7 +11,6 @@ collection = chroma.get_or_create_collection(
 )
 
 
-# TODO: rename func name to more semantic
 def add_embeddings(
     documents: str | list[str],
     embeddings=None,
