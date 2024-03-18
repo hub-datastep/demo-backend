@@ -42,6 +42,7 @@ COPY poetry.lock pyproject.toml /app/
 RUN poetry config virtualenvs.create false \
     && poetry install --no-root
 
+RUN pip install onnxruntime
 # RUN apt install lsb-release curl gpg -y
 
 COPY . /app
