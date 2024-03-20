@@ -51,3 +51,10 @@ class CreateAndSaveEmbeddings(SQLModel):
     order_by: str
     offset: int
     chroma_collection_name: str
+
+
+class SyncNomenclatures(SQLModel):
+    nom_db_con_str: str
+    table_name: str
+    chroma_collection_name: str
+    sync_period: int
