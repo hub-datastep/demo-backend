@@ -80,7 +80,7 @@ def create_and_save_embeddings(
     return
 
 
-@router.put("/synchronize")
+@router.post("/synchronize")
 @version(1)
 def synchronize_embeddings(
     *,
