@@ -1,36 +1,56 @@
 import os
 
 from chromadb import HttpClient
+from chromadb.api.models.Collection import Collection
 
 from model.noms2embeddings_model import FastembedChromaFunction
 
-chroma = HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
-collection = chroma.get_or_create_collection(
-    name="nomenclature",
-    embedding_function=FastembedChromaFunction()
-)
+
+def connect_to_chroma_collection(collection_name: str):
+    chroma = HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
+    collection = chroma.get_or_create_collection(
+        name=collection_name,
+        embedding_function=FastembedChromaFunction()
+    )
+    return collection
 
 
 def add_embeddings(
+    collection: Collection,
+    ids: str | list[str],
     documents: str | list[str],
-    embeddings=None,
-    ids: str | list[str] | None = None,
-    metadatas=None,
+    metadatas: dict | list[dict],
 ):
     collection.add(
+        ids=ids,
         documents=documents,
-        embeddings=embeddings,
         metadatas=metadatas,
-        ids=ids
     )
 
 
-def delete_embeddings(ids: str | list[str]):
+def delete_embeddings(collection: Collection, ids: str | list[str]):
     collection.delete(ids=ids)
 
 
-def update_embeddings(embeddings, ids: str | list[str]):
-    collection.update(ids=ids, embeddings=embeddings)
+def update_embeddings(
+    collection: Collection,
+    ids: str | list[str],
+    documents: str | list[str],
+    metadatas: dict | list[dict],
+):
+    collection.update(
+        ids=ids,
+        documents=documents,
+        metadatas=metadatas,
+    )
+
+
+def is_in_vectorstore(
+    collection: Collection,
+    ids: str | list[str],
+):
+    guid = collection.get(ids=ids)
+    return len(guid) != 0
 
 
 if __name__ == "__main__":
