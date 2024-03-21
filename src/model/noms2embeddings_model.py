@@ -70,7 +70,7 @@ def create_and_save_embeddings(
 
     ids = df["Ссылка"].to_list()
     documents = df["Наименование"].to_list()
-    metadatas = [{"group": g} for g in df["группа"].to_list()]
+    metadatas = [{"group": g} for g in df["Родитель"].to_list()]
 
     _save_embeddings(ids, documents, metadatas)
 
