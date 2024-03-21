@@ -50,7 +50,7 @@ def is_in_vectorstore(
     ids: str | list[str],
 ):
     guid = collection.get(ids=ids)
-    return len(guid) != 0
+    return len(guid['ids']) != 0
 
 
 if __name__ == "__main__":
