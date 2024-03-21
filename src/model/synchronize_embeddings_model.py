@@ -35,7 +35,7 @@ def get_root_group_name(nom_db_con_str: str, table_name: str, parent):
     return root_group_name
 
 
-def synchronize_nomenclatures(
+def synchronize_embeddings(
     nom_db_con_str: str,
     table_name: str,
     chroma_collection_name: str,

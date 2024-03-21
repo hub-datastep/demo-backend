@@ -2,8 +2,6 @@ import os
 
 from sqlalchemy import create_engine, text
 
-from infra.chroma_store import connect_to_chroma_collection
-
 demo_stand_db_con_str = "postgresql://postgres:jdDBwfIWizA6IdlW@45.8.98.160:5432/postgres"
 engine = create_engine(demo_stand_db_con_str)
 
@@ -130,10 +128,10 @@ def create_test_noms(table_name: str):
 
 
 if __name__ == "__main__":
-    demo_stand_table_name = "СправочникНоменклатура"
+    demo_stand_table_name = "СправочникНоменклатураТест"
     demo_stand_chroma_collection_name = "nomenclature"
 
-    # print(f"Creating Demo table: {demo_stand_table_name} ...")
+    # print(f"Creating test table: {demo_stand_table_name} ...")
     # create_nomenclature_table(demo_stand_table_name)
     # print(f"Table created.")
 
@@ -144,7 +142,8 @@ if __name__ == "__main__":
     os.environ['CHROMA_HOST'] = "45.8.98.160"
     os.environ['CHROMA_PORT'] = "8000"
 
-    collection = connect_to_chroma_collection(demo_stand_chroma_collection_name)
+    # Clear chroma from test noms & groups
+    # collection = connect_to_chroma_collection(demo_stand_chroma_collection_name)
     # delete_embeddings(
     #     collection=collection,
     #     ids=[
@@ -161,9 +160,10 @@ if __name__ == "__main__":
     #     ]
     # )
 
+    # Tests of updating (rename some row in db before)
     # is_in_vectorstore(collection=collection, ids="bf937a2d-0c1d-4e9c-96f2-39d7c58e6fe7")
 
-    # synchronize_nomenclatures(
+    # synchronize_embeddings(
     #     nom_db_con_str=demo_stand_db_con_str,
     #     table_name=demo_stand_table_name,
     #     chroma_collection_name=demo_stand_chroma_collection_name,
