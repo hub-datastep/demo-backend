@@ -41,7 +41,7 @@ def synchronize_nomenclatures(
 ):
     nomenclatures = fetch_nomenclatures(nom_db_con_str, table_name, sync_period)
     collection = connect_to_chroma_collection(chroma_collection_name)
-    for index, row in nomenclatures.iterrows():
+    for _, row in nomenclatures.iterrows():
         guid = row['Ссылка']
         parent = row['Родитель']
         name = row['Наименование']
