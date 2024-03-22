@@ -104,4 +104,5 @@ def get_chroma_patch_for_sync(nomenclatures: list[MsuDatabaseOneNomenclatureRead
                 action="update"
             )
         )
-        return patch_for_chroma
+
+    return patch_for_chroma
