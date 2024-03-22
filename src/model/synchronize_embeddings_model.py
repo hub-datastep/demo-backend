@@ -56,11 +56,11 @@ def synchronize_embeddings(
     nomenclatures: list[MsuDatabaseOneNomenclatureRead] = fetch_nomenclatures(nom_db_con_str, table_name, sync_period)
 
     for nom in nomenclatures:
-        nom.root_group_name = get_root_group_name(nom_db_con_str, table_name, nom["Родитель"])
+        nom.root_group_name = get_root_group_name(nom_db_con_str, table_name, nom.group)
 
     collection = connect_to_chroma_collection(chroma_collection_name)
     for nom in nomenclatures:
-        nom.is_in_vectorstore = is_in_vectorstore(collection=collection, ids=nom["Ссылка"])
+        nom.is_in_vectorstore = is_in_vectorstore(collection=collection, ids=nom.id)
 
     chroma_patch = get_chroma_patch_for_sync(nomenclatures)
     update_collection_with_patch(collection, chroma_patch)
