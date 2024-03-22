@@ -1,4 +1,6 @@
-from model.synchronize_embeddings_model import get_chroma_patch_for_sync
+from datetime import datetime
+
+from model.synchronize_embeddings_model import get_chroma_patch_for_sync, fetch_nomenclatures
 from scheme.nomenclature_scheme import MsuDatabaseOneNomenclatureRead, SyncOneNomenclatureCreateOrUpdate, \
     SyncOneNomenclatureDelete, SyncNomenclaturesPatch
 
@@ -18,7 +20,9 @@ def test_1():
             id="1", nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0002 ...",
             is_in_vectorstore=False,
-            is_deleted=False
+            is_deleted=False,
+            edited_at=datetime.now(),
+            is_group=False
         )
     ]
     test_answers = []
@@ -31,7 +35,9 @@ def test_2():
             id="2", nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0002 ...",
             is_in_vectorstore=False,
-            is_deleted=True
+            is_deleted=True,
+            edited_at=datetime.now(),
+            is_group=False
         )
     ]
     test_answers = []
@@ -44,7 +50,9 @@ def test_3():
             id="3", nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0002 ...",
             is_in_vectorstore=True,
-            is_deleted=False
+            is_deleted=False,
+            edited_at=datetime.now(),
+            is_group=False
         )
     ]
     test_answers = [SyncNomenclaturesPatch(nomenclature_data=SyncOneNomenclatureDelete(id="3"), action="delete")]
@@ -57,7 +65,9 @@ def test_4():
             id="4", nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0002 ...",
             is_in_vectorstore=True,
-            is_deleted=True
+            is_deleted=True,
+            edited_at=datetime.now(),
+            is_group=False
         )
     ]
     test_answers = [SyncNomenclaturesPatch(nomenclature_data=SyncOneNomenclatureDelete(id="4"), action="delete")]
@@ -70,7 +80,9 @@ def test_5():
             id="5", nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0001 Новая структура справочника",
             is_in_vectorstore=False,
-            is_deleted=False
+            is_deleted=False,
+            edited_at=datetime.now(),
+            is_group=False
         )
     ]
     test_answers = [SyncNomenclaturesPatch(
@@ -86,7 +98,9 @@ def test_6():
             id="6", nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0001 Новая структура справочника",
             is_in_vectorstore=False,
-            is_deleted=True
+            is_deleted=True,
+            edited_at=datetime.now(),
+            is_group=False
         )
     ]
     test_answers = []
@@ -99,7 +113,9 @@ def test_7():
             id="7", nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0001 Новая структура справочника",
             is_in_vectorstore=True,
-            is_deleted=False
+            is_deleted=False,
+            edited_at=datetime.now(),
+            is_group=False
         )
     ]
     test_answers = [SyncNomenclaturesPatch(
@@ -115,7 +131,9 @@ def test_8():
             id="8", nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0001 Новая структура справочника",
             is_in_vectorstore=True,
-            is_deleted=True
+            is_deleted=True,
+            edited_at=datetime.now(),
+            is_group=False
         )
     ]
     test_answers = [SyncNomenclaturesPatch(nomenclature_data=SyncOneNomenclatureDelete(id="8"), action="delete")]

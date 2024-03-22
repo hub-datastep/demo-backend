@@ -2,33 +2,26 @@ from datetime import datetime, timedelta
 
 from pandas import DataFrame, read_sql
 
+from sqlmodel import create_engine, Session, select, not_
+from sqlalchemy import Engine
+
 from infra.chroma_store import is_in_vectorstore, \
     connect_to_chroma_collection, update_collection_with_patch
 from scheme.nomenclature_scheme import SyncNomenclaturesPatch, SyncOneNomenclatureCreateOrUpdate, \
     SyncOneNomenclatureDelete, MsuDatabaseOneNomenclatureRead
 
 
-def fetch_nomenclatures(nom_db_con_str: str, table_name: str, sync_period: int) -> list[MsuDatabaseOneNomenclatureRead]:
-    sync_date = datetime.now() - timedelta(hours=sync_period)
+def fetch_nomenclatures(engine: Engine, sync_period: int) -> list[MsuDatabaseOneNomenclatureRead]:
+    with Session(engine) as session:
+        st = select(MsuDatabaseOneNomenclatureRead)\
+            .where(not_(MsuDatabaseOneNomenclatureRead.is_group))\
+            .where(MsuDatabaseOneNomenclatureRead.edited_at > datetime.now() - timedelta(hours=sync_period))\
+            .where(MsuDatabaseOneNomenclatureRead.edited_at < datetime.now())\
+            .limit(10)
+        result = session.scalars(st).all()
+        # result = [MsuDatabaseOneNomenclatureRead.from_orm(r) for r in result]
 
-    st = f"""
-        SELECT *
-        FROM {table_name}
-        WHERE "ЭтоГруппа" = 0 
-        AND "МСУ_ДатаИзменения" BETWEEN '{sync_date}' AND '{datetime.now()}';
-    """
-
-    noms = read_sql(st, nom_db_con_str)
-    noms = noms.to_dict("records")
-
-    noms = [MsuDatabaseOneNomenclatureRead(
-        id=n['Ссылка'],
-        nomenclature_name=n['Наименование'],
-        group=n['Родитель'],
-        is_deleted=n["ПометкаУдаления"] == 1
-    ) for n in noms]
-
-    return noms
+    return result
 
 
 def get_root_group_name(nom_db_con_str: str, table_name: str, parent):
@@ -53,7 +46,8 @@ def synchronize_embeddings(
     chroma_collection_name: str,
     sync_period: int
 ):
-    nomenclatures: list[MsuDatabaseOneNomenclatureRead] = fetch_nomenclatures(nom_db_con_str, table_name, sync_period)
+    engine = create_engine(nom_db_con_str)
+    nomenclatures: list[MsuDatabaseOneNomenclatureRead] = fetch_nomenclatures(engine, sync_period)
 
     for nom in nomenclatures:
         nom.root_group_name = get_root_group_name(nom_db_con_str, table_name, nom.group)

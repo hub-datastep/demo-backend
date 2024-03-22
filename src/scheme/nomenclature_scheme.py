@@ -1,6 +1,8 @@
+from datetime import datetime
 from typing import Literal
 
 from sqlmodel import SQLModel, Field
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class Nomenclature(SQLModel, table=True):
@@ -77,10 +79,15 @@ class SyncNomenclaturesPatch(SQLModel):
     action: Literal["delete", "update", "create"]
 
 
-class MsuDatabaseOneNomenclatureRead(SQLModel):
-    id: str
-    nomenclature_name: str
-    group: str
-    root_group_name: str | None
-    is_in_vectorstore: bool | None
-    is_deleted: bool
+class MsuDatabaseOneNomenclatureRead(SQLModel, table=True):
+    __tablename__ = "СправочникНоменклатура"
+    __table_args__ = {"schema": "us"}
+
+    id: str = Field(sa_column_kwargs={"name": "Ссылка"}, primary_key=True)
+    nomenclature_name: str = Field(sa_column_kwargs={"name": "Наименование"})
+    group: str = Field(sa_column_kwargs={"name": "Родитель"})
+    is_group: bool = Field(sa_column_kwargs={"name": "ЭтоГруппа"})
+    is_deleted: bool = Field(sa_column_kwargs={"name": "ПометкаУдаления"})
+    edited_at: datetime = Field(sa_column_kwargs={"name": "МСУ_ДатаИзменения"})
+    root_group_name: str | None = Field(sa_column_kwargs={"_omit_from_statements": True})
+    is_in_vectorstore: bool | None = Field(sa_column_kwargs={"_omit_from_statements": True})
