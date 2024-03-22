@@ -58,6 +58,7 @@ def update_collection_with_patch(collection: Collection, patch: list[SyncNomencl
     for elem in patch:
         if elem.action == "delete":
             delete_embeddings(collection, ids=elem.nomenclature_data.id)
+            print(f"Удалено: {elem.nomenclature_data.id}")
             continue
 
         if elem.action == "create":
@@ -67,6 +68,7 @@ def update_collection_with_patch(collection: Collection, patch: list[SyncNomencl
                 documents=elem.nomenclature_data.nomenclature_name,
                 metadatas={"group": elem.nomenclature_data.group}
             )
+            print(f"Добавлено: {elem.nomenclature_data.id}")
             continue
 
         if elem.action == "update":
@@ -76,6 +78,7 @@ def update_collection_with_patch(collection: Collection, patch: list[SyncNomencl
                 documents=elem.nomenclature_data.nomenclature_name,
                 metadatas={"group": elem.nomenclature_data.group}
             )
+            print(f"Обновлено: {elem.nomenclature_data.id}")
             continue
 
 
