@@ -4,6 +4,7 @@ from chromadb import HttpClient
 from chromadb.api.models.Collection import Collection
 
 from model.noms2embeddings_model import FastembedChromaFunction
+from scheme.nomenclature_scheme import SyncNomenclaturesPatch
 
 
 def connect_to_chroma_collection(collection_name: str):
@@ -51,6 +52,31 @@ def is_in_vectorstore(
 ):
     guid = collection.get(ids=ids)
     return len(guid['ids']) != 0
+
+
+def update_collection_with_patch(collection: Collection, patch: list[SyncNomenclaturesPatch]):
+    for elem in patch:
+        if elem.action == "delete":
+            delete_embeddings(collection, ids=elem.nomenclature_data.id)
+            continue
+
+        if elem.action == "create":
+            add_embeddings(
+                collection,
+                ids=elem.nomenclature_data.id,
+                documents=elem.nomenclature_data.nomenclature_name,
+                metadatas={"group": elem.nomenclature_data.group}
+            )
+            continue
+
+        if elem.action == "update":
+            update_embeddings(
+                collection,
+                ids=elem.nomenclature_data.id,
+                documents=elem.nomenclature_data.nomenclature_name,
+                metadatas={"group": elem.nomenclature_data.group}
+            )
+            continue
 
 
 if __name__ == "__main__":

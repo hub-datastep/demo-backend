@@ -1,3 +1,5 @@
+from typing import Literal
+
 from sqlmodel import SQLModel, Field
 
 
@@ -53,8 +55,24 @@ class CreateAndSaveEmbeddings(SQLModel):
     chroma_collection_name: str
 
 
-class SyncNomenclatures(SQLModel):
+class SyncNomenclaturesUpload(SQLModel):
     nom_db_con_str: str
     table_name: str
     chroma_collection_name: str
     sync_period: int
+
+
+class SyncOneNomenclatureCreateOrUpdate(SQLModel):
+    id: str
+    nomenclature_name: str | None
+    group: str | None
+
+
+class SyncOneNomenclatureDelete(SQLModel):
+    id: str
+
+
+class SyncNomenclaturesPatch(SQLModel):
+    nomenclature_data: SyncOneNomenclatureCreateOrUpdate | SyncOneNomenclatureDelete
+    action: Literal["delete", "update", "create"]
+
