@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Literal
 
 from sqlmodel import SQLModel, Field
-from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class Nomenclature(SQLModel, table=True):
@@ -59,7 +58,6 @@ class CreateAndSaveEmbeddings(SQLModel):
 
 class SyncNomenclaturesUpload(SQLModel):
     nom_db_con_str: str
-    table_name: str
     chroma_collection_name: str
     sync_period: int
 

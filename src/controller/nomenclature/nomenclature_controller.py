@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi_versioning import version
 
-from model import nomenclature_model, noms2embeddings_model, synchronize_embeddings_model
+from model import nomenclature_model, noms2embeddings_model, synchronize_nomenclatures_model
 from model.auth_model import get_current_user
 from scheme.nomenclature_scheme import JobIdRead, NomenclaturesUpload, NomenclaturesRead, CreateAndSaveEmbeddings, \
     SyncNomenclaturesUpload
@@ -82,16 +82,15 @@ def create_and_save_embeddings(
 
 @router.post("/synchronize")
 @version(1)
-def synchronize_embeddings(
+def synchronize_nomenclatures(
     *,
     body: SyncNomenclaturesUpload,
     current_user: UserRead = Depends(get_current_user),
     background_tasks: BackgroundTasks
 ):
     background_tasks.add_task(
-        synchronize_embeddings_model.synchronize_embeddings,
+        synchronize_nomenclatures_model.synchronize_nomenclatures,
         nom_db_con_str=body.nom_db_con_str,
-        table_name=body.table_name,
         chroma_collection_name=body.chroma_collection_name,
         sync_period=body.sync_period
     )

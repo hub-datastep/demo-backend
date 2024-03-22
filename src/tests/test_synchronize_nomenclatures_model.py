@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from model.synchronize_embeddings_model import get_chroma_patch_for_sync, fetch_nomenclatures
+from model.synchronize_nomenclatures_model import get_chroma_patch_for_sync
 from scheme.nomenclature_scheme import MsuDatabaseOneNomenclatureRead, SyncOneNomenclatureCreateOrUpdate, \
     SyncOneNomenclatureDelete, SyncNomenclaturesPatch
 
