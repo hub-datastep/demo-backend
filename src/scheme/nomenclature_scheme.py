@@ -76,3 +76,11 @@ class SyncNomenclaturesPatch(SQLModel):
     nomenclature_data: SyncOneNomenclatureCreateOrUpdate | SyncOneNomenclatureDelete
     action: Literal["delete", "update", "create"]
 
+
+class MsuDatabaseOneNomenclatureRead(SQLModel):
+    id: str
+    nomenclature_name: str
+    group: str
+    root_group_name: str | None
+    is_in_vectorstore: bool | None
+    is_deleted: bool
