@@ -62,18 +62,14 @@ class SyncNomenclaturesUpload(SQLModel):
     sync_period: int
 
 
-class SyncOneNomenclatureCreateOrUpdate(SQLModel):
+class SyncOneNomenclature(SQLModel):
     id: str
-    nomenclature_name: str | None
-    group: str | None
-
-
-class SyncOneNomenclatureDelete(SQLModel):
-    id: str
+    nomenclature_name: str
+    group: str
 
 
 class SyncNomenclaturesPatch(SQLModel):
-    nomenclature_data: SyncOneNomenclatureCreateOrUpdate | SyncOneNomenclatureDelete
+    nomenclature_data: SyncOneNomenclature
     action: Literal["delete", "update", "create"]
 
 
@@ -89,3 +85,10 @@ class MsuDatabaseOneNomenclatureRead(SQLModel, table=True):
     edited_at: datetime = Field(sa_column_kwargs={"name": "МСУ_ДатаИзменения"})
     root_group_name: str | None = Field(sa_column_kwargs={"_omit_from_statements": True})
     is_in_vectorstore: bool | None = Field(sa_column_kwargs={"_omit_from_statements": True})
+
+
+class SyncNomenclaturesRead(SQLModel):
+    id: str
+    nomenclature_name: str
+    group: str
+    action: Literal["delete", "update", "create"]

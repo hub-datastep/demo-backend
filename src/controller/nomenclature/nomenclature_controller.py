@@ -40,7 +40,7 @@ def create_chroma_collection(
     return noms2embeddings_model.create_chroma_collection(collection_name=collection_name)
 
 
-@router.get("/collection/{collection_name}")
+@router.get("/collection/{collection_name}/length")
 @version(1)
 def get_chroma_collection_length(
     *,
@@ -86,12 +86,19 @@ def synchronize_nomenclatures(
     *,
     body: SyncNomenclaturesUpload,
     current_user: UserRead = Depends(get_current_user),
-    background_tasks: BackgroundTasks
 ):
-    background_tasks.add_task(
-        synchronize_nomenclatures_model.synchronize_nomenclatures,
+    return synchronize_nomenclatures_model.start_synchronizing_nomenclatures(
         nom_db_con_str=body.nom_db_con_str,
         chroma_collection_name=body.chroma_collection_name,
         sync_period=body.sync_period
     )
-    return
+
+
+@router.post("/synchronize/result")
+@version(1)
+def synchronize_nomenclatures(
+    *,
+    current_user: UserRead = Depends(get_current_user),
+    job_id: str
+):
+    return synchronize_nomenclatures_model.get_sync_nomenclatures_job_result(job_id)

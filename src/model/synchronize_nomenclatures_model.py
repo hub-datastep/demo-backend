@@ -5,8 +5,9 @@ from sqlmodel import create_engine, Session, select, between
 
 from infra.chroma_store import is_in_vectorstore, \
     connect_to_chroma_collection, update_collection_with_patch
-from scheme.nomenclature_scheme import SyncNomenclaturesPatch, SyncOneNomenclatureCreateOrUpdate, \
-    SyncOneNomenclatureDelete, MsuDatabaseOneNomenclatureRead
+from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job
+from scheme.nomenclature_scheme import SyncNomenclaturesPatch, MsuDatabaseOneNomenclatureRead, JobIdRead, \
+    SyncOneNomenclature
 
 
 def fetch_nomenclatures(engine: Engine, sync_period: int) -> list[MsuDatabaseOneNomenclatureRead]:
@@ -20,6 +21,7 @@ def fetch_nomenclatures(engine: Engine, sync_period: int) -> list[MsuDatabaseOne
                 upper_bound=datetime.now()
             ))
         result = session.exec(st).all()
+        print(f"noms: {result}")
 
     return list(result)
 
@@ -38,10 +40,48 @@ def get_root_group_name(engine: Engine, parent: str):
     return root_group_name
 
 
+def get_chroma_patch_for_sync(nomenclatures: list[MsuDatabaseOneNomenclatureRead]) -> list[SyncNomenclaturesPatch]:
+    patch_for_chroma: list[SyncNomenclaturesPatch] = []
+    for nom in nomenclatures:
+        sync_nom = SyncOneNomenclature(
+            id=str(nom.id),
+            nomenclature_name=str(nom.nomenclature_name),
+            group=str(nom.group)
+        )
+
+        if not nom.is_in_vectorstore:
+            if str(nom.root_group_name) == "0001 Новая структура справочника" and not nom.is_deleted:
+                patch_for_chroma.append(
+                    SyncNomenclaturesPatch(
+                        nomenclature_data=sync_nom,
+                        action="create"
+                    )
+                )
+            continue
+
+        if str(nom.root_group_name) != "0001 Новая структура справочника" or nom.is_deleted:
+            patch_for_chroma.append(
+                SyncNomenclaturesPatch(
+                    nomenclature_data=sync_nom,
+                    action="delete"
+                )
+            )
+            continue
+
+        patch_for_chroma.append(
+            SyncNomenclaturesPatch(
+                nomenclature_data=sync_nom,
+                action="update"
+            )
+        )
+
+    return patch_for_chroma
+
+
 def synchronize_nomenclatures(
     nom_db_con_str: str,
     chroma_collection_name: str,
-    sync_period: int
+    sync_period: int,
 ):
     engine = create_engine(nom_db_con_str)
     nomenclatures: list[MsuDatabaseOneNomenclatureRead] = fetch_nomenclatures(engine, sync_period)
@@ -53,46 +93,33 @@ def synchronize_nomenclatures(
         nom.is_in_vectorstore = is_in_vectorstore(collection=collection, ids=str(nom.id))
 
     chroma_patch = get_chroma_patch_for_sync(nomenclatures)
-    update_collection_with_patch(collection, chroma_patch)
+    print(f"chroma patch: {chroma_patch}")
+    return update_collection_with_patch(collection, chroma_patch)
 
 
-def get_chroma_patch_for_sync(nomenclatures: list[MsuDatabaseOneNomenclatureRead]) -> list[SyncNomenclaturesPatch]:
-    patch_for_chroma: list[SyncNomenclaturesPatch] = []
-    for nom in nomenclatures:
-        if not nom.is_in_vectorstore:
-            if str(nom.root_group_name) == "0001 Новая структура справочника" and not nom.is_deleted:
-                patch_for_chroma.append(
-                    SyncNomenclaturesPatch(
-                        nomenclature_data=SyncOneNomenclatureCreateOrUpdate(
-                            id=str(nom.id),
-                            nomenclature_name=str(nom.nomenclature_name),
-                            group=str(nom.group)
-                        ),
-                        action="create"
-                    )
-                )
-            continue
+def start_synchronizing_nomenclatures(
+    nom_db_con_str: str,
+    chroma_collection_name: str,
+    sync_period: int,
+):
+    queue = get_redis_queue()
+    job = queue.enqueue(
+        synchronize_nomenclatures,
+        nom_db_con_str,
+        chroma_collection_name,
+        sync_period,
+        result_ttl=-1,
+        job_timeout=MAX_JOB_TIMEOUT,
+    )
+    return JobIdRead(job_id=job.id)
 
-        if str(nom.root_group_name) != "0001 Новая структура справочника" or nom.is_deleted:
-            patch_for_chroma.append(
-                SyncNomenclaturesPatch(
-                    nomenclature_data=SyncOneNomenclatureDelete(
-                        id=str(nom.id)
-                    ),
-                    action="delete"
-                )
-            )
-            continue
 
-        patch_for_chroma.append(
-            SyncNomenclaturesPatch(
-                nomenclature_data=SyncOneNomenclatureCreateOrUpdate(
-                    id=str(nom.id),
-                    nomenclature_name=str(nom.nomenclature_name),
-                    group=str(nom.group)
-                ),
-                action="update"
-            )
-        )
+def get_sync_nomenclatures_job_result(job_id: str):
+    job = get_job(job_id)
+    print(f"job: {job}")
+    print(f"result: {job.result}")
 
-    return patch_for_chroma
+    if job.result is None:
+        return {"status": "syncing"}
+
+    return job.result

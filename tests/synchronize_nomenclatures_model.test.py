@@ -53,7 +53,7 @@ def _create_test_nomenclature_table(table_name: str, schema: str):
             "Наименование" TEXT,
             "Родитель" UUID,
             "ЭтоГруппа" INT,
-            "МСУ_ДатаИзменения" DATE
+            "МСУ_ДатаИзменения" TIMESTAMP
         );
     """)
 

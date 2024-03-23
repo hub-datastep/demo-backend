@@ -4,7 +4,7 @@ from chromadb import HttpClient
 from chromadb.api.models.Collection import Collection
 
 from model.noms2embeddings_model import FastembedChromaFunction
-from scheme.nomenclature_scheme import SyncNomenclaturesPatch
+from scheme.nomenclature_scheme import SyncNomenclaturesPatch, SyncNomenclaturesRead
 
 
 def connect_to_chroma_collection(collection_name: str):
@@ -55,13 +55,18 @@ def is_in_vectorstore(
 
 
 def update_collection_with_patch(collection: Collection, patch: list[SyncNomenclaturesPatch]):
+    patched_list = []
     for elem in patch:
-        if elem.action == "delete":
+        elem_id = elem.nomenclature_data.id
+        elem_nomenclature_name = elem.nomenclature_data.nomenclature_name
+        elem_group = elem.nomenclature_data.group
+        elem_action = elem.action
+
+        if elem_action == "delete":
             delete_embeddings(collection, ids=elem.nomenclature_data.id)
             print(f"Удалено: {elem.nomenclature_data.id}")
-            continue
 
-        if elem.action == "create":
+        elif elem_action == "create":
             add_embeddings(
                 collection,
                 ids=elem.nomenclature_data.id,
@@ -69,9 +74,8 @@ def update_collection_with_patch(collection: Collection, patch: list[SyncNomencl
                 metadatas={"group": elem.nomenclature_data.group}
             )
             print(f"Добавлено: {elem.nomenclature_data.id}")
-            continue
 
-        if elem.action == "update":
+        elif elem_action == "update":
             update_embeddings(
                 collection,
                 ids=elem.nomenclature_data.id,
@@ -79,7 +83,16 @@ def update_collection_with_patch(collection: Collection, patch: list[SyncNomencl
                 metadatas={"group": elem.nomenclature_data.group}
             )
             print(f"Обновлено: {elem.nomenclature_data.id}")
-            continue
+
+        patched_list.append(
+            SyncNomenclaturesRead(
+                id=elem_id,
+                nomenclature_name=elem_nomenclature_name,
+                group=elem_group,
+                action=elem_action
+            )
+        )
+    return patched_list
 
 
 if __name__ == "__main__":
