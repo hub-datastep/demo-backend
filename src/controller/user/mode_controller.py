@@ -19,6 +19,8 @@ def create_mode(
     session: Session = Depends(get_session),
     mode: ModeCreate
 ):
+    """
+    """
     return mode_repository.create_mode(session, mode)
 
 

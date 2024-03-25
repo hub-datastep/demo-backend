@@ -16,6 +16,8 @@ async def websocket_endpoint(
     websocket: WebSocket,
     job_id: str
 ):
+    """
+    """
     await websocket.accept()
     redis = Redis()
     while True:

@@ -24,6 +24,8 @@ async def get_database_prediction(
     session: Session = Depends(get_session),
     query: DatabasePredictionQuery
 ):
+    """
+    """
     current_user_tenant_db = tenant_repository.get_tenant_by_id(session, current_user.tenants[0].id)
     return await datastep_get_prediction(query, current_user_tenant_db, current_user.database_prediction_config)
 
@@ -35,4 +37,6 @@ def get_document_prediction(
     current_user: UserRead = Depends(get_current_user),
     query: DocumentPredictionQuery
 ):
+    """
+    """
     return datastep_pdf_model.get_prediction(query.filename, query.query)

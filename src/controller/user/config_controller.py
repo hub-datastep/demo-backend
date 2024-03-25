@@ -15,6 +15,8 @@ def get_database_prediction_config(
     *,
     current_user: UserRead = Depends(get_current_user)
 ):
+    """
+    """
     return config_repository.get_database_prediction_config(current_user.id)
 
 
@@ -25,4 +27,6 @@ def update_database_prediction_config(
     current_user: UserRead = Depends(get_current_user),
     update: DatabasePredictionConfigDto
 ):
+    """
+    """
     return config_repository.update_database_prediction_config(current_user.id, update)

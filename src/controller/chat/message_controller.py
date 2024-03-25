@@ -21,6 +21,8 @@ def create_message(
     session: Session = Depends(get_session), 
     message: MessageCreate
 ):
+    """
+    """
     return message_repository.create_message(session, message)
 
 
@@ -32,6 +34,8 @@ def clear_all_messages_by_chat_id(
     session: Session = Depends(get_session), 
     chat_id: int
 ):
+    """
+    """
     return message_repository.drop_all_messages_by_chat_id(session, chat_id)
 
 

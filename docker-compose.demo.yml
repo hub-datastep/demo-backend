@@ -74,6 +74,16 @@ services:
       - chroma-data:/chroma/chroma/
     ports:
       - "8001:8000"
+  mkdocs:
+    image: mkdocs
+    build:
+      context: .
+      dockerfile: mkdocs.Dockerfile
+    container_name: mkdocs
+    ports:
+      - "9999:8000"
+    volumes:
+      - "${PWD}:/docs"
 volumes:
   server:
   redis-server:
