@@ -30,6 +30,8 @@ def create_prompt(
     session: Session = Depends(get_session),
     prompt: PromptCreate
 ):
+    """
+    """
     return prompt_repository.create_prompt(session, prompt)
 
 

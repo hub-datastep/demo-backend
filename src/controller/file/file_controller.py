@@ -19,6 +19,8 @@ def get_all_files(
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
+    """
+    """
     return get_all_filenames_by_tenant_id(session, current_user.tenants[0].id)
 
 
@@ -30,6 +32,8 @@ def upload_file(
     session: Session = Depends(get_session),
     fileObject: UploadFile
 ):
+    """
+    """
     job = file_model.process_file(session, fileObject, current_user.id, current_user.tenants[0].id)
     return ""
     # return FileUploadTaskDto(

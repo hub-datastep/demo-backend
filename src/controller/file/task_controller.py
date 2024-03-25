@@ -17,6 +17,8 @@ router = APIRouter()
 
 
 def get_current_user_job(user_id: int) -> Job | None:
+    """
+    """
     redis = Redis()
     q = Queue("document", connection=redis)
     registry = StartedJobRegistry(name="document", connection=redis)
@@ -35,6 +37,8 @@ def get_active_file_upload_tasks(
     *,
     current_user: UserRead = Depends(get_current_user)
 ):
+    """
+    """
     current_user_job = get_current_user_job(current_user.id)
     if not current_user_job:
         return []
@@ -56,6 +60,8 @@ def interrupt_task_by_id(
     *,
     current_user: UserRead = Depends(get_current_user)
 ):
+    """
+    """
     redis = Redis()
     current_user_job = get_current_user_job(current_user.id)
     send_stop_job_command(redis, current_user_job.id)

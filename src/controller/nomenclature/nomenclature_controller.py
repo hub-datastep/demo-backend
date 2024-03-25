@@ -18,6 +18,8 @@ def get_nomenclature_mappings(
     current_user: UserRead = Depends(get_current_user),
     job_id: str
 ):
+    """
+    """
     return nomenclature_model.get_all_jobs(job_id)
 
 
@@ -28,6 +30,8 @@ def upload_nomenclature(
     current_user: UserRead = Depends(get_current_user),
     nomenclatures: MappingNomenclaturesUpload
 ):
+    """
+    """
     return nomenclature_model.start_mapping(nomenclatures)
 
 
@@ -38,6 +42,8 @@ def create_chroma_collection(
     current_user: UserRead = Depends(get_current_user),
     collection_name: str
 ):
+    """
+    """
     return noms2embeddings_model.create_chroma_collection(collection_name=collection_name)
 
 
@@ -48,6 +54,8 @@ def get_chroma_collection_length(
     current_user: UserRead = Depends(get_current_user),
     collection_name: str
 ):
+    """
+    """
     return noms2embeddings_model.get_chroma_collection_length(collection_name=collection_name)
 
 
@@ -58,6 +66,8 @@ def delete_chroma_collection(
     current_user: UserRead = Depends(get_current_user),
     collection_name: str
 ):
+    """
+    """
     return noms2embeddings_model.delete_chroma_collection(collection_name=collection_name)
 
 
@@ -69,6 +79,8 @@ def create_and_save_embeddings(
     body: CreateAndSaveEmbeddingsUpload,
     background_tasks: BackgroundTasks
 ):
+    """
+    """
     background_tasks.add_task(
         noms2embeddings_model.create_and_save_embeddings,
         nom_db_con_str=body.nom_db_con_str,
@@ -88,6 +100,8 @@ def synchronize_nomenclatures(
     body: SyncNomenclaturesUpload,
     current_user: UserRead = Depends(get_current_user),
 ):
+    """
+    """
     return synchronize_nomenclatures_model.start_synchronizing_nomenclatures(
         nom_db_con_str=body.nom_db_con_str,
         chroma_collection_name=body.chroma_collection_name,
@@ -102,4 +116,6 @@ def synchronize_nomenclatures(
     current_user: UserRead = Depends(get_current_user),
     job_id: str
 ) -> SyncNomenclaturesResultRead:
+    """
+    """
     return synchronize_nomenclatures_model.get_sync_nomenclatures_job_result(job_id)

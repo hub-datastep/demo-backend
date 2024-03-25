@@ -104,7 +104,7 @@ def _create_test_noms(_recreate_test_nomenclature_db_table, _db_params):
             is_deleted=False,
             nomenclature_name="Группа 1-2",
             group=root_link,
-            is_group=True,
+            is_group=b'\x00',
             edited_at=datetime.now()
         ),
         MsuDatabaseOneNomenclatureRead(
