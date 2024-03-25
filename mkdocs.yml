@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+
+site_name: My Docs
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+
+plugins:
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+
+nav:
+  - Домашняя: index.md
+  - Ассистент по базам данных: db_assistant.md
+  - Ассистент по документам: wiki_assistant.md
+  - Сервис маппинга номенклатуры: nomenclatures_mapper.md
+  - API Reference: api_reference.md
