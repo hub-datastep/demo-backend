@@ -1,6 +1,5 @@
 from datetime import datetime
 from typing import Literal
-from uuid import UUID
 
 from sqlmodel import SQLModel, Field
 from rq.job import JobStatus
@@ -48,9 +47,9 @@ class CreateAndSaveEmbeddingsUpload(SQLModel):
 
 
 class SyncOneNomenclatureDataRead(SQLModel):
-    id: UUID
+    id: str
     nomenclature_name: str
-    group: UUID
+    group: str
 
 
 SyncOneNomenclatureAction = Literal["delete", "update", "create"]
@@ -79,11 +78,11 @@ class MsuDatabaseOneNomenclatureRead(SQLModel, table=True):
         "schema": "us"
     }
 
-    id: UUID = Field(sa_column_kwargs={"name": "Ссылка"}, primary_key=True)
+    id: str = Field(sa_column_kwargs={"name": "Ссылка"}, primary_key=True, max_length=255)
     nomenclature_name: str = Field(sa_column_kwargs={"name": "Наименование"})
-    group: UUID = Field(sa_column_kwargs={"name": "Родитель"})
-    is_group: bool = Field(sa_column_kwargs={"name": "ЭтоГруппа"})
-    is_deleted: bool = Field(sa_column_kwargs={"name": "ПометкаУдаления"})
+    group: str = Field(sa_column_kwargs={"name": "Родитель"})
+    is_group: int = Field(sa_column_kwargs={"name": "ЭтоГруппа"})
+    is_deleted: int = Field(sa_column_kwargs={"name": "ПометкаУдаления"})
     edited_at: datetime = Field(sa_column_kwargs={"name": "МСУ_ДатаИзменения"})
     root_group_name: str | None = Field(sa_column_kwargs={"_omit_from_statements": True})
     is_in_vectorstore: bool | None = Field(sa_column_kwargs={"_omit_from_statements": True})
