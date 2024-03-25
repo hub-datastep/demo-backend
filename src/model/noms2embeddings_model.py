@@ -1,20 +1,9 @@
 import os
 
 import chromadb
-from chromadb import Documents, EmbeddingFunction, Embeddings
 import pandas as pd
 
-from tqdm import tqdm
-from fastembed.embedding import TextEmbedding
-
-
-class FastembedChromaFunction(EmbeddingFunction):
-    def __call__(self, input: Documents) -> Embeddings:
-        embedding_model = TextEmbedding(
-            model_name="intfloat/multilingual-e5-large"
-        )
-        strings = [f"query: {s}" for s in input]
-        return [e.tolist() for e in tqdm(embedding_model.embed(strings), total=len(strings))]
+from infra.chroma_store import FastembedChromaFunction
 
 
 def create_chroma_collection(collection_name: str):

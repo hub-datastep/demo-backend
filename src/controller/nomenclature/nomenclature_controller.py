@@ -1,15 +1,17 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi_versioning import version
 
-from model import nomenclature_model, noms2embeddings_model
+from model import nomenclature_model, noms2embeddings_model, synchronize_nomenclatures_model
 from model.auth_model import get_current_user
-from scheme.nomenclature_scheme import JobIdRead, NomenclaturesUpload, NomenclaturesRead, CreateAndSaveEmbeddings
+from scheme.nomenclature_scheme import JobIdRead, MappingNomenclaturesUpload, MappingNomenclaturesResultRead, \
+    CreateAndSaveEmbeddingsUpload, \
+    SyncNomenclaturesUpload, SyncNomenclaturesResultRead
 from scheme.user_scheme import UserRead
 
 router = APIRouter()
 
 
-@router.get("/{job_id}", response_model=list[NomenclaturesRead])
+@router.get("/{job_id}", response_model=list[MappingNomenclaturesResultRead])
 @version(1)
 def get_nomenclature_mappings(
     *,
@@ -24,7 +26,7 @@ def get_nomenclature_mappings(
 def upload_nomenclature(
     *,
     current_user: UserRead = Depends(get_current_user),
-    nomenclatures: NomenclaturesUpload
+    nomenclatures: MappingNomenclaturesUpload
 ):
     return nomenclature_model.start_mapping(nomenclatures)
 
@@ -39,7 +41,7 @@ def create_chroma_collection(
     return noms2embeddings_model.create_chroma_collection(collection_name=collection_name)
 
 
-@router.get("/collection/{collection_name}")
+@router.get("/collection/{collection_name}/length")
 @version(1)
 def get_chroma_collection_length(
     *,
@@ -64,7 +66,7 @@ def delete_chroma_collection(
 def create_and_save_embeddings(
     *,
     current_user: UserRead = Depends(get_current_user),
-    body: CreateAndSaveEmbeddings,
+    body: CreateAndSaveEmbeddingsUpload,
     background_tasks: BackgroundTasks
 ):
     background_tasks.add_task(
@@ -77,3 +79,27 @@ def create_and_save_embeddings(
         chroma_collection_name=body.chroma_collection_name
     )
     return
+
+
+@router.post("/synchronize")
+@version(1)
+def synchronize_nomenclatures(
+    *,
+    body: SyncNomenclaturesUpload,
+    current_user: UserRead = Depends(get_current_user),
+):
+    return synchronize_nomenclatures_model.start_synchronizing_nomenclatures(
+        nom_db_con_str=body.nom_db_con_str,
+        chroma_collection_name=body.chroma_collection_name,
+        sync_period=body.sync_period
+    )
+
+
+@router.post("/synchronize/result")
+@version(1)
+def synchronize_nomenclatures(
+    *,
+    current_user: UserRead = Depends(get_current_user),
+    job_id: str
+) -> SyncNomenclaturesResultRead:
+    return synchronize_nomenclatures_model.get_sync_nomenclatures_job_result(job_id)
