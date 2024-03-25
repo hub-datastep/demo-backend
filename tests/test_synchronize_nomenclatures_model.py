@@ -1,8 +1,7 @@
 from datetime import datetime
 
 from model.synchronize_nomenclatures_model import get_chroma_patch_for_sync
-from scheme.nomenclature_scheme import MsuDatabaseOneNomenclatureRead, SyncOneNomenclatureCreateOrUpdate, \
-    SyncOneNomenclatureDelete, SyncNomenclaturesPatch
+from scheme.nomenclature_scheme import MsuDatabaseOneNomenclatureRead, SyncOneNomenclature, SyncNomenclaturesPatch
 
 """
 Логика в get_chroma_patch_for_sync зависит от трёх параметров: root_group_name, is_in_vectorstore, is_deleted.
@@ -55,7 +54,10 @@ def test_3():
             is_group=False
         )
     ]
-    test_answers = [SyncNomenclaturesPatch(nomenclature_data=SyncOneNomenclatureDelete(id="3"), action="delete")]
+    test_answers = [SyncNomenclaturesPatch(
+        nomenclature_data=SyncOneNomenclature(id="3", nomenclature_name="Циркуль", group="Канцелярия"),
+        action="delete"
+    )]
     assert get_chroma_patch_for_sync(test_data) == test_answers
 
 
@@ -70,7 +72,10 @@ def test_4():
             is_group=False
         )
     ]
-    test_answers = [SyncNomenclaturesPatch(nomenclature_data=SyncOneNomenclatureDelete(id="4"), action="delete")]
+    test_answers = [SyncNomenclaturesPatch(
+        nomenclature_data=SyncOneNomenclature(id="4", nomenclature_name="Циркуль", group="Канцелярия"),
+        action="delete"
+    )]
     assert get_chroma_patch_for_sync(test_data) == test_answers
 
 
@@ -86,7 +91,7 @@ def test_5():
         )
     ]
     test_answers = [SyncNomenclaturesPatch(
-        nomenclature_data=SyncOneNomenclatureCreateOrUpdate(id="5", nomenclature_name="Циркуль", group="Канцелярия"),
+        nomenclature_data=SyncOneNomenclature(id="5", nomenclature_name="Циркуль", group="Канцелярия"),
         action="create"
     )]
     assert get_chroma_patch_for_sync(test_data) == test_answers
@@ -119,7 +124,7 @@ def test_7():
         )
     ]
     test_answers = [SyncNomenclaturesPatch(
-        nomenclature_data=SyncOneNomenclatureCreateOrUpdate(id="7", nomenclature_name="Циркуль", group="Канцелярия"),
+        nomenclature_data=SyncOneNomenclature(id="7", nomenclature_name="Циркуль", group="Канцелярия"),
         action="update"
     )]
     assert get_chroma_patch_for_sync(test_data) == test_answers
@@ -136,5 +141,8 @@ def test_8():
             is_group=False
         )
     ]
-    test_answers = [SyncNomenclaturesPatch(nomenclature_data=SyncOneNomenclatureDelete(id="8"), action="delete")]
+    test_answers = [SyncNomenclaturesPatch(
+        nomenclature_data=SyncOneNomenclature(id="8", nomenclature_name="Циркуль", group="Канцелярия"),
+        action="delete"
+    )]
     assert get_chroma_patch_for_sync(test_data) == test_answers
