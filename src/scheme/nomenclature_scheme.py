@@ -69,7 +69,7 @@ class SyncNomenclaturesChromaPatch(SQLModel):
 class SyncNomenclaturesResultRead(SQLModel):
     job_id: str
     status: JobStatus
-    updated_nomenclatures: SyncNomenclaturesChromaPatch | None
+    updated_nomenclatures: list[SyncNomenclaturesChromaPatch] | None
 
 
 class MsuDatabaseOneNomenclatureRead(SQLModel, table=True):
