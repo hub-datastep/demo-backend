@@ -56,8 +56,8 @@ jobs:
             echo "Stop containers"
             docker-compose --file docker-compose.demo.yml stop backend rq-worker mkdocs
             
-            echo "Remove containers"
-            docker-compose --file docker-compose.demo.yml rm backend rq-worker mkdocs
+            echo "Clean system"
+            docker system prune
             
             echo "Pull new images"
             env DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} \
