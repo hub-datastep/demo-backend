@@ -3,14 +3,15 @@ from fastapi_versioning import version
 
 from model import nomenclature_model, noms2embeddings_model, synchronize_nomenclatures_model
 from model.auth_model import get_current_user
-from scheme.nomenclature_scheme import JobIdRead, NomenclaturesUpload, NomenclaturesRead, CreateAndSaveEmbeddings, \
-    SyncNomenclaturesUpload
+from scheme.nomenclature_scheme import JobIdRead, MappingNomenclaturesUpload, MappingNomenclaturesResultRead, \
+    CreateAndSaveEmbeddingsUpload, \
+    SyncNomenclaturesUpload, SyncNomenclaturesResultRead
 from scheme.user_scheme import UserRead
 
 router = APIRouter()
 
 
-@router.get("/{job_id}", response_model=list[NomenclaturesRead])
+@router.get("/{job_id}", response_model=list[MappingNomenclaturesResultRead])
 @version(1)
 def get_nomenclature_mappings(
     *,
@@ -25,7 +26,7 @@ def get_nomenclature_mappings(
 def upload_nomenclature(
     *,
     current_user: UserRead = Depends(get_current_user),
-    nomenclatures: NomenclaturesUpload
+    nomenclatures: MappingNomenclaturesUpload
 ):
     return nomenclature_model.start_mapping(nomenclatures)
 
@@ -65,7 +66,7 @@ def delete_chroma_collection(
 def create_and_save_embeddings(
     *,
     current_user: UserRead = Depends(get_current_user),
-    body: CreateAndSaveEmbeddings,
+    body: CreateAndSaveEmbeddingsUpload,
     background_tasks: BackgroundTasks
 ):
     background_tasks.add_task(
@@ -100,5 +101,5 @@ def synchronize_nomenclatures(
     *,
     current_user: UserRead = Depends(get_current_user),
     job_id: str
-):
+) -> SyncNomenclaturesResultRead:
     return synchronize_nomenclatures_model.get_sync_nomenclatures_job_result(job_id)

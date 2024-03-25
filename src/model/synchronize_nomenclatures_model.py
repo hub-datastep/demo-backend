@@ -6,11 +6,12 @@ from sqlmodel import create_engine, Session, select, between
 from infra.chroma_store import is_in_vectorstore, \
     connect_to_chroma_collection, update_collection_with_patch
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job
-from scheme.nomenclature_scheme import SyncNomenclaturesPatch, MsuDatabaseOneNomenclatureRead, JobIdRead, \
-    SyncOneNomenclature
+from scheme.nomenclature_scheme import SyncNomenclaturesChromaPatch, MsuDatabaseOneNomenclatureRead, JobIdRead, \
+    SyncOneNomenclatureDataRead, SyncNomenclaturesResultRead
 
 
 def fetch_nomenclatures(engine: Engine, sync_period: int) -> list[MsuDatabaseOneNomenclatureRead]:
+    print("Fetch nomenclatures starts")
     with Session(engine) as session:
         st = select(MsuDatabaseOneNomenclatureRead) \
             .where(MsuDatabaseOneNomenclatureRead.is_group == 0) \
@@ -23,6 +24,7 @@ def fetch_nomenclatures(engine: Engine, sync_period: int) -> list[MsuDatabaseOne
         result = session.exec(st).all()
         print(f"noms: {result}")
 
+    print("Fetch nomenclatures finished")
     return list(result)
 
 
@@ -40,28 +42,28 @@ def get_root_group_name(engine: Engine, parent: str):
     return root_group_name
 
 
-def get_chroma_patch_for_sync(nomenclatures: list[MsuDatabaseOneNomenclatureRead]) -> list[SyncNomenclaturesPatch]:
-    patch_for_chroma: list[SyncNomenclaturesPatch] = []
+def get_chroma_patch_for_sync(nomenclatures: list[MsuDatabaseOneNomenclatureRead]) -> list[SyncNomenclaturesChromaPatch]:
+    patch_for_chroma: list[SyncNomenclaturesChromaPatch] = []
     for nom in nomenclatures:
-        sync_nom = SyncOneNomenclature(
-            id=str(nom.id),
-            nomenclature_name=str(nom.nomenclature_name),
-            group=str(nom.group)
+        sync_nom = SyncOneNomenclatureDataRead(
+            id=nom.id,
+            nomenclature_name=nom.nomenclature_name,
+            group=nom.group
         )
 
         if not nom.is_in_vectorstore:
-            if str(nom.root_group_name) == "0001 Новая структура справочника" and not nom.is_deleted:
+            if nom.root_group_name == "0001 Новая структура справочника" and not nom.is_deleted:
                 patch_for_chroma.append(
-                    SyncNomenclaturesPatch(
+                    SyncNomenclaturesChromaPatch(
                         nomenclature_data=sync_nom,
                         action="create"
                     )
                 )
             continue
 
-        if str(nom.root_group_name) != "0001 Новая структура справочника" or nom.is_deleted:
+        if nom.root_group_name != "0001 Новая структура справочника" or nom.is_deleted:
             patch_for_chroma.append(
-                SyncNomenclaturesPatch(
+                SyncNomenclaturesChromaPatch(
                     nomenclature_data=sync_nom,
                     action="delete"
                 )
@@ -69,7 +71,7 @@ def get_chroma_patch_for_sync(nomenclatures: list[MsuDatabaseOneNomenclatureRead
             continue
 
         patch_for_chroma.append(
-            SyncNomenclaturesPatch(
+            SyncNomenclaturesChromaPatch(
                 nomenclature_data=sync_nom,
                 action="update"
             )
@@ -83,8 +85,10 @@ def synchronize_nomenclatures(
     chroma_collection_name: str,
     sync_period: int,
 ):
+    print("Create engine starts")
     engine = create_engine(nom_db_con_str)
     nomenclatures: list[MsuDatabaseOneNomenclatureRead] = fetch_nomenclatures(engine, sync_period)
+    print(len(nomenclatures))
     for nom in nomenclatures:
         nom.root_group_name = get_root_group_name(engine, str(nom.group))
 
@@ -119,7 +123,13 @@ def get_sync_nomenclatures_job_result(job_id: str):
     print(f"job: {job}")
     print(f"result: {job.result}")
 
-    if job.result is None:
-        return {"status": "syncing"}
+    result = SyncNomenclaturesResultRead(
+        job_id=job_id,
+        status=job.get_status(refresh=True)
+    )
 
-    return job.result
+    job_result = job.return_value(refresh=True)
+    if job_result is not None:
+        result.updated_nomenclatures = job_result
+
+    return result

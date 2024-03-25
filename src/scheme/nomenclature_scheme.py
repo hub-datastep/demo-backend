@@ -1,53 +1,44 @@
 from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
 from sqlmodel import SQLModel, Field
+from rq.job import JobStatus
 
 
-class Nomenclature(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-    nomenclature: str
-    group: str
-    embeddings: str | None = None
-
-
-class OneNomenclatureUpload(SQLModel):
+class MappingOneNomenclatureUpload(SQLModel):
     row_number: int
     nomenclature: str
 
 
-class MappingRead(SQLModel):
+class MappingOneTargetRead(SQLModel):
     nomenclature_guid: str
     nomenclature: str
     similarity_score: float
 
 
-class OneNomenclatureRead(SQLModel):
+class MappingOneNomenclatureRead(SQLModel):
     row_number: int
     nomenclature: str | None
     group: str
-    mappings: list[MappingRead]
+    mappings: list[MappingOneTargetRead]
 
 
-class NomenclaturesUpload(SQLModel):
-    nomenclatures: list[OneNomenclatureUpload]
+class MappingNomenclaturesUpload(SQLModel):
+    nomenclatures: list[MappingOneNomenclatureUpload]
     most_similar_count: int = 1
     job_size: int
 
 
-class NomenclaturesRead(SQLModel):
+class MappingNomenclaturesResultRead(SQLModel):
     job_id: str
     ready_count: int | None
     total_count: int | None
     general_status: str
-    nomenclatures: list[OneNomenclatureRead]
+    nomenclatures: list[MappingOneNomenclatureRead]
 
 
-class JobIdRead(SQLModel):
-    job_id: str
-
-
-class CreateAndSaveEmbeddings(SQLModel):
+class CreateAndSaveEmbeddingsUpload(SQLModel):
     nom_db_con_str: str
     table_name: str
     top_n: int
@@ -56,30 +47,41 @@ class CreateAndSaveEmbeddings(SQLModel):
     chroma_collection_name: str
 
 
+class SyncOneNomenclatureDataRead(SQLModel):
+    id: UUID
+    nomenclature_name: str
+    group: UUID
+
+
+SyncOneNomenclatureAction = Literal["delete", "update", "create"]
+
+
 class SyncNomenclaturesUpload(SQLModel):
     nom_db_con_str: str
     chroma_collection_name: str
     sync_period: int
 
 
-class SyncOneNomenclature(SQLModel):
-    id: str
-    nomenclature_name: str
-    group: str
+class SyncNomenclaturesChromaPatch(SQLModel):
+    nomenclature_data: SyncOneNomenclatureDataRead
+    action: SyncOneNomenclatureAction
 
 
-class SyncNomenclaturesPatch(SQLModel):
-    nomenclature_data: SyncOneNomenclature
-    action: Literal["delete", "update", "create"]
+class SyncNomenclaturesResultRead(SQLModel):
+    job_id: str
+    status: JobStatus
+    updated_nomenclatures: SyncNomenclaturesChromaPatch | None
 
 
 class MsuDatabaseOneNomenclatureRead(SQLModel, table=True):
     __tablename__ = "СправочникНоменклатура"
-    __table_args__ = {"schema": "us"}
+    __table_args__ = {
+        "schema": "us"
+    }
 
-    id: str = Field(sa_column_kwargs={"name": "Ссылка"}, primary_key=True)
+    id: UUID = Field(sa_column_kwargs={"name": "Ссылка"}, primary_key=True)
     nomenclature_name: str = Field(sa_column_kwargs={"name": "Наименование"})
-    group: str = Field(sa_column_kwargs={"name": "Родитель"})
+    group: UUID = Field(sa_column_kwargs={"name": "Родитель"})
     is_group: bool = Field(sa_column_kwargs={"name": "ЭтоГруппа"})
     is_deleted: bool = Field(sa_column_kwargs={"name": "ПометкаУдаления"})
     edited_at: datetime = Field(sa_column_kwargs={"name": "МСУ_ДатаИзменения"})
@@ -87,8 +89,5 @@ class MsuDatabaseOneNomenclatureRead(SQLModel, table=True):
     is_in_vectorstore: bool | None = Field(sa_column_kwargs={"_omit_from_statements": True})
 
 
-class SyncNomenclaturesRead(SQLModel):
-    id: str
-    nomenclature_name: str
-    group: str
-    action: Literal["delete", "update", "create"]
+class JobIdRead(SQLModel):
+    job_id: str

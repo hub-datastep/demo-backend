@@ -1,10 +1,29 @@
 import os
+from uuid import UUID
 
 from chromadb import HttpClient
 from chromadb.api.models.Collection import Collection
 
-from model.noms2embeddings_model import FastembedChromaFunction
-from scheme.nomenclature_scheme import SyncNomenclaturesPatch, SyncNomenclaturesRead
+from chromadb import Documents, EmbeddingFunction, Embeddings
+from fastembed.embedding import TextEmbedding
+from scheme.nomenclature_scheme import SyncNomenclaturesChromaPatch, SyncOneNomenclatureDataRead
+from tqdm import tqdm
+
+
+class FastembedChromaFunction(EmbeddingFunction):
+    def __call__(self, input: Documents) -> Embeddings:
+        embedding_model = TextEmbedding(
+            model_name="intfloat/multilingual-e5-large"
+        )
+        strings = [f"query: {s}" for s in input]
+        return [e.tolist() for e in tqdm(embedding_model.embed(strings), total=len(strings))]
+
+
+def _cast_ids(ids: str | list[str] | UUID | list[UUID]):
+    if isinstance(ids, list):
+        return [str(i) for i in ids]
+    else:
+        return str(ids)
 
 
 def connect_to_chroma_collection(collection_name: str):
@@ -18,10 +37,11 @@ def connect_to_chroma_collection(collection_name: str):
 
 def add_embeddings(
     collection: Collection,
-    ids: str | list[str],
+    ids: str | list[str] | UUID | list[UUID],
     documents: str | list[str],
     metadatas: dict | list[dict],
 ):
+    ids = _cast_ids(ids)
     collection.add(
         ids=ids,
         documents=documents,
@@ -29,16 +49,28 @@ def add_embeddings(
     )
 
 
-def delete_embeddings(collection: Collection, ids: str | list[str]):
+def delete_embeddings(collection: Collection, ids: str | list[str] | UUID | list[UUID]):
+    ids = _cast_ids(ids)
     collection.delete(ids=ids)
+
+
+def drop_collection(collection_name: str):
+    chroma = HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
+    if collection_name in [c.name for c in chroma.list_collections()]:
+        chroma.delete_collection(collection_name)
+
+
+def create_collection(collection_name: str):
+    connect_to_chroma_collection(collection_name)
 
 
 def update_embeddings(
     collection: Collection,
-    ids: str | list[str],
+    ids: str | list[str] | UUID | list[UUID],
     documents: str | list[str],
     metadatas: dict | list[dict],
 ):
+    ids = _cast_ids(ids)
     collection.update(
         ids=ids,
         documents=documents,
@@ -54,72 +86,47 @@ def is_in_vectorstore(
     return len(guid['ids']) != 0
 
 
-def update_collection_with_patch(collection: Collection, patch: list[SyncNomenclaturesPatch]):
-    patched_list = []
+def update_collection_with_patch(
+    collection: Collection,
+    patch: list[SyncNomenclaturesChromaPatch]
+) -> list[SyncNomenclaturesChromaPatch]:
+    patched_list: list[SyncNomenclaturesChromaPatch] = []
     for elem in patch:
-        elem_id = elem.nomenclature_data.id
-        elem_nomenclature_name = elem.nomenclature_data.nomenclature_name
-        elem_group = elem.nomenclature_data.group
-        elem_action = elem.action
+        # elem_id = elem.nomenclature_data.id
+        # elem_nomenclature_name = elem.nomenclature_data.nomenclature_name
+        # elem_group = elem.nomenclature_data.group
+        # elem_action = elem.action
 
-        if elem_action == "delete":
+        if elem.action == "delete":
             delete_embeddings(collection, ids=elem.nomenclature_data.id)
             print(f"Удалено: {elem.nomenclature_data.id}")
 
-        elif elem_action == "create":
+        elif elem.action == "create":
             add_embeddings(
                 collection,
                 ids=elem.nomenclature_data.id,
                 documents=elem.nomenclature_data.nomenclature_name,
-                metadatas={"group": elem.nomenclature_data.group}
+                metadatas={"group": str(elem.nomenclature_data.group)}
             )
             print(f"Добавлено: {elem.nomenclature_data.id}")
 
-        elif elem_action == "update":
+        elif elem.action == "update":
             update_embeddings(
                 collection,
                 ids=elem.nomenclature_data.id,
                 documents=elem.nomenclature_data.nomenclature_name,
-                metadatas={"group": elem.nomenclature_data.group}
+                metadatas={"group": str(elem.nomenclature_data.group)}
             )
             print(f"Обновлено: {elem.nomenclature_data.id}")
 
         patched_list.append(
-            SyncNomenclaturesRead(
-                id=elem_id,
-                nomenclature_name=elem_nomenclature_name,
-                group=elem_group,
-                action=elem_action
+            SyncNomenclaturesChromaPatch(
+                nomenclature_data=SyncOneNomenclatureDataRead(
+                    id=elem.nomenclature_data.id,
+                    nomenclature_name=elem.nomenclature_data.nomenclature_name,
+                    group=elem.nomenclature_data.group,
+                ),
+                action=elem.action
             )
         )
     return patched_list
-
-
-if __name__ == "__main__":
-    # load_dotenv()
-    # tqdm.pandas()
-    #
-    # chroma = HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
-    # collection = chroma.get_or_create_collection(name="nomenclature")
-    #
-    # df = pd.read_sql(
-    #     "SELECT * FROM nomenclature WHERE embeddings IS NOT NULL",
-    #     os.getenv("DB_CONNECTION_STRING")
-    # )
-    # df.embeddings = df.embeddings.progress_apply(ast.literal_eval)
-    #
-    # ids = [str(uuid4()) for _ in range(1, len(df) + 1)]
-    # embeddings = df.embeddings.to_list()
-    # documents = df.nomenclature.to_list()
-    # metadatas = [{"group": g} for g in df.group.to_list()]
-    #
-    # print("1")
-    # convert_sql_to_chroma(collection, documents[:40000], embeddings[:40000], metadatas[:40000], ids[:40000])
-    # print("2")
-    # convert_sql_to_chroma(collection, documents[40000:80000], embeddings[40000:80000], metadatas[40000:80000],
-    #                       ids[40000:80000])
-    # print("3")
-    # convert_sql_to_chroma(collection, documents[80000:], embeddings[80000:], metadatas[80000:], ids[80000:])
-    #
-    # print(collection.count())
-    pass
