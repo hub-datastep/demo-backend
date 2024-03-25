@@ -54,10 +54,10 @@ jobs:
             git pull
             
             echo "Stop containers"
-            docker-compose --file docker-compose.demo.yml stop backend rq-worker
+            docker-compose --file docker-compose.demo.yml stop backend rq-worker mkdocs
             
             echo "Remove containers"
-            docker-compose --file docker-compose.demo.yml rm backend rq-worker
+            docker-compose --file docker-compose.demo.yml rm backend rq-worker mkdocs
             
             echo "Pull new images"
             env DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} \
@@ -69,4 +69,4 @@ jobs:
             env DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} \
             DOCKER_BACKEND_REPOSITORY=${{ secrets.DOCKER_BACKEND_REPOSITORY }} \
             RUN_ID=${{ github.run_id }} \
-            docker-compose --file docker-compose.demo.yml up -d backend rq-worker
+            docker-compose --file docker-compose.demo.yml up -d backend rq-worker mkdocs
