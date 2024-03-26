@@ -3,13 +3,12 @@ import unittest
 from datetime import datetime
 from uuid import uuid4, UUID
 
-from sqlmodel import Session, create_engine, select
+import pytest
 from chromadb import HttpClient
+from sqlmodel import Session, create_engine, select
 
 from infra.chroma_store import connect_to_chroma_collection, drop_collection, create_collection
 from model.synchronize_nomenclatures_model import synchronize_nomenclatures
-import pytest
-
 from scheme.nomenclature_scheme import MsuDatabaseOneNomenclatureRead
 
 all_noms_guids = [uuid4() for _ in range(10)]
@@ -19,6 +18,7 @@ noms_to_create = [all_noms_guids[1], all_noms_guids[3], all_noms_guids[6]]
 root_link = UUID("e29a2c8c-dad2-11ea-8e35-001e67bc1b0d")
 root_parent = UUID("00000000-0000-0000-0000-000000000000")
 
+
 @pytest.fixture
 def _db_params():
     print("_chroma_params starts")
@@ -26,6 +26,7 @@ def _db_params():
     demo_stand_table_name = "СправочникНоменклатура"
     demo_stand_schema = "us"
     return demo_stand_db_con_str, demo_stand_table_name, demo_stand_schema
+
 
 @pytest.fixture
 def _chroma_params():
@@ -178,11 +179,14 @@ def _update_test_noms(_db_params):
     engine = create_engine(demo_stand_db_con_str)
 
     with Session(engine) as session:
-        nom_1 = session.scalars(select(MsuDatabaseOneNomenclatureRead).where(MsuDatabaseOneNomenclatureRead.id == str(all_noms_guids[1]))).one()
+        nom_1 = session.scalars(select(MsuDatabaseOneNomenclatureRead).where(
+            MsuDatabaseOneNomenclatureRead.id == str(all_noms_guids[1]))).one()
         nom_1.nomenclature_name = "Объект 1-1 поменялось"
-        nom_2 = session.scalars(select(MsuDatabaseOneNomenclatureRead).where(MsuDatabaseOneNomenclatureRead.id == str(all_noms_guids[3]))).one()
+        nom_2 = session.scalars(select(MsuDatabaseOneNomenclatureRead).where(
+            MsuDatabaseOneNomenclatureRead.id == str(all_noms_guids[3]))).one()
         nom_2.nomenclature_name = "Объект 1-2-1 поменялось"
-        nom_3 = session.scalars(select(MsuDatabaseOneNomenclatureRead).where(MsuDatabaseOneNomenclatureRead.id == str(all_noms_guids[6]))).one()
+        nom_3 = session.scalars(select(MsuDatabaseOneNomenclatureRead).where(
+            MsuDatabaseOneNomenclatureRead.id == str(all_noms_guids[6]))).one()
         nom_3.is_deleted = True
         session.add_all([nom_1, nom_2, nom_3])
         session.commit()
