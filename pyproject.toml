@@ -36,6 +36,9 @@ fastembed = "^0.2.2"
 scikit-learn = "^1.4.0"
 sshtunnel = "^0.4.0"
 pytest = "^8.1.1"
+pytest-dotenv = "^0.5.2"
+mkdocs-material = "^9.5.15"
+mkdocstrings = {extras = ["python"], version = "^0.24.1"}
 
 
 [build-system]

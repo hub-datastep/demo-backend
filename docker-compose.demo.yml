@@ -58,6 +58,16 @@ services:
       - datastep-db:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  mssql:
+    image: mcr.microsoft.com/mssql/server
+    container_name: mssql
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=<your_strong_password>
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql:/var/opt/mssql
   dbeaver:
     image: dbeaver/cloudbeaver
     container_name: dbeaver
@@ -74,19 +84,10 @@ services:
       - chroma-data:/chroma/chroma/
     ports:
       - "8001:8000"
-  mkdocs:
-    image: mkdocs
-    build:
-      context: .
-      dockerfile: mkdocs.Dockerfile
-    container_name: mkdocs
-    ports:
-      - "9999:8000"
-    volumes:
-      - "${PWD}:/docs"
 volumes:
   server:
   redis-server:
+  mssql:
   datastep-db:
   datastep-dbeaver:
   chroma-data:

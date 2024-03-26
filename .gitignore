@@ -6,3 +6,6 @@ __pycache__/
 .vscode
 dump.rdb
 database.db
+site
+data/fastembed/.locks
+data/fastembed/models--qdrant--multilingual-e5-large-onnx
