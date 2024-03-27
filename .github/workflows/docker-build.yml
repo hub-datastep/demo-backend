@@ -22,7 +22,7 @@ jobs:
 
     - name: Build db_diagram
       run: |
-        curl -L https://github.com/KarnerTh/mermerd/releases/download/v0.10.0/mermerd_0.10.0_linux_arm64.tar.gz \
+        curl -L https://github.com/KarnerTh/mermerd/releases/download/v0.10.0/mermerd_0.10.0_linux_amd64.tar.gz \
         -o mermerd_0.10.0_linux_arm64.tar.gz
         mkdir mermerd
         tar -xzvf mermerd_0.10.0_linux_arm64.tar.gz -C mermerd
