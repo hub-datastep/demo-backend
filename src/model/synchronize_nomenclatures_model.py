@@ -31,6 +31,7 @@ def fetch_nomenclatures(engine: Engine, sync_period: int) -> list[MsuDatabaseOne
 def get_root_group_name(engine: Engine, nom_id: str, parent: str):
     class ParentNotFoundException(Exception):
         pass
+
     with Session(engine) as session:
         current_parent = parent
         current_nom_id = nom_id
@@ -40,7 +41,9 @@ def get_root_group_name(engine: Engine, nom_id: str, parent: str):
                 .where(MsuDatabaseOneNomenclatureRead.id == current_parent)
             root_group = session.exec(st).first()
             if root_group is None:
-                raise ParentNotFoundException(f"Cannot found parent with id={current_parent} for nom with id={current_nom_id}")
+                raise ParentNotFoundException(
+                    f"Cannot found parent with id={current_parent} for nom with id={current_nom_id}"
+                )
             current_parent = root_group.group
             current_nom_id = root_group.id
 
@@ -48,7 +51,9 @@ def get_root_group_name(engine: Engine, nom_id: str, parent: str):
     return root_group_name
 
 
-def get_chroma_patch_for_sync(nomenclatures: list[MsuDatabaseOneNomenclatureRead]) -> list[SyncNomenclaturesChromaPatch]:
+def get_chroma_patch_for_sync(
+    nomenclatures: list[MsuDatabaseOneNomenclatureRead]
+) -> list[SyncNomenclaturesChromaPatch]:
     target_root_name = "Загрузка"
     patch_for_chroma: list[SyncNomenclaturesChromaPatch] = []
     for nom in nomenclatures:
@@ -127,8 +132,6 @@ def start_synchronizing_nomenclatures(
 
 def get_sync_nomenclatures_job_result(job_id: str):
     job = get_job(job_id)
-    print(f"job: {job}")
-    print(f"result: {job.result}")
 
     result = SyncNomenclaturesResultRead(
         job_id=job_id,
