@@ -12,6 +12,8 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
+from controller.retrain_classifier import retrain_classifier_controller
+
 load_dotenv()
 
 from controller.nomenclature import nomenclature_controller
@@ -19,7 +21,6 @@ from controller.file import file_controller
 from controller.prediction import prediction_controller
 from controller.user import user_controller, auth_controller, tenant_controller, mode_controller, prompt_controller
 from controller.chat import message_controller, chat_controller
-
 
 app = FastAPI()
 
@@ -36,6 +37,7 @@ app.include_router(message_controller.router, tags=["message"], prefix="/message
 app.include_router(prediction_controller.router, tags=["prediction"])
 app.include_router(nomenclature_controller.router, tags=["nomenclature"], prefix="/nomenclature")
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
+app.include_router(retrain_classifier_controller.router, tags=["classifier"], prefix="/retrain_classifier")
 
 
 # app.include_router(task_controller.router, tags=["task"], prefix="/task")
