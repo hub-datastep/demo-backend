@@ -1,17 +1,14 @@
-# Welcome to MkDocs
+# Общая информация о проекте
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+## Схема информационных потоков
 
-## Commands
+![Схема](images/app_architecture.png)
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+## Аутентификация пользователей
 
-## Project layout
+Аутентификация пользователей происходит через FastAPI по спецификации 
+OAuth2 с использованием JWT–токенов.
 
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+Логин представляет собой email пользователя. Подтверждение почты не требуется.
+
+Логины и пароли пользователей хранятся во внутренней базе приложения. Пароли шифруются с помощью Bcrypt.
