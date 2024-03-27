@@ -31,7 +31,7 @@ jobs:
 
     - name: Build mkdocs
       run: |
-        pip install "mkdocstrings[python]" mkdocstrings
+        pip install mkdocs-material "mkdocstrings[python]"
         mkdocs build
 
     - name: Build the Docker image
