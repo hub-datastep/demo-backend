@@ -13,9 +13,7 @@ BuildPushImg:
     - docker-builder
   stage: build-img
   script:
-    - apt update && apt install python3-venv python3-pip
-    - pip install mkdocs-material "mkdocstrings[python]"
-    - mkdocs build
+    - docker run --rm -it -v ${PWD}:/docs squidfunk/mkdocs-material build
     - docker build -t $CONTAINER_IMAGE:$CI_PIPELINE_ID -f mssql.Dockerfile .
     - docker push $CONTAINER_IMAGE:$CI_PIPELINE_ID
   only:
