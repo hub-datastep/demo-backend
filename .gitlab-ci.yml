@@ -13,6 +13,7 @@ BuildPushImg:
     - docker-builder
   stage: build-img
   script:
+    - sudo apt update && sudo apt install python3-venv python3-pip
     - pip install mkdocs-material "mkdocstrings[python]"
     - mkdocs build
     - docker build -t $CONTAINER_IMAGE:$CI_PIPELINE_ID -f mssql.Dockerfile .
