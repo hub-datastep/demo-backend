@@ -13,6 +13,8 @@ services:
       - "8080:8080"
     env_file:
       - .env.run
+    volumes:
+      - "/home/wv-bleschunovd/data:/app/data"
   rq-worker:
     image: ${CONTAINER_IMAGE}:${CI_PIPELINE_ID}
     command: rq worker --path /app/src --url redis://${REDIS_HOST}:6379 nomenclature document
