@@ -27,6 +27,7 @@ class MappingNomenclaturesUpload(SQLModel):
     nomenclatures: list[MappingOneNomenclatureUpload]
     most_similar_count: int = 1
     job_size: int
+    chroma_collection_name: str
 
 
 class MappingNomenclaturesResultRead(SQLModel):
