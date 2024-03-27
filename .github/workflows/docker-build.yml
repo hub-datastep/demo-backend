@@ -72,7 +72,7 @@ jobs:
             
             echo "Clean system"
             docker system prune -f
-            docker rmi ${{ secrets.DOCKER_BACKEND_REPOSITORY }}
+            docker rmi $(docker images ${{ secrets.DOCKER_BACKEND_REPOSITORY }} -q)
             
             echo "Pull new images"
             env DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} \
