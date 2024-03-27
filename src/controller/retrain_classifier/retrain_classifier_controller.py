@@ -31,3 +31,5 @@ def retrain_classifier_result(
     job_id: str
 ) -> ClassifierRetrainingResult:
     return retrain_classifier_model.get_retraining_job_result(job_id)
+
+# TODO: add endpoint to list all models
