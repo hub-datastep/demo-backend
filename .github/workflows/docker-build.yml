@@ -71,7 +71,7 @@ jobs:
             docker-compose --file docker-compose.demo.yml stop backend rq-worker
             
             echo "Clean system"
-            docker system prune
+            docker system prune -f
             docker rmi ${{ secrets.DOCKER_BACKEND_REPOSITORY }}
             
             echo "Pull new images"
