@@ -67,8 +67,8 @@ app = VersionedFastAPI(
 )
 
 # app.include_router(task_websocket_controller.router, tags=["task"], prefix="/task/ws")
-app.mount("/static/docs", StaticFiles(directory=Path(__file__).parent / ".." / "site"), name="mkdocs")
-app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data", html=True), name="static")
+app.mount("/static/docs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True), name="mkdocs")
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"), name="static")
 
 
 @app.on_event("startup")
