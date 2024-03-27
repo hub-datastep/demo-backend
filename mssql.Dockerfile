@@ -57,5 +57,9 @@ RUN pip install --no-binary :all: pyodbc
 
 RUN apt install lsb-release curl gpg -y
 
+RUN pip install mkdocs-material "mkdocstrings[python]"
+
 COPY . /app
+
+RUN mkdocs build
 
