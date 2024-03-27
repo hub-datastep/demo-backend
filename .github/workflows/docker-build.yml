@@ -30,7 +30,9 @@ jobs:
         --useAllTables --encloseWithMermaidBackticks
 
     - name: Build mkdocs
-      run: mkdocs build
+      run: |
+        pip install mkdocs-material
+        mkdocs build
 
     - name: Build the Docker image
       run: |
