@@ -31,7 +31,7 @@ jobs:
 
     - name: Build mkdocs
       run: |
-        pip install mkdocs-material
+        pip install "mkdocstrings[python]" mkdocstrings
         mkdocs build
 
     - name: Build the Docker image
@@ -72,6 +72,7 @@ jobs:
             
             echo "Clean system"
             docker system prune
+            docker rmi ${{ secrets.DOCKER_BACKEND_REPOSITORY }}
             
             echo "Pull new images"
             env DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }} \
