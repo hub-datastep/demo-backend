@@ -20,3 +20,12 @@ nav:
   - Ассистент по документам: wiki_assistant.md
   - Сервис маппинга номенклатуры: nomenclatures_mapper.md
   - API Reference: api_reference.md
+  - Диаграмма базы данных: db_diagram.md
+
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
