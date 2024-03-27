@@ -2,15 +2,8 @@ variables:
   CONTAINER_IMAGE: $nexus_repo/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME
 
 stages:
-  - build-docs
   - build-img
   - reload-app
-
-BuildDocs:
-  stage: build-docs
-  script:
-    - pip install mkdocs-material "mkdocstrings[python]"
-    - mkdocs build
 
 BuildPushImg:
   image: docker:git
@@ -20,6 +13,8 @@ BuildPushImg:
     - docker-builder
   stage: build-img
   script:
+    - pip install mkdocs-material "mkdocstrings[python]"
+    - mkdocs build
     - docker build -t $CONTAINER_IMAGE:$CI_PIPELINE_ID -f mssql.Dockerfile .
     - docker push $CONTAINER_IMAGE:$CI_PIPELINE_ID
   only:
