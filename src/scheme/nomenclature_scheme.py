@@ -20,7 +20,7 @@ class MappingOneNomenclatureRead(SQLModel):
     row_number: int
     nomenclature: str | None
     group: str
-    mappings: list[MappingOneTargetRead]
+    mappings: list[MappingOneTargetRead] | None
 
 
 class MappingNomenclaturesUpload(SQLModel):

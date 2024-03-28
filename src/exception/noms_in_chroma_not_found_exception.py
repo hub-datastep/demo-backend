@@ -1,0 +1,2 @@
+class NomsInChromaNotFoundException(Exception):
+    pass

@@ -13,6 +13,7 @@ from rq.job import Job, JobStatus
 from rq.queue import Queue
 from tqdm import tqdm
 
+from exception.noms_in_chroma_not_found_exception import NomsInChromaNotFoundException
 from scheme.nomenclature_scheme import MappingNomenclaturesUpload, MappingOneNomenclatureRead, MappingOneNomenclatureUpload, \
     MappingNomenclaturesResultRead, JobIdRead
 
@@ -37,8 +38,15 @@ def map_on_nom(nom_embeddings: np.ndarray, group: str, most_similar_count: int, 
         where={"group": group}
     )
 
+    found_noms_count = len(response["ids"][0])
+
+    if found_noms_count == 0:
+        raise NomsInChromaNotFoundException(
+            f"В коллекции Chroma {chroma_collection_name} нет номенклатур, принадлежащих группе {group}."
+        )
+
     mapped_noms = []
-    for i in range(most_similar_count):
+    for i in range(len(response["ids"][0])):
         mapped_noms.append({
             "nomenclature_guid": response["ids"][0][i],
             "nomenclature": response["documents"][0][i],
@@ -145,7 +153,10 @@ def process(
 
     with tqdm(total=len(noms)) as pbar:
         for i, nom in noms.iterrows():
-            nom.mappings = map_on_nom(nom.embeddings, nom.group, most_similar_count, chroma_collection_name)
+            try:
+                nom.mappings = map_on_nom(nom.embeddings, nom.group, most_similar_count, chroma_collection_name)
+            except NomsInChromaNotFoundException:
+                pass
             noms.loc[i] = nom
             if use_jobs:
                 job.meta["ready_count"] += 1
