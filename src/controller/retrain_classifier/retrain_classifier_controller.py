@@ -4,7 +4,7 @@ from fastapi_versioning import version
 
 from model import retrain_classifier_model
 from model.auth_model import get_current_user
-from scheme.classifier_scheme import RetrainClassifierUpload, ClassifierRetrainingResult
+from scheme.classifier_scheme import RetrainClassifierUpload, ClassifierRetrainingResult, ClassifierVersionRead
 from scheme.user_scheme import UserRead
 
 router = APIRouter()
@@ -32,4 +32,11 @@ def retrain_classifier_result(
 ) -> ClassifierRetrainingResult:
     return retrain_classifier_model.get_retraining_job_result(job_id)
 
-# TODO: add endpoint to list all models
+
+@router.get("/")
+@version(1)
+def get_classifier_versions(
+    *,
+    current_user: UserRead = Depends(get_current_user),
+) -> list[ClassifierVersionRead]:
+    return retrain_classifier_model.get_classifiers_list()
