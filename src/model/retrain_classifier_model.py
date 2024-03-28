@@ -1,5 +1,7 @@
 import os
+import os
 import re
+from pathlib import Path
 from uuid import uuid4
 
 import joblib
@@ -8,18 +10,23 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.svm import LinearSVC
-from sqlalchemy import create_engine, text
-from sqlmodel import Session
+from sqlalchemy import text
+from sqlmodel import Session, select, not_
 from tqdm import tqdm
 
+from infra.database import engine
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job
-from scheme.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult
+from scheme.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult, \
+    SyncClassifierVersionPatch
 from scheme.nomenclature_scheme import JobIdRead
 
 tqdm.pandas()
 
 _FILE_SEPARATOR = ";"
 _TRAINING_FILE_NAME = "training_data.csv"
+DATA_FOLDER_PATH = os.getenv('DATA_FOLDER_PATH')
+
+_MAX_CLASSIFIERS_COUNT = 3
 
 
 def _fetch_noms(db_con_str: str, table_name: str) -> DataFrame:
@@ -147,9 +154,8 @@ def _dump_model(version_id: str, classifier, vectorizer: CountVectorizer):
     joblib.dump(vectorizer, vectorizer_path)
 
 
-def _save_model_version_to_db(classifier_version: ClassifierVersion):
-    # Save model version to our postgres db
-    engine = create_engine(os.getenv('DB_CONNECTION_STRING'))
+def _save_classifier_version_to_db(classifier_version: ClassifierVersion):
+    # Save classifier version to our postgres db
     with Session(engine) as session:
         classifier_version_db = ClassifierVersion.from_orm(classifier_version)
         session.add(classifier_version_db)
@@ -161,6 +167,64 @@ def _save_model_version_to_db(classifier_version: ClassifierVersion):
         created_at=classifier_version_db.created_at
     )
     return saved_version
+
+
+def _get_classifier_versions():
+    with Session(engine) as session:
+        st = select(ClassifierVersion) \
+            .where(not_(ClassifierVersion.is_deleted))
+        result = session.exec(st).all()
+
+    return list(result)
+
+
+def _get_model_and_vectorizer_paths(model_id: str):
+    model_path = Path(f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl")
+    vectorizer_path = Path(f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl")
+    return model_path, vectorizer_path
+
+
+def _get_classifier_versions_sync_patch():
+    sync_patch: list[SyncClassifierVersionPatch] = []
+
+    classifier_versions = _get_classifier_versions()
+    if len(classifier_versions) > _MAX_CLASSIFIERS_COUNT:
+        # First classifier versions with the greatest accuracy
+        classifier_versions = sorted(classifier_versions, key=lambda x: x.accuracy, reverse=True)
+        for classifier in classifier_versions[_MAX_CLASSIFIERS_COUNT:]:
+            sync_patch.append(SyncClassifierVersionPatch(
+                model_id=classifier.id,
+                action="delete",
+            ))
+
+    return sync_patch
+
+
+def _delete_classifier_version_files(model_id: str):
+    model_path, vectorizer_path = _get_model_and_vectorizer_paths(model_id)
+    # Remove model file if exists
+    if model_path.exists():
+        os.remove(model_path)
+    # Remove vectorizer file if exists
+    if vectorizer_path.exists():
+        os.remove(vectorizer_path)
+
+
+def _delete_classifier_version_in_db(model_id: str):
+    # Soft delete classifier version in our postgres db
+    with Session(engine) as session:
+        classifier_version = session.get(ClassifierVersion, model_id)
+        if classifier_version:
+            classifier_version.is_deleted = True
+            session.add(classifier_version)
+            session.commit()
+
+
+def _sync_classifier_versions(sync_patch: list[SyncClassifierVersionPatch]):
+    for elem in sync_patch:
+        if elem.action == "delete":
+            _delete_classifier_version_in_db(model_id=elem.model_id)
+            _delete_classifier_version_files(model_id=elem.model_id)
 
 
 def _retrain_classifier(db_con_str: str, table_name: str):
@@ -215,11 +279,16 @@ def _retrain_classifier(db_con_str: str, table_name: str):
         accuracy=accuracy,
     )
 
-    print("Saving model version to db...")
-    result = _save_model_version_to_db(classifier_version)
-    print("Model version saved.")
+    print("Saving classifier version to db...")
+    result = _save_classifier_version_to_db(classifier_version)
+    print("Classifier version saved.")
 
-    return result
+    print("Syncing classifier versions...")
+    classifier_versions_sync_patch = _get_classifier_versions_sync_patch()
+    _sync_classifier_versions(classifier_versions_sync_patch)
+    print("Classifier version saved.")
+
+    return result, classifier_versions_sync_patch
 
 
 def start_classifier_retraining(db_con_str: str, table_name: str):
@@ -244,40 +313,13 @@ def get_retraining_job_result(job_id: str):
 
     job_result = job.return_value(refresh=True)
     if job_result is not None:
-        result.result = job_result
+        result, changes = job_result
+        result.result = result
+        result.changes = changes
 
     return result
 
 
-if __name__ == "__main__":
-    from sshtunnel import SSHTunnelForwarder
-
-    jump_host_tunnel = SSHTunnelForwarder(
-        ("192.168.0.20", 1984),
-        ssh_username="wv-bleschunovd",
-        ssh_password="$$R4Yt1w1nG52TBF",
-        remote_bind_address=("192.168.0.238", 1984)
-    )
-    print("Connecting to jump host")
-    jump_host_tunnel.start()
-    jump_host_port = jump_host_tunnel.local_bind_port
-
-    msu_db_tunnel = SSHTunnelForwarder(
-        ("localhost", jump_host_port),
-        ssh_username="wv-bleschunovd",
-        ssh_password="MRi9yJ6vPObQStZv",
-        remote_bind_address=("srv-dwh", 1433)
-    )
-    msu_db_tunnel.start()
-    print("Connecting to msu db tunnel")
-    msu_db_port = str(msu_db_tunnel.local_bind_port)
-
-    msu_db_connection_string = f"mssql+pyodbc://dwh_connector:Avt528796R001T@localhost:{msu_db_port}/dwh?driver=ODBC+Driver+17+for+SQL+Server"
-    msu_db_table_name = "us.СправочникНоменклатура"
-
-    # job_id = start_classifier_retraining(msu_db_connection_string, msu_db_table_name)
-    # print(job_id)
-
-    # print(_retrain_classifier(msu_db_connection_string, msu_db_table_name))
-
-    pass
+def get_classifiers_list():
+    classifiers_db_list = _get_classifier_versions()
+    return classifiers_db_list
