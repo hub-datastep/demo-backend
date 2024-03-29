@@ -305,6 +305,10 @@ def get_retraining_job_result(job_id: str) -> ClassifierRetrainingResult:
     return result
 
 
-def get_classifiers_list() -> list[ClassifierVersion]:
+def get_classifiers_list() -> list[ClassifierVersionRead]:
     classifiers_db_list = _get_classifier_versions()
-    return classifiers_db_list
+    classifier_versions_list = [ClassifierVersionRead(
+        model_id=classifier.id,
+        created_at=classifier.created_at,
+    ) for classifier in classifiers_db_list]
+    return classifier_versions_list
