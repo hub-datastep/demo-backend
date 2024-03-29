@@ -11,11 +11,12 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.svm import LinearSVC
 from sqlalchemy import text
-from sqlmodel import Session, select, not_
+from sqlmodel import Session
 from tqdm import tqdm
 
 from infra.database import engine
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job
+from repository.classifier_version_repository import _delete_classifier_version_in_db, _get_classifier_versions
 from scheme.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult, \
     SyncClassifierVersionPatch
 from scheme.nomenclature_scheme import JobIdRead
@@ -53,7 +54,7 @@ def _fetch_groups(db_con_str: str, table_name: str) -> DataFrame:
     return read_sql(st, db_con_str)
 
 
-def _has_child(db_con_str: str, table_name: str, group_name: str):
+def _has_child(db_con_str: str, table_name: str, group_name: str) -> bool:
     group_numbs = group_name.split('. ')[0]
 
     st = text(f"""
@@ -83,7 +84,7 @@ def _fetch_no_child_groups(db_con_str: str, table_name: str) -> DataFrame:
     return no_child_groups
 
 
-def _normalize_nom_name(text: str):
+def _normalize_nom_name(text: str) -> str:
     text = text.lower()
     # deleting newlines and line-breaks
     text = re.sub(
@@ -138,13 +139,13 @@ def _get_training_data(db_con_str: str, table_name: str) -> DataFrame:
     return narrow_group_noms
 
 
-def _get_model_accuracy(classifier, vectorizer: CountVectorizer, x_test, y_test):
+def _get_model_accuracy(classifier, vectorizer: CountVectorizer, x_test, y_test) -> float:
     y_pred = classifier.predict(vectorizer.transform(x_test))
     accuracy = accuracy_score(y_test, y_pred)
     return accuracy
 
 
-def _dump_model(version_id: str, classifier, vectorizer: CountVectorizer):
+def _dump_model(version_id: str, classifier, vectorizer: CountVectorizer) -> None:
     vectorizer_file_name = f"vectorizer_{version_id}.pkl"
     classifier_file_name = f"linear_svc_model_{version_id}.pkl"
     vectorizer_path = f"{os.getenv('DATA_FOLDER_PATH')}/{vectorizer_file_name}"
@@ -154,7 +155,7 @@ def _dump_model(version_id: str, classifier, vectorizer: CountVectorizer):
     joblib.dump(vectorizer, vectorizer_path)
 
 
-def _save_classifier_version_to_db(classifier_version: ClassifierVersion):
+def _save_classifier_version_to_db(classifier_version: ClassifierVersion) -> ClassifierVersionRead:
     # Save classifier version to our postgres db
     with Session(engine) as session:
         classifier_version_db = ClassifierVersion.from_orm(classifier_version)
@@ -169,22 +170,13 @@ def _save_classifier_version_to_db(classifier_version: ClassifierVersion):
     return saved_version
 
 
-def _get_classifier_versions():
-    with Session(engine) as session:
-        st = select(ClassifierVersion) \
-            .where(not_(ClassifierVersion.is_deleted))
-        result = session.exec(st).all()
-
-    return list(result)
-
-
-def _get_model_and_vectorizer_paths(model_id: str):
+def _get_model_and_vectorizer_paths(model_id: str) -> tuple[Path, Path]:
     model_path = Path(f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl")
     vectorizer_path = Path(f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl")
     return model_path, vectorizer_path
 
 
-def _get_classifier_versions_sync_patch():
+def _get_classifier_versions_sync_patch() -> list[SyncClassifierVersionPatch]:
     sync_patch: list[SyncClassifierVersionPatch] = []
 
     classifier_versions = _get_classifier_versions()
@@ -200,7 +192,7 @@ def _get_classifier_versions_sync_patch():
     return sync_patch
 
 
-def _delete_classifier_version_files(model_id: str):
+def _delete_classifier_version_files(model_id: str) -> None:
     model_path, vectorizer_path = _get_model_and_vectorizer_paths(model_id)
     # Remove model file if exists
     if model_path.exists():
@@ -210,24 +202,17 @@ def _delete_classifier_version_files(model_id: str):
         os.remove(vectorizer_path)
 
 
-def _delete_classifier_version_in_db(model_id: str):
-    # Soft delete classifier version in our postgres db
-    with Session(engine) as session:
-        classifier_version = session.get(ClassifierVersion, model_id)
-        if classifier_version:
-            classifier_version.is_deleted = True
-            session.add(classifier_version)
-            session.commit()
-
-
-def _sync_classifier_versions(sync_patch: list[SyncClassifierVersionPatch]):
+def _sync_classifier_versions(sync_patch: list[SyncClassifierVersionPatch]) -> None:
     for elem in sync_patch:
         if elem.action == "delete":
             _delete_classifier_version_in_db(model_id=elem.model_id)
             _delete_classifier_version_files(model_id=elem.model_id)
 
 
-def _retrain_classifier(db_con_str: str, table_name: str):
+def _retrain_classifier(
+    db_con_str: str,
+    table_name: str
+) -> tuple[ClassifierVersionRead, list[SyncClassifierVersionPatch]]:
     print("Getting training data...")
     training_data_df = _get_training_data(db_con_str, table_name)
     # training_data_df = read_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
@@ -291,7 +276,7 @@ def _retrain_classifier(db_con_str: str, table_name: str):
     return result, classifier_versions_sync_patch
 
 
-def start_classifier_retraining(db_con_str: str, table_name: str):
+def start_classifier_retraining(db_con_str: str, table_name: str) -> JobIdRead:
     queue = get_redis_queue()
     job = queue.enqueue(
         _retrain_classifier,
@@ -303,7 +288,7 @@ def start_classifier_retraining(db_con_str: str, table_name: str):
     return JobIdRead(job_id=job.id)
 
 
-def get_retraining_job_result(job_id: str):
+def get_retraining_job_result(job_id: str) -> ClassifierRetrainingResult:
     job = get_job(job_id)
 
     result = ClassifierRetrainingResult(
@@ -320,6 +305,6 @@ def get_retraining_job_result(job_id: str):
     return result
 
 
-def get_classifiers_list():
+def get_classifiers_list() -> list[ClassifierVersion]:
     classifiers_db_list = _get_classifier_versions()
     return classifiers_db_list
