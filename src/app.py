@@ -20,7 +20,6 @@ from controller.prediction import prediction_controller
 from controller.user import user_controller, auth_controller, tenant_controller, mode_controller, prompt_controller
 from controller.chat import message_controller, chat_controller
 
-
 app = FastAPI()
 
 app.include_router(auth_controller.router, tags=["auth"], prefix="/auth")
@@ -67,7 +66,7 @@ app = VersionedFastAPI(
 )
 
 # app.include_router(task_websocket_controller.router, tags=["task"], prefix="/task/ws")
-app.mount("/static/docs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True), name="mkdocs")
+app.mount("/static/docs", StaticFiles(directory=Path(__file__).parent / ".." / "docs", html=True), name="mkdocs")
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"), name="static")
 
 
