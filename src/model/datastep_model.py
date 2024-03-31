@@ -23,9 +23,11 @@ async def datastep_get_prediction(
     tenant_db_uri = tenant.db_uri
     tenant_active_prompt_template = tenant.active_prompt
 
+    print(tenant_db_uri)
     datastep_sql_database = DatastepSqlDatabase(
         database_connection_string=tenant_db_uri,
         include_tables=body.tables,
+        schema=tenant_active_prompt_template.scheme
     )
 
     datastep_sql_chain = DatastepSqlChain(

@@ -7,6 +7,7 @@ class PromptBase(SQLModel):
     prompt: str
     is_active: bool = False
     table: str
+    scheme: str | None = None
 
 
 class Prompt(PromptBase, table=True):
