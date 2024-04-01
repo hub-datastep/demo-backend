@@ -1,13 +1,13 @@
 import os
 from uuid import UUID
 
+from chromadb import Documents, EmbeddingFunction, Embeddings
 from chromadb import HttpClient
 from chromadb.api.models.Collection import Collection
-
-from chromadb import Documents, EmbeddingFunction, Embeddings
 from fastembed.embedding import TextEmbedding
-from scheme.nomenclature_scheme import SyncNomenclaturesChromaPatch, SyncOneNomenclatureDataRead
 from tqdm import tqdm
+
+from scheme.nomenclature_scheme import SyncNomenclaturesChromaPatch
 
 
 class FastembedChromaFunction(EmbeddingFunction):
@@ -90,13 +90,7 @@ def update_collection_with_patch(
     collection: Collection,
     patch: list[SyncNomenclaturesChromaPatch]
 ) -> list[SyncNomenclaturesChromaPatch]:
-    patched_list: list[SyncNomenclaturesChromaPatch] = []
-    for elem in patch:
-        # elem_id = elem.nomenclature_data.id
-        # elem_nomenclature_name = elem.nomenclature_data.nomenclature_name
-        # elem_group = elem.nomenclature_data.group
-        # elem_action = elem.action
-
+    for elem in tqdm(patch):
         if elem.action == "delete":
             delete_embeddings(collection, ids=elem.nomenclature_data.id)
             print(f"Удалено: {elem.nomenclature_data.id}")
@@ -119,14 +113,4 @@ def update_collection_with_patch(
             )
             print(f"Обновлено: {elem.nomenclature_data.id}")
 
-        patched_list.append(
-            SyncNomenclaturesChromaPatch(
-                nomenclature_data=SyncOneNomenclatureDataRead(
-                    id=elem.nomenclature_data.id,
-                    nomenclature_name=elem.nomenclature_data.nomenclature_name,
-                    group=elem.nomenclature_data.group,
-                ),
-                action=elem.action
-            )
-        )
-    return patched_list
+    return patch

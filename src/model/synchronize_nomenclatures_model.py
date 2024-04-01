@@ -1,51 +1,47 @@
 from datetime import datetime, timedelta
 
-from sqlalchemy import Engine
-from sqlmodel import create_engine, Session, select, between
+from sqlmodel import Session, select, between
 from tqdm import tqdm
 
 from infra.chroma_store import is_in_vectorstore, \
     connect_to_chroma_collection, update_collection_with_patch
+from infra.database import create_session_by_db_con_str
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueName
 from scheme.nomenclature_scheme import SyncNomenclaturesChromaPatch, MsuDatabaseOneNomenclatureRead, JobIdRead, \
     SyncOneNomenclatureDataRead, SyncNomenclaturesResultRead
 
 
-def fetch_nomenclatures(engine: Engine, sync_period: int) -> list[MsuDatabaseOneNomenclatureRead]:
-    print("Fetch nomenclatures starts")
-    with Session(engine) as session:
-        st = select(MsuDatabaseOneNomenclatureRead) \
-            .where(MsuDatabaseOneNomenclatureRead.is_group == 0) \
-            .where(between(
-                expr=MsuDatabaseOneNomenclatureRead.edited_at,
-                lower_bound=datetime.now() - timedelta(hours=sync_period),
-                upper_bound=datetime.now()
-            ))
-        result = session.exec(st).all()
-        print(f"noms: {result}")
-
-    print("Fetch nomenclatures finished")
+def fetch_nomenclatures(session: Session, sync_period: int) -> list[MsuDatabaseOneNomenclatureRead]:
+    st = select(MsuDatabaseOneNomenclatureRead) \
+        .where(MsuDatabaseOneNomenclatureRead.is_group == 0) \
+        .where(
+        between(
+            expr=MsuDatabaseOneNomenclatureRead.edited_at,
+            lower_bound=datetime.now() - timedelta(hours=sync_period),
+            upper_bound=datetime.now()
+        )
+    )
+    result = session.exec(st).all()
     return list(result)
 
 
-def get_root_group_name(engine: Engine, nom_id: str, parent: str):
+def get_root_group_name(session: Session, nom_id: str, parent: str):
     class ParentNotFoundException(Exception):
         pass
 
-    with Session(engine) as session:
-        current_parent = parent
-        current_nom_id = nom_id
-        root_group: MsuDatabaseOneNomenclatureRead
-        while current_parent != "00000000-0000-0000-0000-000000000000":
-            st = select(MsuDatabaseOneNomenclatureRead) \
-                .where(MsuDatabaseOneNomenclatureRead.id == current_parent)
-            root_group = session.exec(st).first()
-            if root_group is None:
-                raise ParentNotFoundException(
-                    f"Cannot found parent with id={current_parent} for nom with id={current_nom_id}"
-                )
-            current_parent = root_group.group
-            current_nom_id = root_group.id
+    current_parent = parent
+    current_nom_id = nom_id
+    root_group: MsuDatabaseOneNomenclatureRead
+    while current_parent != "00000000-0000-0000-0000-000000000000":
+        st = select(MsuDatabaseOneNomenclatureRead) \
+            .where(MsuDatabaseOneNomenclatureRead.id == current_parent)
+        root_group = session.exec(st).first()
+        if root_group is None:
+            raise ParentNotFoundException(
+                f"Cannot found parent with id={current_parent} for nom with id={current_nom_id}"
+            )
+        current_parent = root_group.group
+        current_nom_id = root_group.id
 
     root_group_name = root_group.nomenclature_name
     return root_group_name
@@ -56,7 +52,8 @@ def get_chroma_patch_for_sync(
 ) -> list[SyncNomenclaturesChromaPatch]:
     target_root_name = "Загрузка"
     patch_for_chroma: list[SyncNomenclaturesChromaPatch] = []
-    for nom in nomenclatures:
+
+    for nom in tqdm(nomenclatures):
         sync_nom = SyncOneNomenclatureDataRead(
             id=nom.id,
             nomenclature_name=nom.nomenclature_name,
@@ -97,19 +94,23 @@ def synchronize_nomenclatures(
     chroma_collection_name: str,
     sync_period: int,
 ):
-    print("Create engine starts")
-    engine = create_engine(nom_db_con_str)
-    nomenclatures: list[MsuDatabaseOneNomenclatureRead] = fetch_nomenclatures(engine, sync_period)
-    print(len(nomenclatures))
+    session = create_session_by_db_con_str(nom_db_con_str)
+    print("Getting noms for sync...")
+    nomenclatures: list[MsuDatabaseOneNomenclatureRead] = fetch_nomenclatures(session, sync_period)
+
+    print("Getting root group for each nom...")
     for nom in tqdm(nomenclatures):
-        nom.root_group_name = get_root_group_name(engine, nom.id, nom.group)
+        nom.root_group_name = get_root_group_name(session, nom.id, nom.group)
 
     collection = connect_to_chroma_collection(chroma_collection_name)
-    for nom in nomenclatures:
+    print("Checking each nom in vectorstore...")
+    for nom in tqdm(nomenclatures):
         nom.is_in_vectorstore = is_in_vectorstore(collection=collection, ids=nom.id)
 
+    print("Creating chroma patch for sync...")
     chroma_patch = get_chroma_patch_for_sync(nomenclatures)
-    print(f"chroma patch: {chroma_patch}")
+
+    print("Syncing chroma collection with patch...")
     return update_collection_with_patch(collection, chroma_patch)
 
 
