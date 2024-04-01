@@ -291,7 +291,7 @@ def start_classifier_retraining(db_con_str: str, table_name: str) -> JobIdRead:
 def get_retraining_job_result(job_id: str) -> ClassifierRetrainingResult:
     job = get_job(job_id)
 
-    result = ClassifierRetrainingResult(
+    retraining_result = ClassifierRetrainingResult(
         job_id=job_id,
         status=job.get_status(refresh=True)
     )
@@ -299,10 +299,10 @@ def get_retraining_job_result(job_id: str) -> ClassifierRetrainingResult:
     job_result = job.return_value(refresh=True)
     if job_result is not None:
         result, changes = job_result
-        result.result = result
-        result.changes = changes
+        retraining_result.result = result
+        retraining_result.changes = changes
 
-    return result
+    return retraining_result
 
 
 def get_classifiers_list() -> list[ClassifierVersionRead]:
