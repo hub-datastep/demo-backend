@@ -13,3 +13,9 @@ def create_db_and_tables():
 def get_session() -> Session:
     with Session(engine) as session:
         yield session
+
+
+def create_session_by_db_con_str(db_con_str: str) -> Session:
+    engine = create_engine(db_con_str)
+    session = Session(engine)
+    return session
