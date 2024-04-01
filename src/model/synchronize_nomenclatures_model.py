@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 from infra.chroma_store import is_in_vectorstore, \
     connect_to_chroma_collection, update_collection_with_patch
-from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job
+from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueName
 from scheme.nomenclature_scheme import SyncNomenclaturesChromaPatch, MsuDatabaseOneNomenclatureRead, JobIdRead, \
     SyncOneNomenclatureDataRead, SyncNomenclaturesResultRead
 
@@ -118,7 +118,7 @@ def start_synchronizing_nomenclatures(
     chroma_collection_name: str,
     sync_period: int,
 ):
-    queue = get_redis_queue()
+    queue = get_redis_queue(name=QueueName.SYNCING)
     job = queue.enqueue(
         synchronize_nomenclatures,
         nom_db_con_str,

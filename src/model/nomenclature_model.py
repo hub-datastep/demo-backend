@@ -10,11 +10,12 @@ from fastembed.embedding import FlagEmbedding
 from redis import Redis
 from rq import get_current_job
 from rq.job import Job, JobStatus
-from rq.queue import Queue
 from tqdm import tqdm
 
 from exception.noms_in_chroma_not_found_exception import NomsInChromaNotFoundException
-from scheme.nomenclature_scheme import MappingNomenclaturesUpload, MappingOneNomenclatureRead, MappingOneNomenclatureUpload, \
+from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
+from scheme.nomenclature_scheme import MappingNomenclaturesUpload, MappingOneNomenclatureRead, \
+    MappingOneNomenclatureUpload, \
     MappingNomenclaturesResultRead, JobIdRead
 
 tqdm.pandas()
@@ -96,8 +97,7 @@ def create_job(
     most_similar_count: int,
     chroma_collection_name: str
 ) -> JobIdRead:
-    redis = Redis(host=os.getenv("REDIS_HOST"), password=os.getenv("REDIS_PASSWORD"))
-    queue = Queue(name="nomenclature", connection=redis)
+    queue = get_redis_queue(name=QueueName.MAPPING)
     job = queue.enqueue(
         process,
         nomenclatures,
@@ -107,7 +107,7 @@ def create_job(
             "previous_nomenclature_id": previous_job_id
         },
         result_ttl=-1,
-        job_timeout=3600 * 24
+        job_timeout=MAX_JOB_TIMEOUT
     )
     return JobIdRead(job_id=job.id)
 
