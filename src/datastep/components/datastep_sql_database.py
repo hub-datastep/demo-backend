@@ -1,5 +1,6 @@
 from langchain_community.utilities import SQLDatabase
 
+
 # from util.logger import log
 
 
@@ -9,10 +10,12 @@ class DatastepSqlDatabase:
         self,
         database_connection_string: str,
         include_tables: list[str],
+        schema: str | None = None,
     ):
         # TODO: Использовать пулинг из Алхимии
         self.database = SQLDatabase.from_uri(
             database_connection_string,
+            schema=schema,
             include_tables=include_tables,
             view_support=True
         )

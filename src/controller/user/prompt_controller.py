@@ -35,6 +35,16 @@ def create_prompt(
     return prompt_repository.create_prompt(session, prompt)
 
 
+@router.get("/tables/{tenant_id}")
+@version(1)
+def get_tenant_tables(
+    *,
+    current_user: UserRead = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    tenant_id: int,
+):
+    return prompt_repository.get_tenant_tables(session, tenant_id)
+
 # @router.put("", response_model=PromptRead)
 # @version(1)
 # def update_prompt(

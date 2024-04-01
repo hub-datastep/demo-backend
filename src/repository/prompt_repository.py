@@ -1,4 +1,4 @@
-from sqlmodel import Session
+from sqlmodel import Session, select
 from scheme.prompt_scheme import PromptCreate, Prompt
 from scheme.tenant_scheme import Tenant
 
@@ -20,6 +20,13 @@ def create_prompt(session: Session, prompt: PromptCreate) -> Prompt:
     session.commit()
     return prompt_db
 
+
+def get_tenant_tables(session: Session, tenant_id: int) -> list[str]:
+    statement = select(Prompt.table).distinct().where(Prompt.tenant_id == tenant_id)
+    result = session.exec(statement)
+    tenant_tables = result.all()
+
+    return list(tenant_tables)
 
 # def update_prompt(session: Session, prompt_id: int, prompt: PromptUpdate) -> Prompt:
 #     prompt_db = session.get(Prompt, prompt_id)
