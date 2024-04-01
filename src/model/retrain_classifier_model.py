@@ -15,7 +15,7 @@ from sqlmodel import Session
 from tqdm import tqdm
 
 from infra.database import engine
-from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job
+from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueName
 from repository.classifier_version_repository import _delete_classifier_version_in_db, _get_classifier_versions
 from scheme.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult, \
     SyncClassifierVersionPatch
@@ -277,7 +277,7 @@ def _retrain_classifier(
 
 
 def start_classifier_retraining(db_con_str: str, table_name: str) -> JobIdRead:
-    queue = get_redis_queue()
+    queue = get_redis_queue(name=QueueName.RETRAINING)
     job = queue.enqueue(
         _retrain_classifier,
         db_con_str,
