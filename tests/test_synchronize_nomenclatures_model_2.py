@@ -22,7 +22,7 @@ root_parent = UUID("00000000-0000-0000-0000-000000000000")
 @pytest.fixture
 def _db_params():
     print("_chroma_params starts")
-    demo_stand_db_con_str = "mssql+pyodbc://test:!1Testtest@mssql-129364-0.cloudclusters.net:15827/test_dwh?driver=ODBC+Driver+17+for+SQL+Server"
+    demo_stand_db_con_str = "<db_connection_string>"
     demo_stand_table_name = "СправочникНоменклатура"
     demo_stand_schema = "us"
     return demo_stand_db_con_str, demo_stand_table_name, demo_stand_schema
