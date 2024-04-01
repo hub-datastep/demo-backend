@@ -44,5 +44,8 @@ RUN poetry config virtualenvs.create false \
 
 RUN pip install onnxruntime
 # RUN apt install lsb-release curl gpg -y
+RUN pip install mkdocs-material "mkdocstrings[python]"
 
 COPY . /app
+
+RUN mkdocs build
