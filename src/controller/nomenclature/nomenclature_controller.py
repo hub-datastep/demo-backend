@@ -160,7 +160,7 @@ def synchronize_nomenclatures(
 
 @router.post("/synchronize/result")
 @version(1)
-def synchronize_nomenclatures(
+def synchronize_nomenclatures_result(
     *,
     current_user: UserRead = Depends(get_current_user),
     job_id: str

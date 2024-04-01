@@ -35,6 +35,7 @@ from scheme.tenant_scheme import Tenant
 from scheme.token_scheme import Token
 from scheme.user_scheme import User
 from scheme.user_tenant_scheme import UserTenantLink
+from scheme.classifier_scheme import ClassifierVersion
 # target_metadata = mymodel.Base.metadata
 target_metadata = SQLModel.metadata
 
