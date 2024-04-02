@@ -38,7 +38,7 @@ services:
   rq-worker:
     image: ${DOCKER_USERNAME}/${DOCKER_BACKEND_REPOSITORY}:${RUN_ID}
     container_name: rq-worker
-    command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379 nomenclature document
+    command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_API_BASE=${OPENAI_API_BASE}
