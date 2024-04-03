@@ -14,13 +14,18 @@ class QueueName:
     RETRAINING = "retrain_classifier"
 
 
-def get_redis_queue(name: str):
+def get_redis_connection():
     redis = Redis(host=os.getenv("REDIS_HOST"), password=os.getenv("REDIS_PASSWORD"))
+    return redis
+
+
+def get_redis_queue(name: str):
+    redis = get_redis_connection()
     queue = Queue(name=name, connection=redis)
     return queue
 
 
 def get_job(job_id: str):
-    redis = Redis(host=os.getenv("REDIS_HOST"), password=os.getenv("REDIS_PASSWORD"))
+    redis = get_redis_connection()
     job = Job.fetch(job_id, connection=redis)
     return job

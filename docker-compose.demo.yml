@@ -8,8 +8,8 @@ services:
     image: ${DOCKER_USERNAME}/${DOCKER_BACKEND_REPOSITORY}:${RUN_ID}
     container_name: backend
     command: bash -c "
-      cd /app/src 
-      && python -m alembic upgrade head 
+      cd /app/src
+      && python -m alembic upgrade head
       && cd /
       && python3 /app/src/app.py"
     ports:
@@ -38,7 +38,10 @@ services:
   rq-worker:
     image: ${DOCKER_USERNAME}/${DOCKER_BACKEND_REPOSITORY}:${RUN_ID}
     container_name: rq-worker
-    command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379
+    command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379 \
+      mapping_nomenclatures \
+      sync_nomenclatures \
+      retrain_classifier
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_API_BASE=${OPENAI_API_BASE}
