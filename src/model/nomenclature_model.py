@@ -22,9 +22,9 @@ tqdm.pandas()
 np.set_printoptions(threshold=np.inf)
 
 
-def map_on_group(noms: pd.DataFrame) -> list:
-    model = joblib.load(f"{os.getenv('DATA_FOLDER_PATH')}/linear_svc_model_141223.pkl")
-    count_vect = joblib.load(f"{os.getenv('DATA_FOLDER_PATH')}/vectorizer_141223.pkl")
+def map_on_group(noms: pd.DataFrame, model_id: str) -> list:
+    model = joblib.load(f"{os.getenv('DATA_FOLDER_PATH')}/linear_svc_model_{model_id}.pkl")
+    count_vect = joblib.load(f"{os.getenv('DATA_FOLDER_PATH')}/vectorizer_{model_id}.pkl")
     return model.predict(count_vect.transform(noms["nomenclature"]))
 
 
@@ -95,7 +95,8 @@ def create_job(
     nomenclatures: list[MappingOneNomenclatureUpload],
     previous_job_id: str | None,
     most_similar_count: int,
-    chroma_collection_name: str
+    chroma_collection_name: str,
+    model_id: str,
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.MAPPING)
     job = queue.enqueue(
@@ -103,6 +104,7 @@ def create_job(
         nomenclatures,
         most_similar_count,
         chroma_collection_name,
+        model_id,
         meta={
             "previous_nomenclature_id": previous_job_id
         },
@@ -112,7 +114,7 @@ def create_job(
     return JobIdRead(job_id=job.id)
 
 
-def start_mapping(nomenclatures: MappingNomenclaturesUpload) -> JobIdRead:
+def start_mapping(nomenclatures: MappingNomenclaturesUpload, model_id: str) -> JobIdRead:
     nomenclatures_list = nomenclatures.nomenclatures
     most_similar_count = nomenclatures.most_similar_count
     chroma_collection_name = nomenclatures.chroma_collection_name
@@ -123,7 +125,8 @@ def start_mapping(nomenclatures: MappingNomenclaturesUpload) -> JobIdRead:
             nomenclatures=segment,
             previous_job_id=last_job_id,
             most_similar_count=most_similar_count,
-            chroma_collection_name=chroma_collection_name
+            chroma_collection_name=chroma_collection_name,
+            model_id=model_id
         )
         last_job_id = job.job_id
 
@@ -134,6 +137,7 @@ def process(
     nomenclatures: list[MappingOneNomenclatureUpload],
     most_similar_count: int,
     chroma_collection_name: str,
+    model_id: str,
     use_jobs: bool = True
 ):
     if use_jobs:
@@ -146,7 +150,7 @@ def process(
         job.meta["ready_count"] = 0
         job.save_meta()
 
-    noms["group"] = map_on_group(noms)
+    noms["group"] = map_on_group(noms, model_id)
     noms["mappings"] = None
 
     noms["embeddings"] = get_embeddings(noms.nomenclature.to_list())

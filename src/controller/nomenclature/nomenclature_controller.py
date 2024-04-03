@@ -35,18 +35,20 @@ def get_nomenclature_mappings(
 def upload_nomenclature(
     *,
     current_user: UserRead = Depends(get_current_user),
-    nomenclatures: MappingNomenclaturesUpload
+    nomenclatures: MappingNomenclaturesUpload,
+    model_id: str,
 ):
     """
     Запускает процесс сопоставления номенклатур.
 
     Args:
         nomenclatures (MappingNomenclaturesUpload): Номенклатуры для сопоставления.
+        model_id (str): ID модели классификатора.
 
     Returns:
         JobIdRead: Идентификатор задания.
     """
-    return nomenclature_model.start_mapping(nomenclatures)
+    return nomenclature_model.start_mapping(nomenclatures, model_id)
 
 
 @router.post("/collection/{collection_name}")
