@@ -63,6 +63,7 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           script_stop: true
           script: |
+            cd msu
             cd msu-backend
             git checkout dev
             git pull
