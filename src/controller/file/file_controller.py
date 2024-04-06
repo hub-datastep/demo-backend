@@ -1,3 +1,8 @@
+import io
+import re
+import tempfile
+
+import pdfplumber
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi_versioning import version
 from sqlmodel import Session
@@ -23,6 +28,45 @@ def get_all_files(
     """
     return get_all_filenames_by_tenant_id(session, current_user.tenants[0].id)
 
+@router.post("/extract_data")
+async def extract_data_from_pdf(fileObject: UploadFile, with_metadata: bool = False):
+    result_list = []
+
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file.write(fileObject.file.read())
+        temp_file.seek(0)
+
+
+    with pdfplumber.open(temp_file.name) as pdf:
+        for page_num, page in enumerate(pdf.pages):
+            tables = page.extract_tables()
+
+            for table_num, table in enumerate(tables):
+                if not table:  # Проверяем, что таблица не пустая
+                    continue
+
+                column_names = [name.lower() if name else "" for name in table[0]]
+
+                nomenclature_column_index = None
+                for i, col_name in enumerate(column_names):
+                    nomenclature_pattern = r"\bтовары\b|\bнаименование\b|\bпозиция\b|\bноменклатура\b|\bработы\b|\bуслуги\b|\bпредмет счета\b"
+                    if re.search(nomenclature_pattern, col_name, flags=re.IGNORECASE):
+                        nomenclature_column_index = i
+                        break
+
+                if nomenclature_column_index is not None:
+                    for row in table[1:]:
+                        if nomenclature_column_index < len(row):
+                            nomenclature = row[nomenclature_column_index]
+                            if with_metadata:
+                                metadata = {column_name: row[col_num] for col_num, column_name in
+                                            enumerate(column_names) if col_num != nomenclature_column_index}
+                                result_list.append({"Nomenclature": nomenclature, "Metadata": metadata})
+                            else:
+                                result_list.append(nomenclature)
+
+    return result_list
+
 
 @router.post("")
 @version(1)
@@ -42,7 +86,6 @@ def upload_file(
     #     progress=job.get_meta(refresh=True).get("progress", None),
     #     full_work=job.get_meta(refresh=True).get("full_work", None)
     # )
-
 
 # @router.delete("/")
 # @version(1)
