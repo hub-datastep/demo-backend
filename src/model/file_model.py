@@ -1,9 +1,11 @@
 import os
 import re
 import shutil
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
+import pdfplumber
 from fastapi import UploadFile
 from redis import Redis
 from rq import Queue
@@ -12,7 +14,9 @@ from sqlmodel import Session
 
 from datastep.components import datastep_faiss, datastep_multivector
 from repository import file_repository
-from scheme.file_scheme import File, FileCreate
+from scheme.file_scheme import File, FileCreate, DataExtract
+
+nomenclature_pattern = r"\bтовары\b|\bнаименование\b|\bпозиция\b|\bноменклатура\b|\bработы\b|\bуслуги\b|\bпредмет счета\b"
 
 
 def save_file_vectorstore_(storage_filename):
@@ -84,6 +88,43 @@ def process_file(session: Session, file_object: UploadFile, user_id: int, tenant
 
 def get_store_file_path(source_id: str) -> str:
     return f"{Path(__file__).parent.resolve()}/../../data/{source_id}"
+
+
+def extract_data_from_pdf(file_object, with_metadata=False) -> list[str]:
+    result_list = []
+
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file.write(file_object.file.read())
+        temp_file.seek(0)
+
+    with pdfplumber.open(temp_file.name) as pdf:
+        for page_num, page in enumerate(pdf.pages):
+            tables = page.extract_tables()
+
+            for table_num, table in enumerate(tables):
+                if not table:  # Проверяем, что таблица не пустая
+                    continue
+
+                column_names = [name.lower() if name else "" for name in table[0]]
+
+                nomenclature_column_index = None
+                for i, col_name in enumerate(column_names):
+                    if re.search(nomenclature_pattern, col_name, flags=re.IGNORECASE):
+                        nomenclature_column_index = i
+                        break
+
+                if nomenclature_column_index is not None:
+                    for row in table[1:]:
+                        if nomenclature_column_index < len(row):
+                            nomenclature = row[nomenclature_column_index]
+                            if with_metadata:
+                                metadata = {column_name: row[col_num] for col_num, column_name in
+                                            enumerate(column_names) if col_num != nomenclature_column_index}
+                                result_list.append(DataExtract(nomenclature=nomenclature, file_metadata=metadata))
+                            else:
+                                result_list.append(nomenclature)
+
+    return result_list
 
 
 # def delete_local_store(filename):

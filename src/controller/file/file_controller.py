@@ -5,6 +5,7 @@ from sqlmodel import Session
 from infra.database import get_session
 from model import file_model
 from model.auth_model import get_current_user
+from model.file_model import extract_data_from_pdf
 from repository.file_repository import get_all_filenames_by_tenant_id
 from scheme.file_scheme import FileRead
 from scheme.user_scheme import UserRead
@@ -24,17 +25,26 @@ def get_all_files(
     return get_all_filenames_by_tenant_id(session, current_user.tenants[0].id)
 
 
+@router.post("/extract_data")
+async def extract_data_from_pdf_controller(
+    file_object: UploadFile, with_metadata: bool = False,
+    current_user: UserRead = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    return extract_data_from_pdf(file_object, with_metadata)
+
+
 @router.post("")
 @version(1)
 def upload_file(
     *,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-    fileObject: UploadFile
+    file_object: UploadFile
 ):
     """
     """
-    job = file_model.process_file(session, fileObject, current_user.id, current_user.tenants[0].id)
+    job = file_model.process_file(session, file_object, current_user.id, current_user.tenants[0].id)
     return ""
     # return FileUploadTaskDto(
     #     id=job.id,
@@ -42,7 +52,6 @@ def upload_file(
     #     progress=job.get_meta(refresh=True).get("progress", None),
     #     full_work=job.get_meta(refresh=True).get("full_work", None)
     # )
-
 
 # @router.delete("/")
 # @version(1)
