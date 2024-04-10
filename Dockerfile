@@ -35,7 +35,6 @@ ENV PATH="${PATH}:/root/.local/bin"
 
 RUN apt-get update
 RUN apt-get install -y redis
-RUN apt-get install -y default-jre
 
 WORKDIR /app
 
