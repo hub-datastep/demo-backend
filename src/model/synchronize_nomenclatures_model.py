@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from sqlmodel import Session, select, between
 from tqdm import tqdm
 
+from rq import get_current_job
+
 from infra.chroma_store import is_in_vectorstore, \
     connect_to_chroma_collection, update_collection_with_patch
 from infra.database import create_session_by_db_con_str
@@ -94,6 +96,8 @@ def synchronize_nomenclatures(
     chroma_collection_name: str,
     sync_period: int,
 ):
+    job = get_current_job()
+
     session = create_session_by_db_con_str(nom_db_con_str)
     print("Getting noms for sync...")
     nomenclatures: list[MsuDatabaseOneNomenclatureRead] = fetch_nomenclatures(session, sync_period)
@@ -110,8 +114,12 @@ def synchronize_nomenclatures(
     print("Creating chroma patch for sync...")
     chroma_patch = get_chroma_patch_for_sync(nomenclatures)
 
+    job.meta["total_count"] = len(chroma_patch)
+    job.meta["ready_count"] = 0
+    job.save_meta()
+
     print("Syncing chroma collection with patch...")
-    return update_collection_with_patch(collection, chroma_patch)
+    return update_collection_with_patch(collection, chroma_patch, job)
 
 
 def start_synchronizing_nomenclatures(
@@ -126,17 +134,19 @@ def start_synchronizing_nomenclatures(
         chroma_collection_name,
         sync_period,
         result_ttl=-1,
-        job_timeout=MAX_JOB_TIMEOUT,
+        job_timeout=MAX_JOB_TIMEOUT,        
     )
     return JobIdRead(job_id=job.id)
 
 
 def get_sync_nomenclatures_job_result(job_id: str):
     job = get_job(job_id)
-
+    job_meta = job.get_meta(refresh=True)
     result = SyncNomenclaturesResultRead(
         job_id=job_id,
-        status=job.get_status(refresh=True)
+        status=job.get_status(refresh=True),
+        ready_count=job_meta.get("ready_count", None),
+        total_count=job_meta.get("total_count", None)
     )
 
     job_result = job.return_value(refresh=True)
