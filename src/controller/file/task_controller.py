@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.delete("/stop_job/{job_id}")
 @version(1)
-def stop_job(job_id: str, current_user: UserRead = Depends(get_current_user)):
+def stop_job_by_id(job_id: str, current_user: UserRead = Depends(get_current_user)):
     redis = get_redis_connection()
     return send_stop_job_command(redis, job_id)
 
