@@ -26,8 +26,10 @@ def get_all_files(
 
 
 @router.post("/extract_data")
+@version(1)
 async def extract_data_from_pdf_controller(
-    file_object: UploadFile, with_metadata: bool = False,
+    file_object: UploadFile,
+    with_metadata: bool = False,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
