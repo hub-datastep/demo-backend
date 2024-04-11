@@ -71,7 +71,8 @@ class SyncNomenclaturesResultRead(SQLModel):
     job_id: str
     status: JobStatus
     updated_nomenclatures: list[SyncNomenclaturesChromaPatch] | None
-
+    ready_count: int
+    total_count: int
 
 class MsuDatabaseOneNomenclatureRead(SQLModel, table=True):
     __tablename__ = "СправочникНоменклатура"

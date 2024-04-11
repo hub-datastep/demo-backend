@@ -7,6 +7,8 @@ from chromadb.api.models.Collection import Collection
 from fastembed.embedding import TextEmbedding
 from tqdm import tqdm
 
+from rq.job import Job
+
 from scheme.nomenclature_scheme import SyncNomenclaturesChromaPatch
 
 
@@ -88,7 +90,8 @@ def is_in_vectorstore(
 
 def update_collection_with_patch(
     collection: Collection,
-    patch: list[SyncNomenclaturesChromaPatch]
+    patch: list[SyncNomenclaturesChromaPatch],
+    job: Job
 ) -> list[SyncNomenclaturesChromaPatch]:
     for elem in tqdm(patch):
         if elem.action == "delete":
@@ -112,5 +115,8 @@ def update_collection_with_patch(
                 metadatas={"group": str(elem.nomenclature_data.group)}
             )
             print(f"Обновлено: {elem.nomenclature_data.id}")
-
+        
+        job.meta["ready_count"] += 1
+        job.save_meta()
+    
     return patch
