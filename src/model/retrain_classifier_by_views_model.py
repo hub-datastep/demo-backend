@@ -1,5 +1,4 @@
 import os
-import os
 import re
 from pathlib import Path
 from uuid import uuid4
@@ -30,58 +29,65 @@ DATA_FOLDER_PATH = os.getenv('DATA_FOLDER_PATH')
 _MAX_CLASSIFIERS_COUNT = 3
 
 
-def _fetch_noms(db_con_str: str, table_name: str) -> DataFrame:
-    st = text(f"""
-        SELECT Наименование, Родитель
-        FROM {table_name}
-        WHERE ЭтоГруппа = 0
-    """)
+# def _fetch_noms(db_con_str: str, table_name: str) -> DataFrame:
+#     st = text(f"""
+#         SELECT Наименование, Родитель
+#         FROM {table_name}
+#         WHERE ЭтоГруппа = 0
+#     """)
+#
+#     return read_sql(st, db_con_str)
 
-    return read_sql(st, db_con_str)
 
-
-def _fetch_groups(db_con_str: str, table_name: str) -> DataFrame:
+def _fetch_top_groups(db_con_str: str, table_name: str) -> DataFrame:
     st = text(f"""
         SELECT DISTINCT Наименование, Ссылка
         FROM {table_name}
-        WHERE ЭтоГруппа = 1
-        AND (
-            Наименование LIKE '__.__.__. %'
-            OR Наименование LIKE '__.__. %'
-        )
+        WHERE Родитель = '00000000-0000-0000-0000-000000000000'
+        AND ЭтоГруппа = 1
+        AND Наименование LIKE '0_ %'
     """)
 
     return read_sql(st, db_con_str)
 
 
-def _has_child(db_con_str: str, table_name: str, group_name: str) -> bool:
-    group_numbs = group_name.split('. ')[0]
-
+def _fetch_groups_by_parents_list(db_con_str: str, table_name: str, parents_list: list[str]) -> DataFrame:
     st = text(f"""
-        SELECT *
+        SELECT DISTINCT Наименование, Ссылка
         FROM {table_name}
-        WHERE Наименование LIKE '{group_numbs}.__. %'
+        WHERE Родитель IN ({", ".join(f"'{parent}'" for parent in parents_list)})
         AND ЭтоГруппа = 1
     """)
-    children = read_sql(st, db_con_str)
 
-    return not children.empty
+    return read_sql(st, db_con_str)
 
 
-def _fetch_no_child_groups(db_con_str: str, table_name: str) -> DataFrame:
-    print("Fetching groups...")
-    groups = _fetch_groups(db_con_str, table_name)
-    print(f"Count of groups: {len(groups)}")
-    print(groups)
+# def _has_child(db_con_str: str, table_name: str, group_id: str) -> bool:
+#     st = text(f"""
+#         SELECT *
+#         FROM {table_name}
+#         WHERE Родитель = '{group_id}'
+#         AND ЭтоГруппа = 1
+#     """)
+#     children = read_sql(st, db_con_str)
+#
+#     return not children.empty
 
-    print(f"Checking if groups have children...")
-    no_child_groups = []
-    for _, group in groups.iterrows():
-        if not _has_child(db_con_str, table_name, group['Наименование']):
-            no_child_groups.append(group)
 
-    no_child_groups = DataFrame(no_child_groups)
-    return no_child_groups
+# def _fetch_no_child_groups(db_con_str: str, table_name: str) -> DataFrame:
+#     print("Fetching groups...")
+#     groups = _fetch_groups(db_con_str, table_name)
+#     print(f"Count of groups: {len(groups)}")
+#     print(groups)
+#
+#     print(f"Checking if groups have children...")
+#     no_child_groups = []
+#     for _, group in groups.iterrows():
+#         if not _has_child(db_con_str, table_name, group['Ссылка']):
+#             no_child_groups.append(group)
+#
+#     no_child_groups = DataFrame(no_child_groups)
+#     return no_child_groups
 
 
 def _normalize_nom_name(text: str) -> str:
@@ -103,38 +109,45 @@ def _normalize_nom_name(text: str) -> str:
     return text
 
 
-def _get_narrow_group_noms(all_noms: DataFrame, no_child_groups: DataFrame) -> DataFrame:
-    # Return noms which Родитель in Ссылка of groups with no child
-    narrow_group_noms = all_noms[all_noms['Родитель'].isin(no_child_groups['Ссылка'])]
-
-    return narrow_group_noms
+# def _get_narrow_group_noms(all_noms: DataFrame, no_child_groups: DataFrame) -> DataFrame:
+#     # Return noms which Родитель in Ссылка of groups with no child
+#     narrow_group_noms = all_noms[all_noms['Родитель'].isin(no_child_groups['Ссылка'])]
+#
+#     return narrow_group_noms
 
 
 def _get_training_data(db_con_str: str, table_name: str) -> DataFrame:
-    print("Fetching all noms...")
-    all_noms = _fetch_noms(db_con_str, table_name)
-    print(f"Count of noms: {len(all_noms)}")
-    print(all_noms)
+    # print("Fetching all noms...")
+    # all_noms = _fetch_noms(db_con_str, table_name)
+    # print(f"Count of noms: {len(all_noms)}")
+    # print(all_noms)
 
-    print("Fetching no child groups...")
-    no_child_groups = _fetch_no_child_groups(db_con_str, table_name)
-    print(f"Count of no child groups: {len(no_child_groups)}")
-    print(no_child_groups)
+    # print("Fetching no child groups...")
+    # no_child_groups = _fetch_no_child_groups(db_con_str, table_name)
+    # print(f"Count of no child groups: {len(no_child_groups)}")
+    # print(no_child_groups)
 
-    print("Parsing narrow group noms...")
-    narrow_group_noms = _get_narrow_group_noms(all_noms, no_child_groups)
-    print(f"Count of narrow group noms: {len(narrow_group_noms)}")
-    print(narrow_group_noms)
+    # print("Parsing narrow group noms...")
+    # narrow_group_noms = _get_narrow_group_noms(all_noms, no_child_groups)
+    # print(f"Count of narrow group noms: {len(narrow_group_noms)}")
+    # print(narrow_group_noms)
+
+    top_groups = _fetch_top_groups(db_con_str, table_name)
+    narrow_groups = _fetch_groups_by_parents_list(
+        db_con_str,
+        table_name,
+        top_groups['Ссылка']
+    )
 
     print("Normalizing narrow group noms...")
-    narrow_group_noms['normalized'] = narrow_group_noms['Наименование'].progress_apply(
+    narrow_groups['normalized'] = narrow_groups['Наименование'].progress_apply(
         lambda x: _normalize_nom_name(x)
     )
-    print(f"Count of normalized narrow group noms: {len(narrow_group_noms['normalized'])}")
-    print(narrow_group_noms['normalized'])
+    print(f"Count of normalized narrow group noms: {len(narrow_groups['normalized'])}")
+    print(narrow_groups['normalized'])
 
-    # narrow_group_noms.to_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
-    return narrow_group_noms
+    # narrow_groups.to_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
+    return narrow_groups
 
 
 def _get_model_accuracy(classifier, vectorizer: CountVectorizer, x_test, y_test) -> float:
@@ -219,7 +232,7 @@ def _retrain_classifier(
     print("Training test split...")
     x_train, x_test, y_train, y_test = train_test_split(
         training_data_df['Наименование'],
-        training_data_df['Родитель'],
+        training_data_df['Ссылка'],
         random_state=0
     )
     print("Test split trained.")
