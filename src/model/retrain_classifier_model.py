@@ -105,8 +105,6 @@ def _normalize_nom_name(text: str) -> str:
 
 def _get_narrow_group_noms(all_noms: DataFrame, no_child_groups: DataFrame) -> DataFrame:
     # Return noms which Родитель in Ссылка of groups with no child
-    print(f"res {no_child_groups}")
-    print(f"ser {no_child_groups['Ссылка']}")
     narrow_group_noms = all_noms[all_noms['Родитель'].isin(no_child_groups['Ссылка'])]
 
     return narrow_group_noms
@@ -224,7 +222,7 @@ def _retrain_classifier(
         training_data_df['Родитель'],
         random_state=0
     )
-    print("Training test split...")
+    print("Test split trained.")
 
     print("Fitting vectorizer...")
     vectorizer = CountVectorizer()
