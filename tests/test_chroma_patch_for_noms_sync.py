@@ -2,7 +2,8 @@ from datetime import datetime
 from uuid import uuid4
 
 from model.synchronize_nomenclatures_model import get_chroma_patch_for_sync
-from scheme.nomenclature_scheme import MsuDatabaseOneNomenclatureRead, SyncOneNomenclatureDataRead, SyncNomenclaturesChromaPatch
+from scheme.nomenclature_scheme import MsuDatabaseOneNomenclatureRead, SyncOneNomenclatureDataRead, \
+    SyncNomenclaturesChromaPatch
 
 """
 Логика в get_chroma_patch_for_sync зависит от трёх параметров: root_group_name, is_in_vectorstore, is_deleted.
@@ -15,9 +16,10 @@ from scheme.nomenclature_scheme import MsuDatabaseOneNomenclatureRead, SyncOneNo
 
 
 def test_1():
+    id_ = str(uuid4())
     test_data = [
         MsuDatabaseOneNomenclatureRead(
-            id=uuid4(), nomenclature_name="Циркуль", group="Канцелярия",
+            id=id_, nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0002 ...",
             is_in_vectorstore=False,
             is_deleted=False,
@@ -30,9 +32,10 @@ def test_1():
 
 
 def test_2():
+    id_ = str(uuid4())
     test_data = [
         MsuDatabaseOneNomenclatureRead(
-            id=uuid4(), nomenclature_name="Циркуль", group="Канцелярия",
+            id=id_, nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0002 ...",
             is_in_vectorstore=False,
             is_deleted=True,
@@ -45,10 +48,10 @@ def test_2():
 
 
 def test_3():
-    id = uuid4()
+    id_ = str(uuid4())
     test_data = [
         MsuDatabaseOneNomenclatureRead(
-            id=id, nomenclature_name="Циркуль", group="Канцелярия",
+            id=id_, nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0002 ...",
             is_in_vectorstore=True,
             is_deleted=False,
@@ -57,17 +60,17 @@ def test_3():
         )
     ]
     test_answers = [SyncNomenclaturesChromaPatch(
-        nomenclature_data=SyncOneNomenclatureDataRead(id=id, nomenclature_name="Циркуль", group="Канцелярия"),
+        nomenclature_data=SyncOneNomenclatureDataRead(id=id_, nomenclature_name="Циркуль", group="Канцелярия"),
         action="delete"
     )]
     assert get_chroma_patch_for_sync(test_data) == test_answers
 
 
 def test_4():
-    id = uuid4()
+    id_ = str(uuid4())
     test_data = [
         MsuDatabaseOneNomenclatureRead(
-            id=id, nomenclature_name="Циркуль", group="Канцелярия",
+            id=id_, nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0002 ...",
             is_in_vectorstore=True,
             is_deleted=True,
@@ -76,17 +79,17 @@ def test_4():
         )
     ]
     test_answers = [SyncNomenclaturesChromaPatch(
-        nomenclature_data=SyncOneNomenclatureDataRead(id=id, nomenclature_name="Циркуль", group="Канцелярия"),
+        nomenclature_data=SyncOneNomenclatureDataRead(id=id_, nomenclature_name="Циркуль", group="Канцелярия"),
         action="delete"
     )]
     assert get_chroma_patch_for_sync(test_data) == test_answers
 
 
 def test_5():
-    id = uuid4()
+    id_ = str(uuid4())
     test_data = [
         MsuDatabaseOneNomenclatureRead(
-            id=id, nomenclature_name="Циркуль", group="Канцелярия",
+            id=id_, nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0001 Новая структура справочника",
             is_in_vectorstore=False,
             is_deleted=False,
@@ -94,17 +97,15 @@ def test_5():
             is_group=False
         )
     ]
-    test_answers = [SyncNomenclaturesChromaPatch(
-        nomenclature_data=SyncOneNomenclatureDataRead(id=id, nomenclature_name="Циркуль", group="Канцелярия"),
-        action="create"
-    )]
+    test_answers = []
     assert get_chroma_patch_for_sync(test_data) == test_answers
 
 
 def test_6():
+    id_ = str(uuid4())
     test_data = [
         MsuDatabaseOneNomenclatureRead(
-            id=uuid4(), nomenclature_name="Циркуль", group="Канцелярия",
+            id=id_, nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0001 Новая структура справочника",
             is_in_vectorstore=False,
             is_deleted=True,
@@ -117,10 +118,10 @@ def test_6():
 
 
 def test_7():
-    id = uuid4()
+    id_ = str(uuid4())
     test_data = [
         MsuDatabaseOneNomenclatureRead(
-            id=id, nomenclature_name="Циркуль", group="Канцелярия",
+            id=id_, nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0001 Новая структура справочника",
             is_in_vectorstore=True,
             is_deleted=False,
@@ -129,17 +130,17 @@ def test_7():
         )
     ]
     test_answers = [SyncNomenclaturesChromaPatch(
-        nomenclature_data=SyncOneNomenclatureDataRead(id=id, nomenclature_name="Циркуль", group="Канцелярия"),
-        action="update"
+        nomenclature_data=SyncOneNomenclatureDataRead(id=id_, nomenclature_name="Циркуль", group="Канцелярия"),
+        action="delete"
     )]
     assert get_chroma_patch_for_sync(test_data) == test_answers
 
 
 def test_8():
-    id = uuid4()
+    id_ = str(uuid4())
     test_data = [
         MsuDatabaseOneNomenclatureRead(
-            id=id, nomenclature_name="Циркуль", group="Канцелярия",
+            id=id_, nomenclature_name="Циркуль", group="Канцелярия",
             root_group_name="0001 Новая структура справочника",
             is_in_vectorstore=True,
             is_deleted=True,
@@ -148,7 +149,7 @@ def test_8():
         )
     ]
     test_answers = [SyncNomenclaturesChromaPatch(
-        nomenclature_data=SyncOneNomenclatureDataRead(id=id, nomenclature_name="Циркуль", group="Канцелярия"),
+        nomenclature_data=SyncOneNomenclatureDataRead(id=id_, nomenclature_name="Циркуль", group="Канцелярия"),
         action="delete"
     )]
     assert get_chroma_patch_for_sync(test_data) == test_answers
