@@ -1,9 +1,9 @@
-import os
 import json
+import os
 
 import pytest
-from sshtunnel import SSHTunnelForwarder
 from fastapi.testclient import TestClient
+from sshtunnel import SSHTunnelForwarder
 
 from app import app
 from model import nomenclature_model
@@ -74,6 +74,7 @@ def test_mapping_model(_set_chroma_vpn_port, _test_client):
         nomenclatures=test_nomenclatures,
         most_similar_count=most_similar_count,
         chroma_collection_name="nomenclature",
+        model_id="141223",
         use_jobs=False
     )
     result_as_dict = json.loads(result_as_json)
