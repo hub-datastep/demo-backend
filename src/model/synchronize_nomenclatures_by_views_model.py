@@ -9,6 +9,8 @@ from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueNa
 from scheme.nomenclature_scheme import SyncNomenclaturesChromaPatch, JobIdRead, \
     SyncOneNomenclatureDataRead, SyncNomenclaturesResultRead
 
+tqdm.pandas()
+
 
 def fetch_nomenclatures(db_con_str: str, table_name: str) -> DataFrame:
     st = text(f"""
