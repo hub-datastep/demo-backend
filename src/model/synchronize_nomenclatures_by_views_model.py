@@ -44,7 +44,7 @@ def get_chroma_patch_for_sync(
 ) -> list[SyncNomenclaturesChromaPatch]:
     patch_for_chroma: list[SyncNomenclaturesChromaPatch] = []
 
-    for nom in tqdm(nomenclatures):
+    for i, nom in tqdm(nomenclatures.iterrows()):
         sync_nom = SyncOneNomenclatureDataRead(
             id=nom['Ссылка'],
             nomenclature_name=nom['Наименование'],
