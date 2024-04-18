@@ -1,6 +1,4 @@
-set_fly_secrets.sh
-fly.toml
-venv
+venv/
 .env
-.idea
-database.db
+.idea/
+tests/
