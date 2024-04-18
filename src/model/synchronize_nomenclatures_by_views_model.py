@@ -97,8 +97,9 @@ def synchronize_nomenclatures(
 
     collection = connect_to_chroma_collection(chroma_collection_name)
     print("Checking each nom in vectorstore...")
-    for i, nom in tqdm(nomenclatures.iterrows()):
-        nom['is_in_vectorstore'] = is_in_vectorstore(collection=collection, ids=nom['Ссылка'])
+    nomenclatures['is_in_vectorstore'] = nomenclatures['Ссылка'].progress_apply(
+        lambda nom: is_in_vectorstore(collection=collection, ids=nom)
+    )
 
     print("Creating chroma patch for sync...")
     chroma_patch = get_chroma_patch_for_sync(nomenclatures)
