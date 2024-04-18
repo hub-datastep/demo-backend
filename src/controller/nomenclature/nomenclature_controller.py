@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi_versioning import version
 
-from model import nomenclature_model, noms2embeddings_model, synchronize_nomenclatures_model
+from model import nomenclature_model, noms2embeddings_model, synchronize_nomenclatures_model, \
+    synchronize_nomenclatures_by_views_model
 from model.auth_model import get_current_user
 from scheme.nomenclature_scheme import JobIdRead, MappingNomenclaturesUpload, MappingNomenclaturesResultRead, \
     CreateAndSaveEmbeddingsUpload, \
-    SyncNomenclaturesUpload, SyncNomenclaturesResultRead
+    SyncNomenclaturesUpload, SyncNomenclaturesResultRead, SyncNomenclaturesByViewsUpload
 from scheme.user_scheme import UserRead
 
 router = APIRouter()
@@ -157,6 +158,20 @@ def synchronize_nomenclatures(
         nom_db_con_str=body.nom_db_con_str,
         chroma_collection_name=body.chroma_collection_name,
         sync_period=body.sync_period
+    )
+
+
+@router.post("/synchronize/by_views", response_model=JobIdRead)
+@version(1)
+def synchronize_nomenclatures_by_views(
+    *,
+    body: SyncNomenclaturesByViewsUpload,
+    current_user: UserRead = Depends(get_current_user),
+):
+    return synchronize_nomenclatures_by_views_model.start_synchronizing_nomenclatures(
+        db_con_str=body.db_con_str,
+        table_name=body.table_name,
+        chroma_collection_name=body.chroma_collection_name,
     )
 
 

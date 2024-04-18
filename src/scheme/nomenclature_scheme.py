@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import Literal
 
-from sqlmodel import SQLModel, Field
 from rq.job import JobStatus
+from sqlmodel import SQLModel, Field
 
 
 class MappingOneNomenclatureUpload(SQLModel):
@@ -74,6 +74,7 @@ class SyncNomenclaturesResultRead(SQLModel):
     ready_count: int
     total_count: int
 
+
 class MsuDatabaseOneNomenclatureRead(SQLModel, table=True):
     __tablename__ = "СправочникНоменклатура"
     __table_args__ = {
@@ -92,3 +93,9 @@ class MsuDatabaseOneNomenclatureRead(SQLModel, table=True):
 
 class JobIdRead(SQLModel):
     job_id: str
+
+
+class SyncNomenclaturesByViewsUpload(SQLModel):
+    db_con_str: str
+    table_name: str
+    chroma_collection_name: str
