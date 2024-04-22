@@ -4,9 +4,9 @@ import os
 
 import joblib
 import numpy as np
-import pandas as pd
 from chromadb import HttpClient, QueryResult
 from fastembed.embedding import FlagEmbedding
+from pandas import read_sql, DataFrame
 from redis import Redis
 from rq import get_current_job
 from rq.job import Job, JobStatus
@@ -14,6 +14,7 @@ from tqdm import tqdm
 
 from exception.noms_in_chroma_not_found_exception import NomsInChromaNotFoundException
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
+from model.retrain_classifier_by_views_model import normalize_nom_name
 from scheme.nomenclature_scheme import MappingNomenclaturesUpload, MappingOneNomenclatureRead, \
     MappingOneNomenclatureUpload, \
     MappingNomenclaturesResultRead, JobIdRead
@@ -22,10 +23,11 @@ tqdm.pandas()
 np.set_printoptions(threshold=np.inf)
 
 
-def map_on_group(noms: pd.DataFrame, model_id: str) -> list:
+def map_on_group(noms: DataFrame, model_id: str) -> list:
     model = joblib.load(f"{os.getenv('DATA_FOLDER_PATH')}/linear_svc_model_{model_id}.pkl")
     count_vect = joblib.load(f"{os.getenv('DATA_FOLDER_PATH')}/vectorizer_{model_id}.pkl")
-    return model.predict(count_vect.transform(noms["nomenclature"]))
+    # return model.predict(count_vect.transform(noms["nomenclature"]))
+    return model.predict(count_vect.transform(noms['normalized']))
 
 
 def map_on_nom(nom_embeddings: np.ndarray, group: str, most_similar_count: int, chroma_collection_name: str):
@@ -57,14 +59,14 @@ def map_on_nom(nom_embeddings: np.ndarray, group: str, most_similar_count: int, 
     return mapped_noms
 
 
-def parse_txt_file(nomenclatures: list[MappingOneNomenclatureUpload]) -> pd.DataFrame:
-    nomenclatures_as_json = [n.dict().values() for n in nomenclatures]
-    return pd.DataFrame(nomenclatures_as_json, columns=["row_number", "nomenclature"])
+def parse_txt_file(nomenclatures: list[MappingOneNomenclatureUpload]) -> DataFrame:
+    nomenclatures_as_json = [nom.dict().values() for nom in nomenclatures]
+    return DataFrame(nomenclatures_as_json, columns=["row_number", "nomenclature"])
 
 
-def get_nom_candidates(groups: list[str]) -> pd.DataFrame:
+def get_nom_candidates(groups: list[str]) -> DataFrame:
     groups_str = ", ".join([f"'{g}'" for g in groups])
-    candidates = pd.read_sql(
+    candidates = read_sql(
         f'SELECT * FROM nomenclature WHERE "group" in ({groups_str})',
         os.getenv("DB_CONNECTION_STRING")
     )
@@ -143,17 +145,21 @@ def process(
     if use_jobs:
         job = get_current_job()
 
-    noms: pd.DataFrame = parse_txt_file(nomenclatures)
+    noms: DataFrame = parse_txt_file(nomenclatures)
 
     if use_jobs:
         job.meta["total_count"] = len(noms)
         job.meta["ready_count"] = 0
         job.save_meta()
 
-    noms["group"] = map_on_group(noms, model_id)
-    noms["mappings"] = None
+    noms['normalized'] = noms['nomenclature'].progress_apply(
+        lambda nom: normalize_nom_name(nom)
+    )
 
-    noms["embeddings"] = get_embeddings(noms.nomenclature.to_list())
+    noms['group'] = map_on_group(noms, model_id)
+    noms['mappings'] = None
+
+    noms['embeddings'] = get_embeddings(noms.nomenclature.to_list())
 
     with tqdm(total=len(noms)) as pbar:
         for i, nom in noms.iterrows():
@@ -163,18 +169,18 @@ def process(
                 pass
             noms.loc[i] = nom
             if use_jobs:
-                job.meta["ready_count"] += 1
+                job.meta['ready_count'] += 1
                 job.save_meta()
             pbar.update()
 
     if use_jobs:
-        job.meta["status"] = "finished"
+        job.meta['status'] = "finished"
         job.save_meta()
     return noms.to_json(orient="records", force_ascii=False)
 
 
 def get_jobs_from_rq(nomenclature_id: str) -> list[MappingNomenclaturesResultRead]:
-    redis = Redis(host=os.getenv("REDIS_HOST"), password=os.getenv("REDIS_PASSWORD"))
+    redis = Redis(host=os.getenv('REDIS_HOST'), password=os.getenv('REDIS_PASSWORD'))
     jobs_list: list[MappingNomenclaturesResultRead] = []
 
     prev_job_id = nomenclature_id
@@ -196,7 +202,7 @@ def get_jobs_from_rq(nomenclature_id: str) -> list[MappingNomenclaturesResultRea
             job_result.nomenclatures = [MappingOneNomenclatureRead(**d) for d in result_dict]
 
         jobs_list.append(job_result)
-        prev_job_id = job_meta["previous_nomenclature_id"]
+        prev_job_id = job_meta['previous_nomenclature_id']
 
     return jobs_list
 

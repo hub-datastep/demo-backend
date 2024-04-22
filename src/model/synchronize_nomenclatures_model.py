@@ -5,6 +5,7 @@ from tqdm import tqdm
 
 from rq import get_current_job
 
+from exception.parent_not_found_exception import ParentNotFoundException
 from infra.chroma_store import is_in_vectorstore, \
     connect_to_chroma_collection, update_collection_with_patch
 from infra.database import create_session_by_db_con_str
@@ -28,9 +29,6 @@ def fetch_nomenclatures(session: Session, sync_period: int) -> list[MsuDatabaseO
 
 
 def get_root_group_name(session: Session, nom_id: str, parent: str):
-    class ParentNotFoundException(Exception):
-        pass
-
     current_parent = parent
     current_nom_id = nom_id
     root_group: MsuDatabaseOneNomenclatureRead
