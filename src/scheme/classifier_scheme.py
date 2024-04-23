@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Literal
 
 from rq.job import JobStatus
 from sqlmodel import SQLModel, Field
@@ -24,16 +23,7 @@ class ClassifierVersionRead(SQLModel):
     created_at: datetime
 
 
-SyncOneClassifierVersionAction = Literal["delete"]
-
-
-class SyncClassifierVersionPatch(SQLModel):
-    model_id: str
-    action: SyncOneClassifierVersionAction
-
-
 class ClassifierRetrainingResult(SQLModel):
     job_id: str
     status: JobStatus
     result: ClassifierVersionRead | None
-    changes: list[SyncClassifierVersionPatch] | None

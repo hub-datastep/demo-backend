@@ -1,5 +1,4 @@
 import os
-import os
 import re
 from pathlib import Path
 from uuid import uuid4
@@ -16,9 +15,8 @@ from tqdm import tqdm
 
 from infra.database import engine
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueName
-from repository.classifier_version_repository import _delete_classifier_version_in_db, _get_classifier_versions
-from scheme.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult, \
-    SyncClassifierVersionPatch
+from repository.classifier_version_repository import get_classifier_versions
+from scheme.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult
 from scheme.nomenclature_scheme import JobIdRead
 
 tqdm.pandas()
@@ -174,22 +172,6 @@ def _get_model_and_vectorizer_paths(model_id: str) -> tuple[Path, Path]:
     return model_path, vectorizer_path
 
 
-def _get_classifier_versions_sync_patch() -> list[SyncClassifierVersionPatch]:
-    sync_patch: list[SyncClassifierVersionPatch] = []
-
-    classifier_versions = _get_classifier_versions()
-    if len(classifier_versions) > _MAX_CLASSIFIERS_COUNT:
-        # First classifier versions with the greatest accuracy
-        classifier_versions = sorted(classifier_versions, key=lambda x: x.accuracy, reverse=True)
-        for classifier in classifier_versions[_MAX_CLASSIFIERS_COUNT:]:
-            sync_patch.append(SyncClassifierVersionPatch(
-                model_id=classifier.id,
-                action="delete",
-            ))
-
-    return sync_patch
-
-
 def _delete_classifier_version_files(model_id: str) -> None:
     model_path, vectorizer_path = _get_model_and_vectorizer_paths(model_id)
     # Remove model file if exists
@@ -200,17 +182,10 @@ def _delete_classifier_version_files(model_id: str) -> None:
         os.remove(vectorizer_path)
 
 
-def _sync_classifier_versions(sync_patch: list[SyncClassifierVersionPatch]) -> None:
-    for elem in sync_patch:
-        if elem.action == "delete":
-            _delete_classifier_version_in_db(model_id=elem.model_id)
-            _delete_classifier_version_files(model_id=elem.model_id)
-
-
 def _retrain_classifier(
     db_con_str: str,
     table_name: str
-) -> tuple[ClassifierVersionRead, list[SyncClassifierVersionPatch]]:
+) -> ClassifierVersionRead:
     print("Getting training data...")
     training_data_df = _get_training_data(db_con_str, table_name)
     # training_data_df = read_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
@@ -266,12 +241,7 @@ def _retrain_classifier(
     result = _save_classifier_version_to_db(classifier_version)
     print("Classifier version saved.")
 
-    print("Syncing classifier versions...")
-    classifier_versions_sync_patch = _get_classifier_versions_sync_patch()
-    _sync_classifier_versions(classifier_versions_sync_patch)
-    print("Classifier version saved.")
-
-    return result, classifier_versions_sync_patch
+    return result
 
 
 def start_classifier_retraining(db_con_str: str, table_name: str) -> JobIdRead:
@@ -296,15 +266,13 @@ def get_retraining_job_result(job_id: str) -> ClassifierRetrainingResult:
 
     job_result = job.return_value(refresh=True)
     if job_result is not None:
-        result, changes = job_result
-        retraining_result.result = result
-        retraining_result.changes = changes
+        retraining_result.result = job_result
 
     return retraining_result
 
 
 def get_classifiers_list() -> list[ClassifierVersionRead]:
-    classifiers_db_list = _get_classifier_versions()
+    classifiers_db_list = get_classifier_versions()
     classifier_versions_list = [ClassifierVersionRead(
         model_id=classifier.id,
         created_at=classifier.created_at,
