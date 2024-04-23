@@ -13,6 +13,7 @@ from rq.job import Job, JobStatus
 from tqdm import tqdm
 
 from exception.noms_in_chroma_not_found_exception import NomsInChromaNotFoundException
+from infra.env import REDIS_HOST, REDIS_PASSWORD, CHROMA_PORT, CHROMA_HOST, DB_CONNECTION_STRING, DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
 from model.retrain_classifier_by_views_model import normalize_nom_name
 from scheme.nomenclature_scheme import MappingNomenclaturesUpload, MappingOneNomenclatureRead, \
@@ -24,14 +25,14 @@ np.set_printoptions(threshold=np.inf)
 
 
 def map_on_group(noms: DataFrame, model_id: str) -> list:
-    model = joblib.load(f"{os.getenv('DATA_FOLDER_PATH')}/linear_svc_model_{model_id}.pkl")
-    count_vect = joblib.load(f"{os.getenv('DATA_FOLDER_PATH')}/vectorizer_{model_id}.pkl")
+    model = joblib.load(f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl")
+    count_vect = joblib.load(f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl")
     # return model.predict(count_vect.transform(noms["nomenclature"]))
     return model.predict(count_vect.transform(noms['normalized']))
 
 
 def map_on_nom(nom_embeddings: np.ndarray, group: str, most_similar_count: int, chroma_collection_name: str):
-    chroma = HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
+    chroma = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
     collection = chroma.get_collection(name=chroma_collection_name)
 
     nom_embeddings = nom_embeddings.tolist()
@@ -68,7 +69,7 @@ def get_nom_candidates(groups: list[str]) -> DataFrame:
     groups_str = ", ".join([f"'{g}'" for g in groups])
     candidates = read_sql(
         f'SELECT * FROM nomenclature WHERE "group" in ({groups_str})',
-        os.getenv("DB_CONNECTION_STRING")
+        DB_CONNECTION_STRING
     )
     candidates = candidates.replace({np.nan: "[]"})
     candidates.embeddings = candidates.embeddings.progress_apply(ast.literal_eval).progress_apply(np.array)
@@ -179,7 +180,7 @@ def process(
 
 
 def get_jobs_from_rq(nomenclature_id: str) -> list[MappingNomenclaturesResultRead]:
-    redis = Redis(host=os.getenv('REDIS_HOST'), password=os.getenv('REDIS_PASSWORD'))
+    redis = Redis(host=REDIS_HOST, password=REDIS_PASSWORD)
     jobs_list: list[MappingNomenclaturesResultRead] = []
 
     prev_job_id = nomenclature_id

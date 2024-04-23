@@ -13,6 +13,7 @@ from rq.job import Job
 from sqlmodel import Session
 
 from datastep.components import datastep_faiss, datastep_multivector
+from infra.env import REDIS_PASSWORD, REDIS_HOST
 from repository import file_repository
 from scheme.file_scheme import File, FileCreate, DataExtract
 
@@ -29,7 +30,7 @@ def save_file_vectorstore_(storage_filename):
 
 
 def save_file_vectorstore(file_db: File, user_id: int) -> Job:
-    redis = Redis(host=os.getenv("REDIS_HOST"), password=os.getenv("REDIS_PASSWORD"))
+    redis = Redis(host=REDIS_HOST, password=REDIS_PASSWORD)
     q = Queue("document", connection=redis)
     job = q.enqueue(save_file_vectorstore_, file_db.storage_filename, result_ttl=-1, job_timeout="60m")
     job.meta["user_id"] = user_id

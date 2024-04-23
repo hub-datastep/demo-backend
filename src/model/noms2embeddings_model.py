@@ -1,23 +1,24 @@
 import os
 
-import chromadb
 import pandas as pd
+from chromadb import HttpClient
 
 from infra.chroma_store import FastembedChromaFunction
+from infra.env import CHROMA_HOST, CHROMA_PORT
 
 
 def create_chroma_collection(collection_name: str):
-    chroma_client = chromadb.HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
+    chroma_client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
     chroma_client.create_collection(name=collection_name, embedding_function=FastembedChromaFunction())
 
 
 def delete_chroma_collection(collection_name: str):
-    chroma_client = chromadb.HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
+    chroma_client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
     chroma_client.delete_collection(collection_name)
 
 
 def get_chroma_collection_length(collection_name: str) -> int:
-    chroma_client = chromadb.HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
+    chroma_client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
     collection = chroma_client.get_collection(name=collection_name, embedding_function=FastembedChromaFunction())
     return collection.count()
 
@@ -41,7 +42,7 @@ def create_and_save_embeddings(
         return pd.read_sql(st, nom_db_con_str)
 
     def _save_embeddings(ids: list, documents: list, metadatas: list, batch_size: int = 256):
-        chroma_client = chromadb.HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
+        chroma_client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
         collection = chroma_client.get_collection(
             name=chroma_collection_name,
             embedding_function=FastembedChromaFunction()

@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 from rq.job import Job
 
+from infra.env import CHROMA_HOST, CHROMA_PORT
 from scheme.nomenclature_scheme import SyncNomenclaturesChromaPatch
 
 
@@ -29,7 +30,7 @@ def _cast_ids(ids: str | list[str] | UUID | list[UUID]):
 
 
 def connect_to_chroma_collection(collection_name: str):
-    chroma = HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
+    chroma = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
     collection = chroma.get_or_create_collection(
         name=collection_name,
         embedding_function=FastembedChromaFunction()
@@ -57,7 +58,7 @@ def delete_embeddings(collection: Collection, ids: str | list[str] | UUID | list
 
 
 def drop_collection(collection_name: str):
-    chroma = HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
+    chroma = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
     if collection_name in [c.name for c in chroma.list_collections()]:
         chroma.delete_collection(collection_name)
 
