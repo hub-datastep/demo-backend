@@ -4,7 +4,7 @@ from infra.database import engine
 from scheme.classifier_scheme import ClassifierVersion
 
 
-def _get_classifier_versions():
+def get_classifier_versions():
     with Session(engine) as session:
         st = select(ClassifierVersion) \
             .where(not_(ClassifierVersion.is_deleted))
@@ -13,7 +13,7 @@ def _get_classifier_versions():
     return list(result)
 
 
-def _delete_classifier_version_in_db(model_id: str):
+def delete_classifier_version_in_db(model_id: str):
     # Soft delete classifier version in our postgres db
     with Session(engine) as session:
         classifier_version = session.get(ClassifierVersion, model_id)
