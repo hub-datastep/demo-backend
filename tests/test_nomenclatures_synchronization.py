@@ -194,7 +194,10 @@ def _update_test_noms(_db_params):
 
 class TestIntegrationSyncNomsModel:
     def _get_chroma_result(self, demo_stand_chroma_collection_name: str):
-        chroma_client = HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
+        chroma_client = HttpClient(
+            host=os.getenv('CHROMA_HOST'),
+            port=os.getenv('CHROMA_PORT')
+        )
         collection = chroma_client.get_collection(demo_stand_chroma_collection_name)
         chroma_result = collection.get()
         ids = chroma_result["ids"]

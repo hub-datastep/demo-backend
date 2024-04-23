@@ -1,5 +1,4 @@
 import os
-import os
 import re
 from pathlib import Path
 from uuid import uuid4
@@ -15,17 +14,15 @@ from sqlmodel import Session
 from tqdm import tqdm
 
 from infra.database import engine
+from infra.env import DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueName
-from repository.classifier_version_repository import _delete_classifier_version_in_db, _get_classifier_versions
-from scheme.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult, \
-    SyncClassifierVersionPatch
+from scheme.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult
 from scheme.nomenclature_scheme import JobIdRead
 
 tqdm.pandas()
 
 _FILE_SEPARATOR = ";"
 _TRAINING_FILE_NAME = "training_data.csv"
-DATA_FOLDER_PATH = os.getenv('DATA_FOLDER_PATH')
 
 _MAX_CLASSIFIERS_COUNT = 3
 
@@ -140,8 +137,8 @@ def _get_model_accuracy(classifier, vectorizer: CountVectorizer, x_test, y_test)
 def _dump_model(version_id: str, classifier, vectorizer: CountVectorizer) -> None:
     vectorizer_file_name = f"vectorizer_{version_id}.pkl"
     classifier_file_name = f"linear_svc_model_{version_id}.pkl"
-    vectorizer_path = f"{os.getenv('DATA_FOLDER_PATH')}/{vectorizer_file_name}"
-    classifier_path = f"{os.getenv('DATA_FOLDER_PATH')}/{classifier_file_name}"
+    vectorizer_path = f"{DATA_FOLDER_PATH}/{vectorizer_file_name}"
+    classifier_path = f"{DATA_FOLDER_PATH}/{classifier_file_name}"
 
     joblib.dump(classifier, classifier_path)
     joblib.dump(vectorizer, vectorizer_path)

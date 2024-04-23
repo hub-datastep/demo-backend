@@ -8,6 +8,7 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain_community.utilities import SQLDatabase
 
 from datastep.datastep_chains.datastep_sql2text_chain import describe_sql
+from infra.env import OPENAI_API_BASE
 from util.logger import async_log
 
 datastep_sql_chain_template = """
@@ -54,7 +55,7 @@ class DatastepSqlChain:
             temperature=temperature,
             verbose=verbose,
             model_name="gpt-4",
-            openai_api_base=os.getenv("OPENAI_API_BASE")
+            openai_api_base=OPENAI_API_BASE
         )
 
         datastep_sql_chain_prompt = PromptTemplate(

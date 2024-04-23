@@ -5,6 +5,7 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain_community.chat_models import ChatOpenAI
 
 from datastep.components.datastep_sql_database import DatastepSqlDatabase
+from infra.env import OPENAI_API_BASE
 from util.logger import async_log
 
 similar_queries_template = """По данной схеме таблицы и составь 4 похожих вопроса на данный.
@@ -28,7 +29,7 @@ def get_chain():
         temperature=0.8,
         verbose=False,
         model_name="gpt-3.5-turbo",
-        openai_api_base=os.getenv("OPENAI_API_BASE")
+        openai_api_base=OPENAI_API_BASE
     )
     similar_queries_chain = LLMChain(llm=llm, prompt=similar_queries_prompt, verbose=False)
     return similar_queries_chain

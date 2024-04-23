@@ -9,13 +9,14 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores.faiss import FAISS
 
 from datastep.components.file_path_util import get_file_folder_path
+from infra.env import OPENAI_API_BASE
 
 load_dotenv()
 
 
 def get_chain():
     # TODO: попробовать 3.5-instruct
-    llm = ChatOpenAI(temperature=0, model_name="gpt-4", openai_api_base=os.getenv("OPENAI_API_BASE"))
+    llm = ChatOpenAI(temperature=0, model_name="gpt-4", openai_api_base=OPENAI_API_BASE)
     template = """По данному тексту ответь на вопрос. Если для ответа на вопрос не хватает информации, напиши: Нет.
 
     Вопрос:
