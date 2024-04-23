@@ -163,7 +163,8 @@ def _save_classifier_version_to_db(classifier_version: ClassifierVersion) -> Cla
 
     saved_version = ClassifierVersionRead(
         model_id=classifier_version_db.id,
-        created_at=classifier_version_db.created_at
+        description=classifier_version_db.description,
+        created_at=classifier_version_db.created_at,
     )
     return saved_version
 
@@ -184,7 +185,7 @@ def _delete_classifier_version_files(model_id: str) -> None:
         os.remove(vectorizer_path)
 
 
-def _retrain_classifier(db_con_str: str, table_name: str) -> ClassifierVersionRead:
+def _retrain_classifier(db_con_str: str, table_name: str, model_description: str) -> ClassifierVersionRead:
     print("Getting training data...")
     training_data_df = _get_training_data(db_con_str, table_name)
     # training_data_df = read_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
@@ -233,6 +234,7 @@ def _retrain_classifier(db_con_str: str, table_name: str) -> ClassifierVersionRe
 
     classifier_version = ClassifierVersion(
         id=version_id,
+        description=model_description,
         accuracy=accuracy,
     )
 
@@ -243,12 +245,13 @@ def _retrain_classifier(db_con_str: str, table_name: str) -> ClassifierVersionRe
     return result
 
 
-def start_classifier_retraining(db_con_str: str, table_name: str) -> JobIdRead:
+def start_classifier_retraining(db_con_str: str, table_name: str, model_description: str) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.RETRAINING)
     job = queue.enqueue(
         _retrain_classifier,
         db_con_str,
         table_name,
+        model_description,
         result_ttl=-1,
         job_timeout=MAX_JOB_TIMEOUT,
     )

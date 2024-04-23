@@ -8,6 +8,7 @@ class ClassifierVersion(SQLModel, table=True):
     __tablename__ = "classifier_version"
 
     id: str = Field(primary_key=True)
+    description: str = Field()
     accuracy: float | None = Field(default=None)
     is_deleted: bool | None = Field(default=False)
     created_at: datetime | None = Field(default=datetime.utcnow())
@@ -16,10 +17,12 @@ class ClassifierVersion(SQLModel, table=True):
 class RetrainClassifierUpload(SQLModel):
     db_con_str: str
     table_name: str
+    model_description: str
 
 
 class ClassifierVersionRead(SQLModel):
     model_id: str
+    description: str
     created_at: datetime
 
 

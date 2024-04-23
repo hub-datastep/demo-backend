@@ -29,6 +29,7 @@ def retrain_classifier(
     return retrain_classifier_model.start_classifier_retraining(
         db_con_str=body.db_con_str,
         table_name=body.table_name,
+        model_description=body.model_description,
     )
 
 
