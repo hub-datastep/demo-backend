@@ -161,21 +161,20 @@ def process(
 
     noms['embeddings'] = get_embeddings(noms.nomenclature.to_list())
 
-    with tqdm(total=len(noms)) as pbar:
-        for i, nom in noms.iterrows():
-            try:
-                nom.mappings = map_on_nom(nom.embeddings, nom.group, most_similar_count, chroma_collection_name)
-            except NomsInChromaNotFoundException:
-                pass
-            noms.loc[i] = nom
-            if use_jobs:
-                job.meta['ready_count'] += 1
-                job.save_meta()
-            pbar.update()
+    for i, nom in tqdm(noms.iterrows()):
+        try:
+            nom.mappings = map_on_nom(nom.embeddings, nom.group, most_similar_count, chroma_collection_name)
+        except NomsInChromaNotFoundException:
+            pass
+        noms.loc[i] = nom
+        if use_jobs:
+            job.meta['ready_count'] += 1
+            job.save_meta()
 
     if use_jobs:
         job.meta['status'] = "finished"
         job.save_meta()
+
     return noms.to_json(orient="records", force_ascii=False)
 
 
