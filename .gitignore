@@ -1,11 +1,22 @@
+# Environment
 .env
-set_fly_secrets.sh
-.idea
+venv/
+
+# Logs
 *log
+
+# Python cache
 __pycache__/
+
+# IDEA
+.idea/
 .vscode
+
 dump.rdb
 database.db
-site
+
+# Mkdocs
+site/
+
 data/fastembed/.locks
 data/fastembed/models--qdrant--multilingual-e5-large-onnx
