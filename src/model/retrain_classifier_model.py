@@ -4,6 +4,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import joblib
+from fastapi import HTTPException, status
 from pandas import DataFrame, read_sql
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.metrics import accuracy_score
@@ -15,7 +16,8 @@ from tqdm import tqdm
 
 from infra.database import engine
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueName
-from repository.classifier_version_repository import get_classifier_versions
+from repository.classifier_version_repository import get_classifier_versions, delete_classifier_version_in_db, \
+    get_classifier_version_by_model_id
 from scheme.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult
 from scheme.nomenclature_scheme import JobIdRead
 
@@ -182,10 +184,7 @@ def _delete_classifier_version_files(model_id: str) -> None:
         os.remove(vectorizer_path)
 
 
-def _retrain_classifier(
-    db_con_str: str,
-    table_name: str
-) -> ClassifierVersionRead:
+def _retrain_classifier(db_con_str: str, table_name: str) -> ClassifierVersionRead:
     print("Getting training data...")
     training_data_df = _get_training_data(db_con_str, table_name)
     # training_data_df = read_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
@@ -278,3 +277,16 @@ def get_classifiers_list() -> list[ClassifierVersionRead]:
         created_at=classifier.created_at,
     ) for classifier in classifiers_db_list]
     return classifier_versions_list
+
+
+def delete_classifier_version(model_id: str):
+    classifier_version = get_classifier_version_by_model_id(model_id)
+
+    if classifier_version:
+        _delete_classifier_version_files(model_id)
+        delete_classifier_version_in_db(model_id)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Classifier version with ID {model_id} not found."
+        )

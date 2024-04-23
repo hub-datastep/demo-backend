@@ -53,3 +53,13 @@ def retrain_classifier_result(
     job_id: str
 ) -> ClassifierRetrainingResult:
     return retrain_classifier_model.get_retraining_job_result(job_id)
+
+
+@router.delete("/{model_id}")
+@version(1)
+def retrain_classifier_result(
+    *,
+    current_user: UserRead = Depends(get_current_user),
+    model_id: str
+):
+    return retrain_classifier_model.delete_classifier_version(model_id)

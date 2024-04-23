@@ -13,11 +13,16 @@ def get_classifier_versions():
     return list(result)
 
 
-def delete_classifier_version_in_db(model_id: str):
-    # Soft delete classifier version in our postgres db
+def get_classifier_version_by_model_id(model_id: str) -> ClassifierVersion | None:
     with Session(engine) as session:
         classifier_version = session.get(ClassifierVersion, model_id)
-        if classifier_version:
-            classifier_version.is_deleted = True
-            session.add(classifier_version)
-            session.commit()
+
+    return classifier_version
+
+
+def delete_classifier_version_in_db(classifier_version: ClassifierVersion):
+    # Soft delete classifier version in our postgres db
+    with Session(engine) as session:
+        classifier_version.is_deleted = True
+        session.add(classifier_version)
+        session.commit()
