@@ -10,13 +10,15 @@
 
 ## Архитектура сервиса
 
+### High-level архитектура
+
+![Схема](images/db_assistant_high_level.png)
+
 ### Схема информационных потоков
 
 Сервис принимает запрос в формате `DatabasePredictionQuery`, который содержит информацию о таблицах и запросе. Затем
 сервис обрабатывает запрос, используя различные **LLM компоненты**, такие как `DatastepSqlDatabase`, `DatastepSqlChain`
 и `DatastepCheckDataChain`. Результаты обработки затем возвращаются в формате `DatabasePredictionRead`.
-
-### Схема информационных потоков
 
 ![Схема](images/db_assistant.png)
 
