@@ -193,7 +193,7 @@ def _retrain_classifier(db_con_str: str, table_name: str, model_description: str
 
     print("Training test split...")
     x_train, x_test, y_train, y_test = train_test_split(
-        training_data_df['Наименование'],
+        training_data_df['normalized'],
         training_data_df['Родитель'],
         random_state=0
     )
