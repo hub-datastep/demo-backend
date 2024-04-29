@@ -29,11 +29,6 @@ jobs:
         mermerd/mermerd -c ${{ secrets.DB_CONNECTION_STRING }} -o docs/db_diagram.md -s public \
         --useAllTables --encloseWithMermaidBackticks
 
-    - name: Build mkdocs
-      run: |
-        pip install mkdocs-material "mkdocstrings[python]"
-        mkdocs build
-
     - name: Build the Docker image
       run: |
         env SERVER_DOCKERFILE=${{ secrets.SERVER_DOCKERFILE }} \
