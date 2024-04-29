@@ -43,7 +43,8 @@ RUN pip install onnxruntime
 RUN pip install mkdocs-material "mkdocstrings[python]"
 
 COPY . /app
-#RUN poetry config virtualenvs.create false
+
+RUN poetry config virtualenvs.create false
 RUN poetry install
 
 RUN mkdocs build
