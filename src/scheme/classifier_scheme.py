@@ -8,7 +8,7 @@ class ClassifierVersion(SQLModel, table=True):
     __tablename__ = "classifier_version"
 
     id: str = Field(primary_key=True)
-    description: str = Field()
+    description: str | None = Field()
     accuracy: float | None = Field(default=None)
     is_deleted: bool | None = Field(default=False)
     created_at: datetime | None = Field(default=datetime.utcnow())
