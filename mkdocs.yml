@@ -19,6 +19,7 @@ nav:
   - Ассистент по базам данных: db_assistant.md
   - Ассистент по документам: wiki_assistant.md
   - Сервис маппинга номенклатуры: nomenclatures_mapper.md
+  - Описание автотестов: auto_tests.md
   - Диаграмма базы данных: db_diagram.md
 
 
