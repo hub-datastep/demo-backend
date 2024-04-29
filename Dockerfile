@@ -1,15 +1,10 @@
 FROM python:3.11
 
-RUN pip install poetry
+RUN pip install poetry==1.7.1
 ENV PATH="${PATH}:/root/.local/bin"
 
 RUN apt-get update
 RUN apt-get install -y redis
-
-RUN pip install --upgrade pip
-
-RUN pip install onnxruntime
-RUN pip install mkdocs-material "mkdocstrings[python]"
 
 WORKDIR /app
 

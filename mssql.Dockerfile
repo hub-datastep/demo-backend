@@ -11,9 +11,6 @@ CipherString = DEFAULT@SECLEVEL=0\
 
 RUN sed -i 's/openssl_init/default_conf/' /etc/ssl/openssl.cnf
 
-RUN pip install poetry
-ENV PATH="${PATH}:/root/.local/bin"
-
 # Updates packages list for the image
 RUN apt-get update
 
@@ -48,13 +45,12 @@ RUN pip install --no-binary :all: pyodbc
 
 RUN apt install lsb-release curl gpg -y
 
+
+RUN pip install poetry==1.7.1
+ENV PATH="${PATH}:/root/.local/bin"
+
 RUN apt-get update
 RUN apt-get install -y redis
-
-RUN pip install --upgrade pip
-
-RUN pip install onnxruntime
-RUN pip install mkdocs-material "mkdocstrings[python]"
 
 WORKDIR /app
 
