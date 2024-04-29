@@ -44,17 +44,19 @@ RUN apt-get install -y lsb-release gpg
 RUN curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
 RUN echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/redis.list
 
-RUN apt-get update
-RUN apt-get install -y redis
-
-WORKDIR /app
-
 RUN pip install --no-binary :all: pyodbc
 
 RUN apt install lsb-release curl gpg -y
 
+RUN apt-get update
+RUN apt-get install -y redis
+
+RUN pip install --upgrade pip
+
 RUN pip install onnxruntime
 RUN pip install mkdocs-material "mkdocstrings[python]"
+
+WORKDIR /app
 
 COPY . /app
 
