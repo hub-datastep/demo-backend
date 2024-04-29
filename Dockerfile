@@ -39,8 +39,8 @@ RUN apt-get install -y redis
 WORKDIR /app
 
 COPY poetry.lock pyproject.toml /app/
-RUN poetry config virtualenvs.create false \
-    && poetry install --no-root
+RUN poetry config virtualenvs.create false
+RUN  poetry install --no-root
 
 RUN pip install onnxruntime
 # RUN apt install lsb-release curl gpg -y
