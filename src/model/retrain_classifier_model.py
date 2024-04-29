@@ -84,7 +84,7 @@ def _fetch_no_child_groups(db_con_str: str, table_name: str) -> DataFrame:
     return no_child_groups
 
 
-def _normalize_nom_name(text: str) -> str:
+def normalize_nom_name(text: str) -> str:
     text = text.lower()
     # deleting newlines and line-breaks
     text = re.sub(
@@ -128,7 +128,7 @@ def _get_training_data(db_con_str: str, table_name: str) -> DataFrame:
 
     print("Normalizing narrow group noms...")
     narrow_group_noms['normalized'] = narrow_group_noms['Наименование'].progress_apply(
-        lambda x: _normalize_nom_name(x)
+        lambda x: normalize_nom_name(x)
     )
     print(f"Count of normalized narrow group noms: {len(narrow_group_noms['normalized'])}")
     print(narrow_group_noms['normalized'])

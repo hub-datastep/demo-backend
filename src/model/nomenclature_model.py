@@ -1,6 +1,5 @@
 import ast
 import json
-import os
 
 import joblib
 import numpy as np
@@ -15,7 +14,7 @@ from tqdm import tqdm
 from exception.noms_in_chroma_not_found_exception import NomsInChromaNotFoundException
 from infra.env import REDIS_HOST, REDIS_PASSWORD, CHROMA_PORT, CHROMA_HOST, DB_CONNECTION_STRING, DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
-from model.retrain_classifier_by_views_model import normalize_nom_name
+from model.retrain_classifier_model import normalize_nom_name
 from scheme.nomenclature_scheme import MappingNomenclaturesUpload, MappingOneNomenclatureRead, \
     MappingOneNomenclatureUpload, \
     MappingNomenclaturesResultRead, JobIdRead
