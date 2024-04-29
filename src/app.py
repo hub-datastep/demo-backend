@@ -1,4 +1,3 @@
-import os
 import traceback
 from pathlib import Path
 
@@ -67,7 +66,7 @@ app = VersionedFastAPI(
 )
 
 # Built docs dir
-app.mount("/mkdocs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True), name="mkdocs")
+app.mount("/docs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True), name="mkdocs")
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"), name="static")
 
 

@@ -59,6 +59,6 @@ RUN pip install mkdocs-material "mkdocstrings[python]"
 COPY . /app
 
 RUN poetry config virtualenvs.create false
-RUN poetry install
+RUN poetry install --no-root
 
 RUN mkdocs build
