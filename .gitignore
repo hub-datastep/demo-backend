@@ -10,7 +10,7 @@ __pycache__/
 
 # IDEA
 .idea/
-.vscode
+.vscode/
 
 dump.rdb
 database.db
