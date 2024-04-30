@@ -20,6 +20,16 @@ def get_classifier_version_by_model_id(model_id: str) -> ClassifierVersion | Non
     return classifier_version
 
 
+def create_classifier_version(classifier_version: ClassifierVersion) -> ClassifierVersion:
+    with Session(engine) as session:
+        classifier_version_db = ClassifierVersion.from_orm(classifier_version)
+        session.add(classifier_version_db)
+        session.commit()
+        session.refresh(classifier_version_db)
+
+    return classifier_version_db
+
+
 def delete_classifier_version_in_db(classifier_version: ClassifierVersion):
     # Soft delete classifier version in our postgres db
     with Session(engine) as session:

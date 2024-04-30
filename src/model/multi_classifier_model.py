@@ -1,5 +1,4 @@
 import os
-import re
 from pathlib import Path
 from uuid import uuid4
 
@@ -11,16 +10,15 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.svm import LinearSVC
 from sqlalchemy import text
-from sqlmodel import Session
 from tqdm import tqdm
 
-from infra.database import engine
 from infra.env import DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueName
 from repository.classifier_version_repository import get_classifier_versions, delete_classifier_version_in_db, \
-    get_classifier_version_by_model_id
+    get_classifier_version_by_model_id, create_classifier_version
 from scheme.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult
 from scheme.nomenclature_scheme import JobIdRead
+from util.normalize_name import normalize_name
 
 tqdm.pandas()
 
@@ -30,7 +28,7 @@ _TRAINING_FILE_NAME = "training_data.csv"
 _MAX_CLASSIFIERS_COUNT = 3
 
 
-def _fetch_noms(db_con_str: str, table_name: str) -> DataFrame:
+def _fetch_items(db_con_str: str, table_name: str) -> DataFrame:
     st = text(f"""
         SELECT Наименование, Родитель
         FROM {table_name}
@@ -45,22 +43,16 @@ def _fetch_groups(db_con_str: str, table_name: str) -> DataFrame:
         SELECT DISTINCT Наименование, Ссылка
         FROM {table_name}
         WHERE ЭтоГруппа = 1
-        AND (
-            Наименование LIKE '__.__.__. %'
-            OR Наименование LIKE '__.__. %'
-        )
     """)
 
     return read_sql(st, db_con_str)
 
 
-def _has_child(db_con_str: str, table_name: str, group_name: str) -> bool:
-    group_numbs = group_name.split('. ')[0]
-
+def _has_child(db_con_str: str, table_name: str, group_id: str) -> bool:
     st = text(f"""
         SELECT *
         FROM {table_name}
-        WHERE Наименование LIKE '{group_numbs}.__. %'
+        WHERE Родитель = '{group_id}'
         AND ЭтоГруппа = 1
     """)
     children = read_sql(st, db_con_str)
@@ -68,73 +60,54 @@ def _has_child(db_con_str: str, table_name: str, group_name: str) -> bool:
     return not children.empty
 
 
-def _fetch_no_child_groups(db_con_str: str, table_name: str) -> DataFrame:
+def _fetch_narrow_groups(db_con_str: str, table_name: str) -> DataFrame:
     print("Fetching groups...")
     groups = _fetch_groups(db_con_str, table_name)
     print(f"Count of groups: {len(groups)}")
     print(groups)
 
     print(f"Checking if groups have children...")
-    no_child_groups = []
+    narrow_groups = []
     for _, group in groups.iterrows():
         if not _has_child(db_con_str, table_name, group['Наименование']):
-            no_child_groups.append(group)
+            narrow_groups.append(group)
 
-    no_child_groups = DataFrame(no_child_groups)
-    return no_child_groups
-
-
-def normalize_nom_name(text: str) -> str:
-    text = text.lower()
-    # deleting newlines and line-breaks
-    text = re.sub(
-        '\-\s\r\n\s{1,}|\-\s\r\n|\r\n',
-        '',
-        text
-    )
-    # deleting symbols
-    text = re.sub(
-        '[.,:;_%©?*,!@#$%^&()\d]|[+=]|[[]|[]]|[/]|"|\s{2,}|-',
-        ' ',
-        text
-    )
-    text = ' '.join(word for word in text.split() if len(word) > 2)
-
-    return text
+    narrow_groups = DataFrame(narrow_groups)
+    return narrow_groups
 
 
-def _get_narrow_group_noms(all_noms: DataFrame, no_child_groups: DataFrame) -> DataFrame:
+def _get_narrow_group_items(all_items: DataFrame, narrow_groups: DataFrame) -> DataFrame:
     # Return noms which Родитель in Ссылка of groups with no child
-    narrow_group_noms = all_noms[all_noms['Родитель'].isin(no_child_groups['Ссылка'])]
+    narrow_group_items = all_items[all_items['Родитель'].isin(narrow_groups['Ссылка'])]
 
-    return narrow_group_noms
+    return narrow_group_items
 
 
 def _get_training_data(db_con_str: str, table_name: str) -> DataFrame:
-    print("Fetching all noms...")
-    all_noms = _fetch_noms(db_con_str, table_name)
-    print(f"Count of noms: {len(all_noms)}")
-    print(all_noms)
+    print("Fetching all items...")
+    all_items = _fetch_items(db_con_str, table_name)
+    print(f"Count of items: {len(all_items)}")
+    print(all_items)
 
-    print("Fetching no child groups...")
-    no_child_groups = _fetch_no_child_groups(db_con_str, table_name)
-    print(f"Count of no child groups: {len(no_child_groups)}")
-    print(no_child_groups)
+    print("Fetching narrow groups...")
+    narrow_groups = _fetch_narrow_groups(db_con_str, table_name)
+    print(f"Count of narrow groups: {len(narrow_groups)}")
+    print(narrow_groups)
 
-    print("Parsing narrow group noms...")
-    narrow_group_noms = _get_narrow_group_noms(all_noms, no_child_groups)
-    print(f"Count of narrow group noms: {len(narrow_group_noms)}")
-    print(narrow_group_noms)
+    print("Parsing narrow group items...")
+    narrow_group_items = _get_narrow_group_items(all_items, narrow_groups)
+    print(f"Count of narrow group items: {len(narrow_group_items)}")
+    print(narrow_group_items)
 
-    print("Normalizing narrow group noms...")
-    narrow_group_noms['normalized'] = narrow_group_noms['Наименование'].progress_apply(
-        lambda x: normalize_nom_name(x)
+    print("Normalizing narrow group items...")
+    narrow_group_items['normalized'] = narrow_group_items['Наименование'].progress_apply(
+        lambda x: normalize_name(x)
     )
-    print(f"Count of normalized narrow group noms: {len(narrow_group_noms['normalized'])}")
-    print(narrow_group_noms['normalized'])
+    print(f"Count of normalized narrow group items: {len(narrow_group_items['normalized'])}")
+    print(narrow_group_items['normalized'])
 
     # narrow_group_noms.to_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
-    return narrow_group_noms
+    return narrow_group_items
 
 
 def _get_model_accuracy(classifier, vectorizer: CountVectorizer, x_test, y_test) -> float:
@@ -154,13 +127,7 @@ def _dump_model(version_id: str, classifier, vectorizer: CountVectorizer) -> Non
 
 
 def _save_classifier_version_to_db(classifier_version: ClassifierVersion) -> ClassifierVersionRead:
-    # Save classifier version to our postgres db
-    with Session(engine) as session:
-        classifier_version_db = ClassifierVersion.from_orm(classifier_version)
-        session.add(classifier_version_db)
-        session.commit()
-        session.refresh(classifier_version_db)
-
+    classifier_version_db = create_classifier_version(classifier_version)
     saved_version = ClassifierVersionRead(
         model_id=classifier_version_db.id,
         description=classifier_version_db.description,
