@@ -15,15 +15,15 @@ services:
     env_file:
       - .env.run
     volumes:
-      - "/opt/data:/app/data"
+      - "/home/wv-bleschunovd/data:/app/data"
   rq-worker:
     image: ${CONTAINER_IMAGE}:${CI_PIPELINE_ID}
     restart: always
-    command: rq worker --path /app/src --url redis://${REDIS_HOST}:6379 mapping_nomenclatures sync_nomenclatures retrain_classifier classification
+    command: rq worker --path /app/src --url redis://${REDIS_HOST}:6379 mapping_nomenclatures sync_nomenclatures retrain_classifier
     env_file:
       - .env.run
     volumes:
-      - "/opt/data:/app/data"
+      - "/home/wv-bleschunovd/data:/app/data"
   chroma-db:
     image: chromadb/chroma
     restart: always
