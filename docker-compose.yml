@@ -17,7 +17,7 @@ services:
       - "/home/wv-bleschunovd/data:/app/data"
   rq-worker:
     image: ${CONTAINER_IMAGE}:${CI_PIPELINE_ID}
-    command: rq worker --path /app/src --url redis://${REDIS_HOST}:6379 mapping_nomenclatures sync_nomenclatures retrain_classifier
+    command: rq worker --path /app/src --url redis://${REDIS_HOST}:6379 mapping_nomenclatures sync_nomenclatures retrain_classifier classification
     env_file:
       - .env.run
     volumes:

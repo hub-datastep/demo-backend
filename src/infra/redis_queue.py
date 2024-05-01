@@ -14,6 +14,7 @@ class QueueName:
     MAPPING = "mapping_nomenclatures"
     SYNCING = "sync_nomenclatures"
     RETRAINING = "retrain_classifier"
+    CLASSIFICATION = "classification"
 
 
 def get_redis_connection():
