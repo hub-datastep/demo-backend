@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi_versioning import version
 
-from model import nomenclature_model, noms2embeddings_model, synchronize_nomenclatures_model
+from model import nomenclature_model, noms2embeddings_model, synchronize_nomenclatures_model, \
+    retrain_noms_classifier_by_groups_model
 from model.auth_model import get_current_user
+from scheme.classifier_scheme import RetrainClassifierUpload
 from scheme.nomenclature_scheme import JobIdRead, MappingNomenclaturesUpload, MappingNomenclaturesResultRead, \
     CreateAndSaveEmbeddingsUpload, \
     SyncNomenclaturesUpload, SyncNomenclaturesResultRead
@@ -160,20 +162,6 @@ def synchronize_nomenclatures(
     )
 
 
-# @router.post("/synchronize/by_views", response_model=JobIdRead)
-# @version(1)
-# def synchronize_nomenclatures_by_views(
-#     *,
-#     body: SyncNomenclaturesByViewsUpload,
-#     current_user: UserRead = Depends(get_current_user),
-# ):
-#     return synchronize_nomenclatures_by_views_model.start_synchronizing_nomenclatures(
-#         db_con_str=body.db_con_str,
-#         table_name=body.table_name,
-#         chroma_collection_name=body.chroma_collection_name,
-#     )
-
-
 @router.post("/synchronize/result")
 @version(1)
 def synchronize_nomenclatures_result(
@@ -191,3 +179,43 @@ def synchronize_nomenclatures_result(
         SyncNomenclaturesResultRead: Результат синхронизации номенклатур.
     """
     return synchronize_nomenclatures_model.get_sync_nomenclatures_job_result(job_id)
+
+
+@router.post("")
+@version(1)
+def retrain_classifier_by_groups(
+    *,
+    body: RetrainClassifierUpload,
+    current_user: UserRead = Depends(get_current_user),
+):
+    return retrain_noms_classifier_by_groups_model.start_classifier_retraining(
+        db_con_str=body.db_con_str,
+        table_name=body.table_name,
+        model_description=body.model_description,
+    )
+
+# @router.post("/by_views")
+# @version(1)
+# def retrain_classifier_by_views(
+#     *,
+#     body: RetrainClassifierUpload,
+#     current_user: UserRead = Depends(get_current_user),
+# ):
+#     return retrain_classifier_by_views_model.start_classifier_retraining(
+#         db_con_str=body.db_con_str,
+#         table_name=body.table_name,
+#     )
+
+
+# @router.post("/synchronize/by_views", response_model=JobIdRead)
+# @version(1)
+# def synchronize_nomenclatures_by_views(
+#     *,
+#     body: SyncNomenclaturesByViewsUpload,
+#     current_user: UserRead = Depends(get_current_user),
+# ):
+#     return synchronize_nomenclatures_by_views_model.start_synchronizing_nomenclatures(
+#         db_con_str=body.db_con_str,
+#         table_name=body.table_name,
+#         chroma_collection_name=body.chroma_collection_name,
+#     )

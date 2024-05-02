@@ -41,7 +41,7 @@ services:
     image: ${DOCKER_USERNAME}/${DOCKER_BACKEND_REPOSITORY}:${RUN_ID}
     restart: always
     container_name: rq-worker
-    command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379 mapping_nomenclatures sync_nomenclatures retrain_classifier
+    command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379 mapping_nomenclatures sync_nomenclatures retrain_classifier classification
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_API_BASE=${OPENAI_API_BASE}

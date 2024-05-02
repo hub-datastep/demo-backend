@@ -1,26 +1,21 @@
-import os
-import re
 from pathlib import Path
 from uuid import uuid4
 
 import joblib
-from fastapi import HTTPException, status
 from pandas import DataFrame, read_sql
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.svm import LinearSVC
 from sqlalchemy import text
-from sqlmodel import Session
 from tqdm import tqdm
 
-from infra.database import engine
 from infra.env import DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueName
-from repository.classifier_version_repository import get_classifier_versions, delete_classifier_version_in_db, \
-    get_classifier_version_by_model_id
+from repository.classifier_version_repository import create_classifier_version
 from scheme.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult
 from scheme.nomenclature_scheme import JobIdRead
+from util.normalize_name import normalize_name
 
 tqdm.pandas()
 
@@ -84,25 +79,6 @@ def _fetch_no_child_groups(db_con_str: str, table_name: str) -> DataFrame:
     return no_child_groups
 
 
-def normalize_nom_name(text: str) -> str:
-    text = text.lower()
-    # deleting newlines and line-breaks
-    text = re.sub(
-        '\-\s\r\n\s{1,}|\-\s\r\n|\r\n',
-        '',
-        text
-    )
-    # deleting symbols
-    text = re.sub(
-        '[.,:;_%©?*,!@#$%^&()\d]|[+=]|[[]|[]]|[/]|"|\s{2,}|-',
-        ' ',
-        text
-    )
-    text = ' '.join(word for word in text.split() if len(word) > 2)
-
-    return text
-
-
 def _get_narrow_group_noms(all_noms: DataFrame, no_child_groups: DataFrame) -> DataFrame:
     # Return noms which Родитель in Ссылка of groups with no child
     narrow_group_noms = all_noms[all_noms['Родитель'].isin(no_child_groups['Ссылка'])]
@@ -128,7 +104,7 @@ def _get_training_data(db_con_str: str, table_name: str) -> DataFrame:
 
     print("Normalizing narrow group noms...")
     narrow_group_noms['normalized'] = narrow_group_noms['Наименование'].progress_apply(
-        lambda x: normalize_nom_name(x)
+        lambda x: normalize_name(x)
     )
     print(f"Count of normalized narrow group noms: {len(narrow_group_noms['normalized'])}")
     print(narrow_group_noms['normalized'])
@@ -154,12 +130,7 @@ def _dump_model(version_id: str, classifier, vectorizer: CountVectorizer) -> Non
 
 
 def _save_classifier_version_to_db(classifier_version: ClassifierVersion) -> ClassifierVersionRead:
-    # Save classifier version to our postgres db
-    with Session(engine) as session:
-        classifier_version_db = ClassifierVersion.from_orm(classifier_version)
-        session.add(classifier_version_db)
-        session.commit()
-        session.refresh(classifier_version_db)
+    classifier_version_db = create_classifier_version(classifier_version)
 
     saved_version = ClassifierVersionRead(
         model_id=classifier_version_db.id,
@@ -173,16 +144,6 @@ def _get_model_and_vectorizer_paths(model_id: str) -> tuple[Path, Path]:
     model_path = Path(f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl")
     vectorizer_path = Path(f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl")
     return model_path, vectorizer_path
-
-
-def _delete_classifier_version_files(model_id: str) -> None:
-    model_path, vectorizer_path = _get_model_and_vectorizer_paths(model_id)
-    # Remove model file if exists
-    if model_path.exists():
-        os.remove(model_path)
-    # Remove vectorizer file if exists
-    if vectorizer_path.exists():
-        os.remove(vectorizer_path)
 
 
 def _retrain_classifier(db_con_str: str, table_name: str, model_description: str) -> ClassifierVersionRead:
@@ -271,25 +232,3 @@ def get_retraining_job_result(job_id: str) -> ClassifierRetrainingResult:
         retraining_result.result = job_result
 
     return retraining_result
-
-
-def get_classifiers_list() -> list[ClassifierVersionRead]:
-    classifiers_db_list = get_classifier_versions()
-    classifier_versions_list = [ClassifierVersionRead(
-        model_id=classifier.id,
-        created_at=classifier.created_at,
-    ) for classifier in classifiers_db_list]
-    return classifier_versions_list
-
-
-def delete_classifier_version(model_id: str):
-    classifier_version = get_classifier_version_by_model_id(model_id)
-
-    if classifier_version:
-        _delete_classifier_version_files(model_id)
-        delete_classifier_version_in_db(model_id)
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Classifier version with ID {model_id} not found."
-        )

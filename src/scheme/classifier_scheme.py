@@ -30,3 +30,14 @@ class ClassifierRetrainingResult(SQLModel):
     job_id: str
     status: JobStatus
     result: ClassifierVersionRead | None
+
+
+class ClassificationResultItem(SQLModel):
+    item: str
+    group_id: str
+
+
+class ClassificationResult(SQLModel):
+    job_id: str
+    status: JobStatus
+    result: list[ClassificationResultItem] | None
