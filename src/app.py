@@ -36,7 +36,7 @@ app.include_router(message_controller.router, tags=["message"], prefix="/message
 app.include_router(prediction_controller.router, tags=["prediction"])
 app.include_router(nomenclature_controller.router, tags=["nomenclature"], prefix="/nomenclature")
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
-app.include_router(multi_classifier_controller.router, tags=["classifier"], prefix="/multi_classifier")
+app.include_router(multi_classifier_controller.router, tags=["multi_classifier"], prefix="/multi_classifier")
 app.include_router(task_controller.router, tags=["task"], prefix="/task")
 
 
