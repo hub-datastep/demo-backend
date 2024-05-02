@@ -32,9 +32,9 @@ def get_nomenclature_mappings(
     return nomenclature_model.get_all_jobs(job_id)
 
 
-@router.post("", response_model=JobIdRead)
+@router.post("/mapping", response_model=JobIdRead)
 @version(1)
-def upload_nomenclature(
+def start_nomenclature_mapping(
     *,
     current_user: UserRead = Depends(get_current_user),
     nomenclatures: MappingNomenclaturesUpload,
@@ -181,7 +181,7 @@ def synchronize_nomenclatures_result(
     return synchronize_nomenclatures_model.get_sync_nomenclatures_job_result(job_id)
 
 
-@router.post("")
+@router.post("/retrain_classifier")
 @version(1)
 def retrain_classifier_by_groups(
     *,
