@@ -4,6 +4,7 @@ services:
 
   server:
     image: ${CONTAINER_IMAGE}:${CI_PIPELINE_ID}
+    restart: always
     command: bash -c "
       cd /app/src
       && python -m alembic upgrade head
@@ -17,6 +18,7 @@ services:
       - "/home/wv-bleschunovd/data:/app/data"
   rq-worker:
     image: ${CONTAINER_IMAGE}:${CI_PIPELINE_ID}
+    restart: always
     command: rq worker --path /app/src --url redis://${REDIS_HOST}:6379 mapping_nomenclatures sync_nomenclatures retrain_classifier classification
     env_file:
       - .env.run
@@ -24,6 +26,7 @@ services:
       - "/home/wv-bleschunovd/data:/app/data"
   chroma-db:
     image: chromadb/chroma
+    restart: always
     container_name: chroma-db
     environment:
       - IS_PERSISTENT=TRUE
