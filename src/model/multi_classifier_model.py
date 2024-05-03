@@ -245,6 +245,7 @@ def get_classifiers_list() -> list[ClassifierVersionRead]:
     classifiers_db_list = get_classifier_versions()
     classifier_versions_list = [ClassifierVersionRead(
         model_id=classifier.id,
+        description=classifier.description,
         created_at=classifier.created_at,
     ) for classifier in classifiers_db_list]
     return classifier_versions_list
