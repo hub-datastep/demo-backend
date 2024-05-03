@@ -15,7 +15,7 @@ services:
     env_file:
       - .env.run
     volumes:
-      - "/home/wv-bleschunovd/data:/app/data"
+      - "/opt/data:/app/data"
   rq-worker:
     image: ${CONTAINER_IMAGE}:${CI_PIPELINE_ID}
     restart: always
@@ -23,7 +23,7 @@ services:
     env_file:
       - .env.run
     volumes:
-      - "/home/wv-bleschunovd/data:/app/data"
+      - "/opt/data:/app/data"
   chroma-db:
     image: chromadb/chroma
     restart: always
