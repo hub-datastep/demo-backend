@@ -1,13 +1,13 @@
 FROM python:3.11
 
 RUN echo "\n[default_conf]\n\
-ssl_conf = ssl_sect\n\n\
-[ssl_sect]\n\
-system_default = system_default_sect\n\n\
-[system_default_sect]\n\
-MinProtocol = TLSv1.2\n\
-CipherString = DEFAULT@SECLEVEL=0\
-" >> /etc/ssl/openssl.cnf
+  ssl_conf = ssl_sect\n\n\
+  [ssl_sect]\n\
+  system_default = system_default_sect\n\n\
+  [system_default_sect]\n\
+  MinProtocol = TLSv1.2\n\
+  CipherString = DEFAULT@SECLEVEL=0\
+  " >> /etc/ssl/openssl.cnf
 
 RUN sed -i 's/openssl_init/default_conf/' /etc/ssl/openssl.cnf
 
@@ -19,16 +19,17 @@ RUN apt-get install -y curl apt-transport-https
 
 # Retrieves packages from Microsoft
 RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
-RUN curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list
+RUN curl https://packages.microsoft.com/config/ubuntu/18.04/prod.list > /etc/apt/sources.list.d/mssql-release.list
 
 # Updates packages for the image
 RUN apt-get update
 
 # Installs SQL drivers and tools
-RUN ACCEPT_EULA=Y apt-get install -y msodbcsql17 unixodbc-dev
+RUN ACCEPT_EULA=Y apt-get install -y --allow-unauthenticated unixodbc-dev
+RUN ACCEPT_EULA=Y apt-get install -y --allow-unauthenticated msodbcsql17
 
 # Installs MS SQL Tools
-RUN ACCEPT_EULA=Y apt-get install -y mssql-tools
+RUN ACCEPT_EULA=Y apt-get install -y --allow-unauthenticated mssql-tools
 
 # Adds paths to the $PATH environment variable within the .bash_profile and .bashrc files
 RUN echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile

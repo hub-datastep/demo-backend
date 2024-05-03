@@ -58,7 +58,8 @@ app = VersionedFastAPI(
     middleware=[
         Middleware(
             CORSMiddleware,
-            allow_origins=[FRONTEND_HOST],
+            # allow_origins=[FRONTEND_HOST],
+            allow_origins=["*"],
             allow_methods=["POST", "GET", "PUT", "DELETE"],
             allow_headers=["*"],
         )
