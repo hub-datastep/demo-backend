@@ -21,10 +21,10 @@ def get_nomenclature_mappings(
     job_id: str
 ):
     """
-    Получает результат сопоставления номенклатур по указанному идентификаторы задания.
+    Получает результат сопоставления номенклатур по указанному идентификаторы задачи.
 
     Args:
-        job_id (str): Идентификатор задания.
+        job_id (str): Идентификатор задачи.
 
     Returns:
         list[MappingNomenclaturesResultRead]: Список результатов сопоставления.
@@ -48,7 +48,7 @@ def start_nomenclature_mapping(
         model_id (str): ID модели классификатора.
 
     Returns:
-        JobIdRead: Идентификатор задания.
+        JobIdRead: Идентификатор задачи.
     """
     return nomenclature_model.start_mapping(nomenclatures, model_id)
 
@@ -61,13 +61,10 @@ def create_chroma_collection(
     collection_name: str
 ):
     """
-    Создает коллекцию Chroma.
+    Создает Chroma коллекцию.
 
     Args:
         collection_name (str): Название коллекции.
-
-    Returns:
-        Ничего
     """
     return noms2embeddings_model.create_chroma_collection(collection_name=collection_name)
 
@@ -80,13 +77,13 @@ def get_chroma_collection_length(
     collection_name: str
 ) -> int:
     """
-    Получает количество векторов в коллекции Chroma.
+    Получает количество векторов в Chroma коллекции.
 
     Args:
         collection_name (str): Название коллекции.
 
     Returns:
-        int: Длина коллекции.
+        int: Количество векторов коллекции.
     """
     return noms2embeddings_model.get_chroma_collection_length(collection_name=collection_name)
 
@@ -99,13 +96,10 @@ def delete_chroma_collection(
     collection_name: str
 ):
     """
-    Удаляет коллекцию Chroma.
+    Удаляет Chroma коллекцию.
 
     Args:
         collection_name (str): Название коллекции.
-
-    Returns:
-        Ничего
     """
     return noms2embeddings_model.delete_chroma_collection(collection_name=collection_name)
 
@@ -147,13 +141,16 @@ def synchronize_nomenclatures(
     current_user: UserRead = Depends(get_current_user),
 ):
     """
-    Синхронизирует номенклатуры в ДВХ МСУ и векторсторе.
+    Синхронизирует номенклатуры в ДВХ МСУ и векторсторе за указанный период.
 
     Args:
         body (SyncNomenclaturesUpload): Тело запроса.
+            - nom_db_con_str (str): Строка подключения к базе данных
+            - chroma_collection_name (str): Название Chroma коллекции
+            - sync_period (int): Период синхронизации в часах
 
     Returns:
-        JobIdRead: Идентификатор задания.
+        JobIdRead: Идентификатор задачи.
     """
     return synchronize_nomenclatures_model.start_synchronizing_nomenclatures(
         nom_db_con_str=body.nom_db_con_str,
@@ -173,7 +170,7 @@ def synchronize_nomenclatures_result(
     Получает результат синхронизации номенклатур в ДВХ МСУ и векторсторе.
 
     Args:
-        job_id (str): Идентификатор задания.
+        job_id (str): Идентификатор задачи.
 
     Returns:
         SyncNomenclaturesResultRead: Результат синхронизации номенклатур.
@@ -188,6 +185,19 @@ def retrain_classifier_by_groups(
     body: RetrainClassifierUpload,
     current_user: UserRead = Depends(get_current_user),
 ):
+    """
+    Переобучает классификатор по Группам номенклатур.
+    Используется фильтрация актуальная только для номенклатур по Группам.
+
+    Args:
+        body (RetrainClassifierUpload): Тело запроса.
+            - db_con_str (str): Строка подключения к базе данных
+            - table_name (str): Таблица, по которой классификатор будет обучаться (например: us.СправочникНоменклатура)
+            - model_description (str): Описание классификатора (на чём обучен, для чего и т.п.)
+
+    Returns:
+        JobIdRead: Идентификатор задачи.
+    """
     return retrain_noms_classifier_by_groups_model.start_classifier_retraining(
         db_con_str=body.db_con_str,
         table_name=body.table_name,
