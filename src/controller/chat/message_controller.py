@@ -26,7 +26,7 @@ def create_message(
     return message_repository.create_message(session, message)
 
 
-@router.delete("/{chat_id}", response_model=ChatRead)
+@router.delete("/{chat_id}")
 @version(1)
 def clear_all_messages_by_chat_id(
     *,
