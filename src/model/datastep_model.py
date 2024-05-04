@@ -66,6 +66,8 @@ async def datastep_get_prediction(
         )
 
     # TODO: разобраться, как сделать подключение к базе асинк
+    sql_query = sql_query.replace("```sql", "")
+    sql_query = sql_query.replace("```", "")
     sql_query_result = datastep_sql_database.run(sql_query)
     sql_query_result_markdown = pd.DataFrame(sql_query_result).to_markdown(index=False, floatfmt=".3f")
 
