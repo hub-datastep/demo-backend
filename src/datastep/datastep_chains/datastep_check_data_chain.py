@@ -6,6 +6,7 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain_community.chat_models import ChatOpenAI
 
 from datastep.components.datastep_sql_database import DatastepSqlDatabase
+from infra.ai_model import MODEL_NAME
 from infra.env import OPENAI_API_BASE
 from util.logger import async_log
 
@@ -79,7 +80,7 @@ def get_chain():
         template=check_data_template,
         input_variables=["table_info", "input"]
     )
-    llm = ChatOpenAI(temperature=0, verbose=True, model_name="gpt-4", openai_api_base=OPENAI_API_BASE)
+    llm = ChatOpenAI(temperature=0, verbose=True, model_name=MODEL_NAME, openai_api_base=OPENAI_API_BASE)
     check_data_chain = LLMChain(llm=llm, prompt=check_data_prompt, verbose=False)
     return check_data_chain
 

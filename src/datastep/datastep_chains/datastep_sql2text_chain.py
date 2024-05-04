@@ -4,6 +4,7 @@ from langchain.chains import LLMChain
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts.prompt import PromptTemplate
 
+from infra.ai_model import MODEL_NAME
 from infra.env import OPENAI_API_BASE
 from util.logger import async_log
 
@@ -20,7 +21,7 @@ sql2text_prompt = PromptTemplate(
     input_variables=["input"]
 )
 
-llm = ChatOpenAI(temperature=0, verbose=False, model_name="gpt-4", openai_api_base=OPENAI_API_BASE)
+llm = ChatOpenAI(temperature=0, verbose=False, model_name=MODEL_NAME, openai_api_base=OPENAI_API_BASE)
 
 sql2text_chain = LLMChain(llm=llm, prompt=sql2text_prompt, verbose=False)
 

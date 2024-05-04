@@ -1,5 +1,4 @@
 import datetime
-import os
 import re
 
 from langchain.chains import LLMChain
@@ -8,6 +7,7 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain_community.utilities import SQLDatabase
 
 from datastep.datastep_chains.datastep_sql2text_chain import describe_sql
+from infra.ai_model import MODEL_NAME
 from infra.env import OPENAI_API_BASE
 from util.logger import async_log
 
@@ -54,7 +54,7 @@ class DatastepSqlChain:
         llm = ChatOpenAI(
             temperature=temperature,
             verbose=verbose,
-            model_name="gpt-4",
+            model_name=MODEL_NAME,
             openai_api_base=OPENAI_API_BASE
         )
 
