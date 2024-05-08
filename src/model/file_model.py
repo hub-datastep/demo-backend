@@ -3,24 +3,23 @@ import re
 import shutil
 import tempfile
 from datetime import datetime
-from pathlib import Path
 
 import pdfplumber
 from fastapi import UploadFile
-from redis import Redis
-from rq import Queue
-from rq.job import Job
 from sqlmodel import Session
 
 from datastep.components import datastep_faiss, datastep_multivector
-from infra.env import REDIS_PASSWORD, REDIS_HOST
+from datastep.components.file_path_util import get_file_folder_path
+from exception.file_not_found_exception import FileNotFoundException
+from infra.redis_queue import get_redis_queue, QueueName, MAX_JOB_TIMEOUT
 from repository import file_repository
 from scheme.file_scheme import File, FileCreate, DataExtract
+from scheme.nomenclature_scheme import JobIdRead
 
 nomenclature_pattern = r"\bтовары\b|\bнаименование\b|\bпозиция\b|\bноменклатура\b|\bработы\b|\bуслуги\b|\bпредмет счета\b"
 
 
-def save_file_vectorstore_(storage_filename):
+def _save_document_to_vectorstores(storage_filename: str):
     try:
         datastep_faiss.save_document(storage_filename)
         datastep_multivector.save_document(storage_filename)
@@ -29,31 +28,32 @@ def save_file_vectorstore_(storage_filename):
         raise e
 
 
-def save_file_vectorstore(file_db: File, user_id: int) -> Job:
-    redis = Redis(host=REDIS_HOST, password=REDIS_PASSWORD)
-    q = Queue("document", connection=redis)
-    job = q.enqueue(save_file_vectorstore_, file_db.storage_filename, result_ttl=-1, job_timeout="60m")
+def save_file_to_vectorstores(file: File, user_id: int) -> JobIdRead:
+    queue = get_redis_queue(name=QueueName.DOCUMENTS)
+    job = queue.enqueue(
+        _save_document_to_vectorstores,
+        file.storage_filename,
+        result_ttl=-1,
+        job_timeout=MAX_JOB_TIMEOUT,
+    )
     job.meta["user_id"] = user_id
-    job.meta["file_id"] = file_db.id
+    job.meta["file_id"] = file.id
     job.save_meta()
-    return job
+    return JobIdRead(job_id=job.id)
 
 
 def save_file_local(file: UploadFile, filename: str):
-    data_folder_path = Path(__file__).parent / "../../data"
-    # Split the original filename into name and extension
-    file_folder_name, _ = os.path.splitext(filename)
-    file_folder_path = data_folder_path / file_folder_name
+    file_folder_path = get_file_folder_path(filename)
 
     if not os.path.exists(file_folder_path):
         os.makedirs(file_folder_path)
 
-    file_path = file_folder_path / filename
+    file_path = f"{file_folder_path}/{filename}"
 
     try:
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-    except:
+    except Exception:
         pass
 
 
@@ -72,7 +72,7 @@ def get_unique_filename(original_filename: str) -> str:
     return unique_filename
 
 
-def process_file(session: Session, file_object: UploadFile, user_id: int, tenant_id: int) -> Job:
+def process_file(session: Session, file_object: UploadFile, user_id: int, tenant_id: int) -> JobIdRead:
     storage_filename = get_unique_filename(sanitize_filename(file_object.filename))
     save_file_local(file_object, storage_filename)
 
@@ -83,12 +83,9 @@ def process_file(session: Session, file_object: UploadFile, user_id: int, tenant
         tenant_id=tenant_id,
         file_path=f"{filename}/{storage_filename}"
     )
-    file_db = file_repository.save_file(session, file_create)
-    return save_file_vectorstore(file_db, user_id)
-
-
-def get_store_file_path(source_id: str) -> str:
-    return f"{Path(__file__).parent.resolve()}/../../data/{source_id}"
+    file = file_repository.save_file(session, file_create)
+    # return save_file_to_vectorstores(file, user_id)
+    return _save_document_to_vectorstores(file.storage_filename)
 
 
 def extract_data_from_pdf(file_object, with_metadata=False) -> list[str]:
@@ -128,23 +125,22 @@ def extract_data_from_pdf(file_object, with_metadata=False) -> list[str]:
     return result_list
 
 
-# def delete_local_store(filename):
-#     try:
-#         store_file_path = get_store_file_path(filename)
-#         shutil.rmtree(store_file_path)
-#     except FileNotFoundError:
-#         pass
+def delete_file_locally(filename: str):
+    file_dir_path = get_file_folder_path(filename)
+    if file_dir_path.exists():
+        shutil.rmtree(file_dir_path)
 
 
-# def delete_file(body: FileDto):
-#     file_repository.update({"id": body.id}, {"status": "deleted"})
-#     if not file_repository.is_file_exists_in_other_chats(body.chat_id, body.name_ru):
-#         delete_file_from_supastorage(body.name_en)
-#         delete_local_store(body.name_en)
+def get_file_by_id(session: Session, file_id: int):
+    file = file_repository.get_file_by_id(session, file_id)
+
+    if file is None:
+        raise FileNotFoundException(f"File with ID {file_id} not found.")
+
+    return file
 
 
-if __name__ == "__main__":
-    data_folder = Path(__file__).parent / Path("../../data")
-    print(data_folder)
-    file = data_folder / "etm_231223_9_result.csv"
-    content = file.read_text()
+def delete_file(session: Session, file_id: int):
+    file = get_file_by_id(session, file_id)
+    file_repository.delete_file(session, file)
+    delete_file_locally(file.original_filename)

@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 from langchain.chains import LLMChain
@@ -36,7 +36,7 @@ def get_chain():
 
 def save_document(storage_filename: str):
     file_folder_path = get_file_folder_path(storage_filename)
-    file_path = file_folder_path / storage_filename
+    file_path = Path(f"{file_folder_path}/{storage_filename}")
 
     loader = PyPDFLoader(str(file_path))
     pages = loader.load_and_split()
@@ -68,9 +68,10 @@ def query(source_id: str, query: str):
     return doc.metadata["page"], response
 
 
-# def delete_document(source_id: str):
-#     store_file_path = get_store_file_path(source_id)
-#     shutil.rmtree(store_file_path)
+def delete_document(source_id: str):
+    chain = get_chain()
+    store_file_path = get_store_file_path(source_id)
+    shutil.rmtree(store_file_path)
 
 
 if __name__ == "__main__":

@@ -16,6 +16,15 @@ def save_file(session: Session, file: FileCreate) -> File:
     return file_db
 
 
+def get_file_by_id(session: Session, file_id: int) -> File | None:
+    file = session.get(File, file_id)
+    return file
+
+
+def delete_file(session: Session, file: File) -> None:
+    session.delete(file)
+    session.commit()
+
 # def get_all_filenames_ru(chat_id: int, tenant_id: int) -> list[FileOutDto]:
 #     (_, mutual_files_ids), _ = supabase\
 #         .table("file_tenant")\
@@ -83,17 +92,6 @@ def save_file(session: Session, file: FileCreate) -> File:
 #         .execute()
 #     return FileOutDto(**filename[0])
 
-
-# def get_file_by_id(session: Session, file_id: int) -> FileOutDto:
-#     (_, filename), _ = supabase \
-#         .table("file") \
-#         .select("*") \
-#         .eq("id", file_id) \
-#         .neq("status", "deleted") \
-#         .execute()
-#     return FileOutDto(**filename[0])
-
-
 # def save_file(body: FileDto) -> FileOutDto:
 #     (_, [file]), _ = supabase\
 #         .table("file")\
@@ -135,9 +133,3 @@ def save_file(session: Session, file: FileCreate) -> File:
 #         .update(update)\
 #         .match(match)\
 #         .execute()
-
-
-if __name__ == "__main__":
-    files = get_all_filenames_ru(18, 1)
-    for f in files:
-        print(f.id, f.name_ru)

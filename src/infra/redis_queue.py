@@ -15,6 +15,7 @@ class QueueName:
     SYNCING = "sync_nomenclatures"
     RETRAINING = "retrain_classifier"
     CLASSIFICATION = "classification"
+    DOCUMENTS = "documents"
 
 
 def get_redis_connection():
