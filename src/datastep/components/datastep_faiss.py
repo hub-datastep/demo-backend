@@ -1,30 +1,38 @@
+import shutil
 from pathlib import Path
 
-from dotenv import load_dotenv
 from langchain.chains import LLMChain
-from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.prompts import PromptTemplate
-from langchain_community.chat_models import ChatOpenAI
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores.faiss import FAISS
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 
 from datastep.components.file_path_util import get_file_folder_path
-from infra.ai_model import MODEL_NAME
-from infra.env import OPENAI_API_BASE
+from infra.env import AZURE_DEPLOYMENT_NAME_DB_ASSISTANT, AZURE_DEPLOYMENT_NAME_EMBEDDINGS
 
-load_dotenv()
+template = """
+По данному тексту ответь на вопрос. Если для ответа на вопрос не хватает информации, напиши: Нет.
+
+Вопрос:
+{query}
+
+Текст:
+{text}
+"""
 
 
 def get_chain():
     # TODO: попробовать 3.5-instruct
-    llm = ChatOpenAI(temperature=0, model_name=MODEL_NAME, openai_api_base=OPENAI_API_BASE)
-    template = """По данному тексту ответь на вопрос. Если для ответа на вопрос не хватает информации, напиши: Нет.
-
-    Вопрос:
-    {query}
-
-    Текст:
-    {text}"""
+    # llm = ChatOpenAI(
+    #     temperature=0,
+    #     model_name=DB_MODEL_NAME,
+    #     openai_api_base=OPENAI_API_BASE
+    # )
+    llm = AzureChatOpenAI(
+        azure_deployment=AZURE_DEPLOYMENT_NAME_DB_ASSISTANT,
+        temperature=0,
+        verbose=False,
+    )
 
     prompt = PromptTemplate(
         template=template,
@@ -40,7 +48,12 @@ def save_document(storage_filename: str):
 
     loader = PyPDFLoader(str(file_path))
     pages = loader.load_and_split()
-    faiss_index = FAISS.from_documents(pages, OpenAIEmbeddings())
+    faiss_index = FAISS.from_documents(
+        pages,
+        AzureOpenAIEmbeddings(
+            azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
+        ),
+    )
 
     faiss_folder_path = file_folder_path / "faiss"
     faiss_index.save_local(str(faiss_folder_path))
@@ -52,7 +65,10 @@ def search(storage_filename: str, query: str):
 
     faiss_index = FAISS.load_local(
         str(faiss_folder_path),
-        OpenAIEmbeddings()
+        AzureOpenAIEmbeddings(
+            azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
+        ),
+        allow_dangerous_deserialization=True,
     )
     doc = faiss_index.similarity_search(query, k=1)
     return doc[0]
@@ -69,13 +85,5 @@ def query(source_id: str, query: str):
 
 
 def delete_document(source_id: str):
-    chain = get_chain()
-    store_file_path = get_store_file_path(source_id)
+    store_file_path = get_file_folder_path(source_id)
     shutil.rmtree(store_file_path)
-
-
-if __name__ == "__main__":
-    save_document(
-        "Dog23012023_BI_3D_ispr_prava",
-        "https://jkhlwowgrekoqgvfruhq.supabase.co/storage/v1/object/public/files/Dog23012023_BI_3D_ispr_prava.pdf"
-    )

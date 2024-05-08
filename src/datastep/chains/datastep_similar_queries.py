@@ -1,17 +1,15 @@
-import os
-
+from datastep.components.sql_database import DatastepSqlDatabase
 from langchain.chains import LLMChain
 from langchain.prompts.prompt import PromptTemplate
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import AzureChatOpenAI
 
-from datastep.components.datastep_sql_database import DatastepSqlDatabase
-from infra.env import OPENAI_API_BASE
+from infra.env import AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES
 from util.logger import async_log
 
 similar_queries_template = """По данной схеме таблицы и составь 4 похожих вопроса на данный.
 
 Вопрос:
-{input}
+{query}
 
 Схема таблицы:
 {table_info}
@@ -23,13 +21,18 @@ similar_queries_template = """По данной схеме таблицы и с�
 def get_chain():
     similar_queries_prompt = PromptTemplate(
         template=similar_queries_template,
-        input_variables=["table_info", "input"]
+        input_variables=["query", "table_info"]
     )
-    llm = ChatOpenAI(
+    # llm = ChatOpenAI(
+    #     model_name=SIMILAR_QUERIES_MODEL_NAME,
+    #     openai_api_base=OPENAI_API_BASE,
+    #     temperature=0.8,
+    #     verbose=False,
+    # )
+    llm = AzureChatOpenAI(
+        azure_deployment=AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES,
         temperature=0.8,
         verbose=False,
-        model_name="gpt-3.5-turbo",
-        openai_api_base=OPENAI_API_BASE
     )
     similar_queries_chain = LLMChain(llm=llm, prompt=similar_queries_prompt, verbose=False)
     return similar_queries_chain
@@ -40,13 +43,13 @@ def parse_similar_queries(similar_queries: str) -> list[str]:
 
 
 @async_log("Генерация похожих вопросов")
-async def generate_similar_queries(input: str, database: DatastepSqlDatabase, turn_on: bool) -> list[str]:
+async def generate_similar_queries(query: str, database: DatastepSqlDatabase, turn_on: bool) -> list[str]:
     if not turn_on:
         return []
 
     similar_queries_chain = get_chain()
     response = await similar_queries_chain.arun(
-        input=input,
+        query=query,
         table_info=database.database.get_table_info()
     )
 
