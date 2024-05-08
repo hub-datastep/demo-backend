@@ -28,6 +28,15 @@ def get_nomenclature_mappings(
 
     Returns:
         list[MappingNomenclaturesResultRead]: Список результатов сопоставления.
+        - ready_count (int): То, сколько номенклатур уже смаппилось.
+        - total_count (int): То, сколько всего номенклатур нужно смаппить.
+        - nomenclatures (list): Итоги маппинга
+        -- nomenclature (str): Название исходной номенклатуры
+        -- group (str): Найденная группа для исходной номенклатуры
+        -- mappings (list): Варианты похожих номенклатур
+        ---- nomenclature (str): Смаппленная номенклатура
+        ---- similarity_score (float): Расстояние между векторами (от 0 до 1).
+        Чем меньше значение, тем более похожи номенклатуры (0 - значит они идентичны).
     """
     return nomenclature_model.get_all_jobs(job_id)
 
