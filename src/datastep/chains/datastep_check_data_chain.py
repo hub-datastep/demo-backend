@@ -1,13 +1,11 @@
-import os
 import re
 
 from langchain.chains import LLMChain
 from langchain.prompts.prompt import PromptTemplate
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import AzureChatOpenAI
 
-from datastep.components.datastep_sql_database import DatastepSqlDatabase
-from infra.ai_model import MODEL_NAME
-from infra.env import OPENAI_API_BASE
+from datastep.components.sql_database import DatastepSqlDatabase
+from infra.env import AZURE_DEPLOYMENT_NAME_DB_ASSISTANT
 from util.logger import async_log
 
 check_data_template = """Пройди все шаги по порядку.
@@ -15,7 +13,7 @@ check_data_template = """Пройди все шаги по порядку.
 Шаг 1:
 Напиши, какие типы данных нужны для ответа на этот вопрос? Например, география, физические свойства, числовые значения и так далее. Приведи примеры из вопроса
 
-Вопрос: {input}
+Вопрос: {query}
 
 Используй формат:
 Тип данных:
@@ -78,9 +76,19 @@ alternative_queries:
 def get_chain():
     check_data_prompt = PromptTemplate(
         template=check_data_template,
-        input_variables=["table_info", "input"]
+        input_variables=["query", "table_info"]
     )
-    llm = ChatOpenAI(temperature=0, verbose=True, model_name=MODEL_NAME, openai_api_base=OPENAI_API_BASE)
+    # llm = ChatOpenAI(
+    #     model_name=DB_MODEL_NAME,
+    #     openai_api_base=OPENAI_API_BASE,
+    #     temperature=0,
+    #     verbose=True,
+    # )
+    llm = AzureChatOpenAI(
+        azure_deployment=AZURE_DEPLOYMENT_NAME_DB_ASSISTANT,
+        temperature=0,
+        verbose=True,
+    )
     check_data_chain = LLMChain(llm=llm, prompt=check_data_prompt, verbose=False)
     return check_data_chain
 
@@ -103,13 +111,13 @@ def parse_alternative_queries(alternative_queries) -> list[str]:
 
 
 @async_log("Проверка, есть ли в базе нужная для ответа информация")
-async def check_data(input: str, database: DatastepSqlDatabase, turn_on: bool) -> tuple[str, str, list[str]]:
+async def check_data(query: str, database: DatastepSqlDatabase, turn_on: bool) -> tuple[str, str, list[str]]:
     if not turn_on:
         return "", "", []
 
     check_data_chain = get_chain()
     response = await check_data_chain.arun(
-        input=input,
+        query=query,
         table_info=database.database.get_table_info()
     )
 
