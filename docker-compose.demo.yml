@@ -16,8 +16,8 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_API_BASE=${OPENAI_API_BASE}
+#      - OPENAI_API_KEY=${OPENAI_API_KEY}
+#      - OPENAI_API_BASE=${OPENAI_API_BASE}
 
       - AZURE_DEPLOYMENT_NAME_DB_ASSISTANT=${AZURE_DEPLOYMENT_NAME_DB_ASSISTANT}
       - AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES=${AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES}
@@ -56,8 +56,8 @@ services:
     container_name: rq-worker
     command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379 mapping_nomenclatures sync_nomenclatures retrain_classifier classification documents
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_API_BASE=${OPENAI_API_BASE}
+#      - OPENAI_API_KEY=${OPENAI_API_KEY}
+#      - OPENAI_API_BASE=${OPENAI_API_BASE}
 
       - AZURE_DEPLOYMENT_NAME_DB_ASSISTANT=${AZURE_DEPLOYMENT_NAME_DB_ASSISTANT}
       - AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES=${AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES}
