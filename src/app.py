@@ -17,7 +17,6 @@ from controller.multi_classifier import multi_classifier_controller
 from controller.nomenclature import nomenclature_controller
 from controller.prediction import prediction_controller
 from controller.user import user_controller, auth_controller, tenant_controller, mode_controller, prompt_controller
-from infra.env import FRONTEND_HOST
 
 load_dotenv()
 
@@ -58,7 +57,6 @@ app = VersionedFastAPI(
     middleware=[
         Middleware(
             CORSMiddleware,
-            # allow_origins=[FRONTEND_HOST],
             allow_origins=["*"],
             allow_methods=["POST", "GET", "PUT", "DELETE"],
             allow_headers=["*"],
