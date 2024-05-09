@@ -1,4 +1,4 @@
-name: Docker Build CI
+name: 🚀 Deploy to Demostand
 
 on:
   push:
