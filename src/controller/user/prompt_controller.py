@@ -11,15 +11,15 @@ from scheme.user_scheme import UserRead
 router = APIRouter()
 
 
-@router.get("", response_model=PromptRead)
+@router.get("/active", response_model=PromptRead | None)
 @version(1)
-def get_prompt_by_tenant_id(
+def get_active_tenant_prompt(
     *,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
     user_tenant_id = current_user.tenants[0].id
-    return prompt_repository.get_prompt_by_tenant_id(session, user_tenant_id)
+    return prompt_repository.get_active_tenant_prompt(session, user_tenant_id)
 
 
 @router.get("/tables")

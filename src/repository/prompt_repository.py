@@ -5,10 +5,18 @@ from scheme.prompt_scheme import PromptCreate, Prompt, PromptUpdate
 from scheme.tenant_scheme import Tenant
 
 
-def get_prompt_by_tenant_id(session: Session, tenant_id: int) -> Prompt:
-    st = select(Prompt).where(Prompt.tenant_id == tenant_id)
+def get_active_tenant_prompt(session: Session, tenant_id: int) -> Prompt | None:
+    st = select(Prompt).where(Prompt.tenant_id == tenant_id).where(Prompt.is_active)
     prompt = session.exec(st).first()
     return prompt
+
+
+def get_tenant_tables(session: Session, tenant_id: int) -> list[str]:
+    statement = select(Prompt.table).distinct().where(Prompt.tenant_id == tenant_id)
+    result = session.exec(statement)
+    tenant_tables = result.all()
+
+    return list(tenant_tables)
 
 
 def create_prompt(session: Session, prompt: PromptCreate) -> Prompt:
@@ -20,14 +28,6 @@ def create_prompt(session: Session, prompt: PromptCreate) -> Prompt:
     session.add(prompt_db)
     session.commit()
     return prompt_db
-
-
-def get_tenant_tables(session: Session, tenant_id: int) -> list[str]:
-    statement = select(Prompt.table).distinct().where(Prompt.tenant_id == tenant_id)
-    result = session.exec(statement)
-    tenant_tables = result.all()
-
-    return list(tenant_tables)
 
 
 def update_prompt(session: Session, prompt_id: int, new_prompt: PromptUpdate) -> Prompt:
