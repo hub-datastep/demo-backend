@@ -1,34 +1,38 @@
 import ast
 import json
-import os
 
 import joblib
 import numpy as np
-import pandas as pd
 from chromadb import HttpClient, QueryResult
 from fastembed.embedding import FlagEmbedding
+from pandas import read_sql, DataFrame
 from redis import Redis
 from rq import get_current_job
 from rq.job import Job, JobStatus
-from rq.queue import Queue
 from tqdm import tqdm
 
-from scheme.nomenclature_scheme import NomenclaturesUpload, OneNomenclatureRead, OneNomenclatureUpload, \
-    NomenclaturesRead, JobIdRead
+from exception.noms_in_chroma_not_found_exception import NomsInChromaNotFoundException
+from infra.env import REDIS_HOST, REDIS_PASSWORD, CHROMA_PORT, CHROMA_HOST, DB_CONNECTION_STRING, DATA_FOLDER_PATH
+from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
+from scheme.nomenclature_scheme import MappingNomenclaturesUpload, MappingOneNomenclatureRead, \
+    MappingOneNomenclatureUpload, \
+    MappingNomenclaturesResultRead, JobIdRead
+from util.normalize_name import normalize_name
 
 tqdm.pandas()
 np.set_printoptions(threshold=np.inf)
 
 
-def map_on_group(noms: pd.DataFrame) -> list:
-    model = joblib.load(f"{os.getenv('DATA_FOLDER_PATH')}/linear_svc_model_141223.pkl")
-    count_vect = joblib.load(f"{os.getenv('DATA_FOLDER_PATH')}/vectorizer_141223.pkl")
-    return model.predict(count_vect.transform(noms["nomenclature"]))
+def map_on_group(noms: DataFrame, model_id: str) -> list:
+    model = joblib.load(f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl")
+    count_vect = joblib.load(f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl")
+    # return model.predict(count_vect.transform(noms["nomenclature"]))
+    return model.predict(count_vect.transform(noms['normalized']))
 
 
-def map_on_nom(nom_embeddings: np.ndarray, group: str, most_similar_count: int):
-    chroma = HttpClient(host=os.getenv("CHROMA_HOST"), port=os.getenv("CHROMA_PORT"))
-    collection = chroma.get_collection(name="nomenclature")
+def map_on_nom(nom_embeddings: np.ndarray, group: str, most_similar_count: int, chroma_collection_name: str):
+    chroma = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+    collection = chroma.get_collection(name=chroma_collection_name)
 
     nom_embeddings = nom_embeddings.tolist()
     response: QueryResult = collection.query(
@@ -37,8 +41,15 @@ def map_on_nom(nom_embeddings: np.ndarray, group: str, most_similar_count: int):
         where={"group": group}
     )
 
+    found_noms_count = len(response["ids"][0])
+
+    if found_noms_count == 0:
+        raise NomsInChromaNotFoundException(
+            f"В коллекции Chroma {chroma_collection_name} нет номенклатур, принадлежащих группе {group}."
+        )
+
     mapped_noms = []
-    for i in range(most_similar_count):
+    for i in range(len(response["ids"][0])):
         mapped_noms.append({
             "nomenclature_guid": response["ids"][0][i],
             "nomenclature": response["documents"][0][i],
@@ -48,26 +59,20 @@ def map_on_nom(nom_embeddings: np.ndarray, group: str, most_similar_count: int):
     return mapped_noms
 
 
-def parse_txt_file(nomenclatures: list[OneNomenclatureUpload]) -> pd.DataFrame:
-    nomenclatures_as_json = [n.dict().values() for n in nomenclatures]
-    return pd.DataFrame(nomenclatures_as_json, columns=["row_number", "nomenclature"])
+def parse_txt_file(nomenclatures: list[MappingOneNomenclatureUpload]) -> DataFrame:
+    nomenclatures_as_json = [nom.dict().values() for nom in nomenclatures]
+    return DataFrame(nomenclatures_as_json, columns=["row_number", "nomenclature"])
 
 
-def get_nom_candidates(groups: list[str]) -> pd.DataFrame:
+def get_nom_candidates(groups: list[str]) -> DataFrame:
     groups_str = ", ".join([f"'{g}'" for g in groups])
-    candidates = pd.read_sql(
+    candidates = read_sql(
         f'SELECT * FROM nomenclature WHERE "group" in ({groups_str})',
-        os.getenv("DB_CONNECTION_STRING")
+        DB_CONNECTION_STRING
     )
     candidates = candidates.replace({np.nan: "[]"})
     candidates.embeddings = candidates.embeddings.progress_apply(ast.literal_eval).progress_apply(np.array)
     return candidates
-
-
-# def enhance_db_noms_with_embeddings(db: pd.DataFrame, candidates: pd.DataFrame):
-#     c = candidates.copy()
-#     c.embeddings = c.embeddings.progress_apply(lambda x: np.array2string(x, separator=","))
-#     db.update(c)
 
 
 def get_embeddings(strings: list[str]) -> list[np.ndarray]:
@@ -80,93 +85,109 @@ def get_embeddings(strings: list[str]) -> list[np.ndarray]:
 
 
 def nomenclature_segments(
-    nomenclatures: list[OneNomenclatureUpload],
+    nomenclatures: list[MappingOneNomenclatureUpload],
     segment_length: int = 100
-) -> list[list[OneNomenclatureUpload]]:
+) -> list[list[MappingOneNomenclatureUpload]]:
     # https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
     for i in range(0, len(nomenclatures), segment_length):
         yield nomenclatures[i:i + segment_length]
 
 
 def create_job(
-    nomenclatures: list[OneNomenclatureUpload],
+    nomenclatures: list[MappingOneNomenclatureUpload],
     previous_job_id: str | None,
-    most_similar_count: int
+    most_similar_count: int,
+    chroma_collection_name: str,
+    model_id: str,
 ) -> JobIdRead:
-    redis = Redis(host=os.getenv("REDIS_HOST"), password=os.getenv("REDIS_PASSWORD"))
-    queue = Queue(name="nomenclature", connection=redis)
+    queue = get_redis_queue(name=QueueName.MAPPING)
     job = queue.enqueue(
         process,
         nomenclatures,
         most_similar_count,
+        chroma_collection_name,
+        model_id,
         meta={
             "previous_nomenclature_id": previous_job_id
         },
         result_ttl=-1,
-        job_timeout=3600 * 24
+        job_timeout=MAX_JOB_TIMEOUT
     )
     return JobIdRead(job_id=job.id)
 
 
-def start_mapping(nomenclatures: NomenclaturesUpload) -> JobIdRead:
+def start_mapping(nomenclatures: MappingNomenclaturesUpload, model_id: str) -> JobIdRead:
     nomenclatures_list = nomenclatures.nomenclatures
     most_similar_count = nomenclatures.most_similar_count
+    chroma_collection_name = nomenclatures.chroma_collection_name
 
     last_job_id = None
     for segment in nomenclature_segments(nomenclatures_list, segment_length=nomenclatures.job_size):
         job = create_job(
             nomenclatures=segment,
             previous_job_id=last_job_id,
-            most_similar_count=most_similar_count
+            most_similar_count=most_similar_count,
+            chroma_collection_name=chroma_collection_name,
+            model_id=model_id
         )
         last_job_id = job.job_id
 
     return JobIdRead(job_id=last_job_id)
 
 
-def process(nomenclatures: list[OneNomenclatureUpload], most_similar_count: int, use_jobs: bool = True):
+def process(
+    nomenclatures: list[MappingOneNomenclatureUpload],
+    most_similar_count: int,
+    chroma_collection_name: str,
+    model_id: str,
+    use_jobs: bool = True
+):
     if use_jobs:
         job = get_current_job()
 
-    noms: pd.DataFrame = parse_txt_file(nomenclatures)
+    noms: DataFrame = parse_txt_file(nomenclatures)
 
     if use_jobs:
         job.meta["total_count"] = len(noms)
         job.meta["ready_count"] = 0
         job.save_meta()
 
-    noms["group"] = map_on_group(noms)
-    noms["mappings"] = None
+    noms['normalized'] = noms['nomenclature'].progress_apply(
+        lambda nom: normalize_name(nom)
+    )
 
-    # enhance_db_noms_with_embeddings(db, candidates)
+    noms['group'] = map_on_group(noms, model_id)
+    noms['mappings'] = None
 
-    noms["embeddings"] = get_embeddings(noms.nomenclature.to_list())
+    noms['embeddings'] = get_embeddings(noms.nomenclature.to_list())
 
-    with tqdm(total=len(noms)) as pbar:
-        for i, nom in noms.iterrows():
-            nom.mappings = map_on_nom(nom.embeddings, nom.group, most_similar_count)
-            noms.loc[i] = nom
-            if use_jobs:
-                job.meta["ready_count"] += 1
-                job.save_meta()
-            pbar.update()
+    for i, nom in tqdm(noms.iterrows()):
+        try:
+            nom.mappings = map_on_nom(nom.embeddings, nom.group, most_similar_count, chroma_collection_name)
+        except NomsInChromaNotFoundException:
+            pass
+        noms.loc[i] = nom
+        if use_jobs:
+            job.meta['ready_count'] += 1
+            job.save_meta()
 
     if use_jobs:
-        job.meta["status"] = "finished"
+        job.meta['status'] = "finished"
         job.save_meta()
+
     return noms.to_json(orient="records", force_ascii=False)
 
 
-def get_jobs_from_rq(nomenclature_id: str) -> list[NomenclaturesRead]:
-    redis = Redis(host=os.getenv("REDIS_HOST"), password=os.getenv("REDIS_PASSWORD"))
-    jobs_list: list[NomenclaturesRead] = []
+def get_jobs_from_rq(nomenclature_id: str) -> list[MappingNomenclaturesResultRead]:
+    redis = Redis(host=REDIS_HOST, password=REDIS_PASSWORD)
+    jobs_list: list[MappingNomenclaturesResultRead] = []
 
     prev_job_id = nomenclature_id
     while prev_job_id is not None:
         job = Job.fetch(prev_job_id, connection=redis)
         job_meta = job.get_meta(refresh=True)
         job_status = job.get_status(refresh=True)
-        job_result = NomenclaturesRead(
+        job_result = MappingNomenclaturesResultRead(
             job_id=job.id,
             ready_count=job_meta.get("ready_count", None),
             total_count=job_meta.get("total_count", None),
@@ -177,46 +198,14 @@ def get_jobs_from_rq(nomenclature_id: str) -> list[NomenclaturesRead]:
         if job_status == JobStatus.FINISHED:
             result_json = job.return_value()
             result_dict = json.loads(result_json)
-            job_result.nomenclatures = [OneNomenclatureRead(**d) for d in result_dict]
+            job_result.nomenclatures = [MappingOneNomenclatureRead(**d) for d in result_dict]
 
         jobs_list.append(job_result)
-        prev_job_id = job_meta["previous_nomenclature_id"]
+        prev_job_id = job_meta['previous_nomenclature_id']
 
     return jobs_list
 
 
-def get_all_jobs(nomenclature_id: str) -> list[NomenclaturesRead]:
+def get_all_jobs(nomenclature_id: str) -> list[MappingNomenclaturesResultRead]:
     jobs_from_rq = get_jobs_from_rq(nomenclature_id)
     return jobs_from_rq
-
-
-if __name__ == "__main__":
-    # from dotenv import load_dotenv
-    #
-    # load_dotenv()
-    # FlagEmbedding(
-    #     model_name="intfloat/multilingual-e5-large"
-    # )
-    noms = [
-        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой АВВГнг(А)-LS 4х120мс(N)-1 ТРТС"),
-        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
-        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
-        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
-        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
-        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
-        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
-        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
-        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский"),
-        OneNomenclatureUpload(row_number=1, nomenclature="Кабель силовой ВВГнг(А)-LS 3х1.5-0,660 плоский")
-    ]
-    result = process(noms, most_similar_count=2, use_jobs=False)
-    print(result)
-    # for open("file.txt", "w") as f:
-    #     f.write(result)
-    # print(result, encoding)
-    # pprint.pprint(result)
-    # print(get_all_jobs(nomenclature_id))
-    # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-    #     print(res)
-
-    pass

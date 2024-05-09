@@ -19,4 +19,6 @@ def create_or_update_mark(
     session: Session = Depends(get_session),
     mark: MarkCreate
 ):
+    """
+    """
     return mark_repository.create_or_update_mark(session, mark)

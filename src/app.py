@@ -1,4 +1,3 @@
-import os
 import traceback
 from pathlib import Path
 
@@ -12,14 +11,14 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
-load_dotenv()
-
+from controller.chat import message_controller, chat_controller
+from controller.file import file_controller, task_controller
+from controller.multi_classifier import multi_classifier_controller
 from controller.nomenclature import nomenclature_controller
-from controller.file import file_controller
 from controller.prediction import prediction_controller
 from controller.user import user_controller, auth_controller, tenant_controller, mode_controller, prompt_controller
-from controller.chat import message_controller, chat_controller
 
+load_dotenv()
 
 app = FastAPI()
 
@@ -36,9 +35,8 @@ app.include_router(message_controller.router, tags=["message"], prefix="/message
 app.include_router(prediction_controller.router, tags=["prediction"])
 app.include_router(nomenclature_controller.router, tags=["nomenclature"], prefix="/nomenclature")
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
-
-
-# app.include_router(task_controller.router, tags=["task"], prefix="/task")
+app.include_router(multi_classifier_controller.router, tags=["multi_classifier"], prefix="/multi_classifier")
+app.include_router(task_controller.router, tags=["task"], prefix="/task")
 
 
 @app.middleware("http")
@@ -59,14 +57,15 @@ app = VersionedFastAPI(
     middleware=[
         Middleware(
             CORSMiddleware,
-            allow_origins=[os.getenv("FRONTEND_HOST")],
+            allow_origins=["*"],
             allow_methods=["POST", "GET", "PUT", "DELETE"],
             allow_headers=["*"],
         )
     ]
 )
 
-# app.include_router(task_websocket_controller.router, tags=["task"], prefix="/task/ws")
+# Built docs dir
+app.mount("/mkdocs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True), name="mkdocs")
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"), name="static")
 
 

@@ -19,6 +19,8 @@ def create_user(
     session: Session = Depends(get_session),
     user: UserCreate
 ):
+    """
+    """
     return user_repository.create_user(session, user)
 
 
@@ -39,5 +41,7 @@ def get_current_user(
     *,
     current_user: User = Depends(get_current_user)
 ):
+    """
+    """
     print(current_user)
     return current_user

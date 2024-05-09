@@ -19,6 +19,8 @@ def get_chat(
     session: Session = Depends(get_session),
     user_id: int
 ):
+    """
+    """
     return chat_repository.get_chat_by_user_id(session, user_id)
 
 
@@ -30,4 +32,6 @@ def create_chat(
     session: Session = Depends(get_session),
     chat: ChatCreate
 ):
+    """
+    """
     return chat_repository.create_chat(session, chat)

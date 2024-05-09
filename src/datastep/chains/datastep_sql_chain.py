@@ -1,13 +1,13 @@
 import datetime
-import os
 import re
 
 from langchain.chains import LLMChain
 from langchain.prompts.prompt import PromptTemplate
-from langchain_community.chat_models import ChatOpenAI
 from langchain_community.utilities import SQLDatabase
+from langchain_openai import AzureChatOpenAI
 
-from datastep.datastep_chains.datastep_sql2text_chain import describe_sql
+from datastep.chains.datastep_sql2text_chain import describe_sql
+from infra.env import AZURE_DEPLOYMENT_NAME_DB_ASSISTANT
 from util.logger import async_log
 
 datastep_sql_chain_template = """
@@ -18,7 +18,7 @@ Write down how you can change some words in the question so that it is interpret
 Pay attention that some words can be perceived differently, Get rid of such ambiguity.
 Show the corrected question and remember it.
 
-Question: {input}
+Question: {query}
 
 
 Step 2:
@@ -45,32 +45,38 @@ class DatastepSqlChain:
         self,
         prompt_template: str,
         sql_database: SQLDatabase,
-        temperature: int = 0,
-        verbose: bool = False
     ):
         self.sql_database = sql_database
 
-        llm = ChatOpenAI(
-            temperature=temperature,
-            verbose=verbose,
-            model_name="gpt-4",
-            openai_api_base=os.getenv("OPENAI_API_BASE")
+        # llm = ChatOpenAI(
+        #     openai_api_base=OPENAI_API_BASE,
+        #     model_name=MODEL_NAME,
+        #     temperature=temperature,
+        #     verbose=verbose,
+        # )
+        llm = AzureChatOpenAI(
+            azure_deployment=AZURE_DEPLOYMENT_NAME_DB_ASSISTANT,
+            temperature=0,
+            verbose=False,
         )
 
         datastep_sql_chain_prompt = PromptTemplate(
             template=prompt_template,
-            input_variables=["input", "table_info", "current_date", "limit"]
+            input_variables=["query", "table_info", "current_date", "limit"]
         )
 
-        db_chain = LLMChain(llm=llm, prompt=datastep_sql_chain_prompt, verbose=verbose)
+        db_chain = LLMChain(
+            llm=llm,
+            prompt=datastep_sql_chain_prompt,
+        )
 
         self.chain = db_chain
 
     @async_log("Генерация SQL")
-    async def run(self, input: str, limit: int, is_sql_description: bool) -> (str, str):
+    async def run(self, query: str, limit: int, is_sql_description: bool) -> (str, str):
         table_info = self.sql_database.get_table_info()
         response = await self.chain.arun(
-            input=input,
+            query=query,
             table_info=table_info,
             current_date=str(datetime.date.today()),
             limit=limit

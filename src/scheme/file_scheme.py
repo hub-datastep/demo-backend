@@ -19,3 +19,8 @@ class FileCreate(FileBase):
 
 class FileRead(FileBase):
     id: int
+
+
+class DataExtract(SQLModel):
+    nomenclature: str
+    file_metadata: dict[str, str]

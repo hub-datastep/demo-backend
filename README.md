@@ -1,5 +1,3 @@
-# Backend for data-step.com
-
 ## Run in Docker
 Create .env file in the root of the project and fill it with secrets. 
 

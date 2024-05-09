@@ -19,6 +19,8 @@ def create_tenant(
     session: Session = Depends(get_session),
     tenant: TenantCreate
 ):
+    """
+    """
     return tenant_repository.create_tenant(session, tenant)
 
 

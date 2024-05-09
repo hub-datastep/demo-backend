@@ -18,4 +18,6 @@ def get_prediction(
     body: QueryDto
     # current_user: UserDto = Depends(AuthService.get_current_user)
 ):
+    """
+    """
     return datastep_pdf_model.get_prediction(body.filename, body.query)
