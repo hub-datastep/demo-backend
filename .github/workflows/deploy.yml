@@ -26,15 +26,6 @@ jobs:
             cd demo-backend
             git checkout main
             git pull
-            
-            echo "Build db_diagram"
-            [ -d "./mermerd/" ] && rm -r ./mermerd
-            curl -L https://github.com/KarnerTh/mermerd/releases/download/v0.10.0/mermerd_0.10.0_linux_amd64.tar.gz \
-            -o mermerd_0.10.0_linux_arm64.tar.gz
-            mkdir mermerd
-            tar -xzvf mermerd_0.10.0_linux_arm64.tar.gz -C mermerd
-            mermerd/mermerd -c ${{ secrets.DB_CONNECTION_STRING }} -o docs/db_diagram.md -s public \
-            --useAllTables --encloseWithMermaidBackticks
 
             echo "Stop containers"
             docker-compose stop backend rq-worker
