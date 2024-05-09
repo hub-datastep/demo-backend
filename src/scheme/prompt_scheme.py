@@ -2,6 +2,8 @@ from datetime import datetime
 
 from sqlmodel import SQLModel, Field, Relationship
 
+from scheme.tenant_scheme import Tenant
+
 
 class PromptBase(SQLModel):
     prompt: str
@@ -28,6 +30,3 @@ class PromptUpdate(PromptBase):
 
 class PromptRead(PromptBase):
     id: int
-
-
-from scheme.tenant_scheme import Tenant
