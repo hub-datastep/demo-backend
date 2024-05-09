@@ -1,7 +1,7 @@
 version: "3"
 
 services:
-  backend:
+  datastep-backend:
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -39,7 +39,7 @@ services:
     volumes:
       - server:${DATA_FOLDER_PATH}
 
-  redis-server:
+  datastep-redis-server:
     image: redis/redis-stack-server
     restart: always
     container_name: redis-server
@@ -49,7 +49,7 @@ services:
     volumes:
       - redis-server:${DATA_FOLDER_PATH}
 
-  rq-worker:
+  datastep-rq-worker:
     image: datastep_backend
     restart: always
     container_name: rq-worker
@@ -79,7 +79,7 @@ services:
     volumes:
       - server:${DATA_FOLDER_PATH}
 
-  db:
+  datastep-db:
     image: postgres
     restart: always
     container_name: db
@@ -90,7 +90,7 @@ services:
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
-  dbeaver:
+  datastep-dbeaver:
     image: dbeaver/cloudbeaver
     restart: always
     container_name: dbeaver
@@ -99,7 +99,7 @@ services:
     ports:
       - "8978:8978"
 
-  chroma-db:
+  datastep-chroma-db:
     image: chromadb/chroma
     restart: always
     container_name: chroma-db
@@ -113,7 +113,6 @@ services:
 volumes:
   server:
   redis-server:
-  mssql:
   datastep-db:
   datastep-dbeaver:
   chroma-data:
