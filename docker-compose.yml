@@ -5,7 +5,6 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
-    container_name: backend
     restart: always
     command: bash -c "
       cd /app/src
@@ -42,7 +41,6 @@ services:
   datastep-redis-server:
     image: redis/redis-stack-server
     restart: always
-    container_name: redis-server
     command: bash -c "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}"
     ports:
       - "6379:6379"
@@ -52,7 +50,6 @@ services:
   datastep-rq-worker:
     image: datastep_backend
     restart: always
-    container_name: rq-worker
     command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379 mapping_nomenclatures sync_nomenclatures retrain_classifier classification documents
     environment:
       #      - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -82,7 +79,6 @@ services:
   datastep-db:
     image: postgres
     restart: always
-    container_name: db
     ports:
       - "5432:5432"
     volumes:
@@ -93,7 +89,6 @@ services:
   datastep-dbeaver:
     image: dbeaver/cloudbeaver
     restart: always
-    container_name: dbeaver
     volumes:
       - datastep-dbeaver:/opt/cloudbeaver/workspace
     ports:
@@ -102,7 +97,6 @@ services:
   datastep-chroma-db:
     image: chromadb/chroma
     restart: always
-    container_name: chroma-db
     environment:
       - IS_PERSISTENT=TRUE
     volumes:
