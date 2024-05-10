@@ -6,7 +6,7 @@ on:
 
 jobs:
 
-  pull_and_deploy:
+  deploy_to_demostand:
     name: Update server by ssh
     runs-on: ubuntu-latest
     steps:
@@ -27,7 +27,7 @@ jobs:
             git pull
 
             echo "Stop containers"
-            docker-compose down
+            docker-compose stop
 
             echo "Build new containers"
             docker-compose build
