@@ -27,10 +27,10 @@ jobs:
             git pull
 
             echo "Stop containers"
-            docker-compose stop datastep-backend datastep-rq-worker
+            docker-compose stop backend rq-worker
 
             echo "Build new containers"
-            docker-compose build datastep-backend datastep-rq-worker
+            docker-compose build backend rq-worker
 
             echo "Run new containers"
-            docker-compose up -d datastep-backend datastep-rq-worker
+            docker-compose up -d backend rq-worker
