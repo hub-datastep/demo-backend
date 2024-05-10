@@ -22,8 +22,7 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           script_stop: true
           script: |
-            cd datastep-demo
-            cd demo-backend
+            cd ~/datastep-demo/demo-backend/
             git checkout main
             git pull
 
@@ -34,4 +33,4 @@ jobs:
             docker-compose build datastep-backend datastep-rq-worker
 
             echo "Run new containers"
-            docker-compose up -d --build datastep-backend datastep-rq-worker
+            docker-compose up -d datastep-backend datastep-rq-worker

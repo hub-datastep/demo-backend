@@ -1,7 +1,7 @@
 version: "3"
 
 services:
-  datastep-backend:
+  backend:
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -38,7 +38,7 @@ services:
     volumes:
       - server:${DATA_FOLDER_PATH}
 
-  datastep-redis-server:
+  redis-server:
     image: redis/redis-stack-server
     restart: always
     command: bash -c "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}"
@@ -47,8 +47,8 @@ services:
     volumes:
       - redis-server:${DATA_FOLDER_PATH}
 
-  datastep-rq-worker:
-    image: datastep-backend
+  rq-worker:
+    image: datastep_backend
     restart: always
     command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379 mapping_nomenclatures sync_nomenclatures retrain_classifier classification documents
     environment:
@@ -76,7 +76,7 @@ services:
     volumes:
       - server:${DATA_FOLDER_PATH}
 
-  datastep-db:
+  db:
     image: postgres
     restart: always
     ports:
@@ -86,7 +86,7 @@ services:
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
-  datastep-dbeaver:
+  dbeaver:
     image: dbeaver/cloudbeaver
     restart: always
     volumes:
@@ -94,7 +94,7 @@ services:
     ports:
       - "8978:8978"
 
-  datastep-chroma-db:
+  chroma-db:
     image: chromadb/chroma
     restart: always
     environment:
