@@ -12,7 +12,7 @@ services:
       && cd /
       && python3 /app/src/app.py"
     ports:
-      - "8080:8080"
+      - "8090:8080"
     environment:
       #      - OPENAI_API_KEY=${OPENAI_API_KEY}
       #      - OPENAI_API_BASE=${OPENAI_API_BASE}
@@ -43,7 +43,7 @@ services:
     restart: always
     command: bash -c "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}"
     ports:
-      - "6379:6379"
+      - "6389:6379"
     volumes:
       - redis-server:${DATA_FOLDER_PATH}
 
@@ -80,7 +80,7 @@ services:
     image: postgres
     restart: always
     ports:
-      - "5432:5432"
+      - "5442:5432"
     volumes:
       - datastep-db:/var/lib/postgresql/data
     environment:
@@ -92,7 +92,7 @@ services:
     volumes:
       - datastep-dbeaver:/opt/cloudbeaver/workspace
     ports:
-      - "8978:8978"
+      - "8988:8978"
 
   chroma-db:
     image: chromadb/chroma
@@ -102,7 +102,7 @@ services:
     volumes:
       - chroma-data:/chroma/chroma/
     ports:
-      - "8001:8000"
+      - "8011:8000"
 
 volumes:
   server:
