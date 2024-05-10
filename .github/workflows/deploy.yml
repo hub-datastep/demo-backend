@@ -27,10 +27,10 @@ jobs:
             git pull
 
             echo "Stop containers"
-            docker-compose stop backend rq-worker
+            docker-compose down
 
             echo "Build new containers"
-            docker-compose build backend rq-worker
+            docker-compose build
 
             echo "Run new containers"
-            docker-compose up -d backend rq-worker
+            docker-compose up -d
