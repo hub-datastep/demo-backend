@@ -199,9 +199,9 @@ def save_document(storage_filename: str):
     if not docs_folder_path.is_dir():
         save_store(storage_filename, docs, doc_ids)
 
-    chroma_folder_path = Path(f"{multivector_folder_path}/chroma")
-    if not chroma_folder_path.is_dir():
-        save_chroma(storage_filename, docs, doc_ids)
+    # chroma_folder_path = Path(f"{multivector_folder_path}/chroma")
+    # if not chroma_folder_path.is_dir():
+    #     save_chroma(storage_filename, docs, doc_ids)
 
 
 def query(source_id, query):
