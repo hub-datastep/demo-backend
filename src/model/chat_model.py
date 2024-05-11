@@ -5,13 +5,13 @@ from repository import chat_repository
 from scheme.chat_scheme import Chat
 
 
-def get_chat_by_user_id(session: Session, user_id: int) -> Chat | None:
-    chat_db = chat_repository.get_chat_by_user_id(session, user_id)
+def get_chat_by_user_id(session: Session, user_id: int, mode_id: int) -> Chat | None:
+    chat = chat_repository.get_chat_by_user_id(session, user_id, mode_id)
 
-    if not chat_db:
+    if not chat:
         raise HTTPException(
             status_code=404,
             detail=f"Chat with user_id {user_id} not found.",
         )
 
-    return chat_db
+    return chat

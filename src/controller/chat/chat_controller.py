@@ -12,17 +12,18 @@ from scheme.user_scheme import UserRead
 router = APIRouter()
 
 
-@router.get("/{user_id}", response_model=ChatRead)
+@router.get("/{user_id}/{mode_id}", response_model=ChatRead)
 @version(1)
 def get_chat(
     *,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-    user_id: int
+    user_id: int,
+    mode_id: int
 ):
     """
     """
-    return chat_model.get_chat_by_user_id(session, user_id)
+    return chat_model.get_chat_by_user_id(session, user_id, mode_id)
 
 
 @router.post("", response_model=ChatRead)
