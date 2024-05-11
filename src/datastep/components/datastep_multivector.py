@@ -1,4 +1,3 @@
-import os
 import uuid
 from pathlib import Path
 
@@ -20,8 +19,18 @@ from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from rq import get_current_job
 from rq.job import Job
 
-from datastep.components.file_path_util import get_file_folder_path
-from infra.env import AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES, AZURE_DEPLOYMENT_NAME_EMBEDDINGS, DATA_FOLDER_PATH
+from infra.env import AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES, AZURE_DEPLOYMENT_NAME_EMBEDDINGS
+from util.files_paths import get_file_folder_path
+
+MULTIVECTOR_PROMPT_TEMPLATE = """
+Use the following pieces of context to answer the question at the end.
+If you don't know the answer, just say that you don't know, don't try to make up an answer.
+
+{context}
+
+Question: {query}
+Answer in Russian:
+"""
 
 ID_KEY = "doc_id"
 
@@ -103,10 +112,10 @@ def get_docs(file_path: Path):
 
 def get_vectorstore(storage_filename: str):
     file_folder_path = get_file_folder_path(storage_filename)
-    chroma_folder_path = file_folder_path / "multivector" / "chroma"
+    chroma_folder_path = f"{file_folder_path}/multivector/chroma"
 
     return Chroma(
-        persist_directory=str(chroma_folder_path),
+        persist_directory=chroma_folder_path,
         embedding_function=AzureOpenAIEmbeddings(
             azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
         ),
@@ -114,9 +123,8 @@ def get_vectorstore(storage_filename: str):
 
 
 def save_store(storage_filename: str, docs, doc_ids):
-    # Split the original filename into name and extension
-    file_folder_name, _ = os.path.splitext(storage_filename)
-    chroma_folder_path = f"{DATA_FOLDER_PATH}/{file_folder_name}/multivector/documents/"
+    file_folder_path = get_file_folder_path(storage_filename)
+    chroma_folder_path = f"{file_folder_path}/multivector/documents/"
 
     fs = LocalFileStore(chroma_folder_path)
     store = create_kv_docstore(fs)
@@ -124,8 +132,8 @@ def save_store(storage_filename: str, docs, doc_ids):
 
 
 def get_store(storage_filename: str):
-    file_folder_name, _ = os.path.splitext(storage_filename)
-    chroma_folder_path = f"{DATA_FOLDER_PATH}/{file_folder_name}/multivector/documents/"
+    file_folder_path = get_file_folder_path(storage_filename)
+    chroma_folder_path = f"{file_folder_path}/multivector/documents/"
 
     fs = LocalFileStore(chroma_folder_path)
     return create_kv_docstore(fs)
@@ -140,25 +148,21 @@ def get_retriever(source_id):
 
 
 def get_retriever_qa(retriever):
-    prompt_template = """Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
-
-    {context}
-
-    Question: {question}
-    Answer in Russian:"""
     prompt = PromptTemplate(
-        template=prompt_template, input_variables=["context", "question"]
+        template=MULTIVECTOR_PROMPT_TEMPLATE,
+        input_variables=["context", "query"],
     )
-    chain_type_kwargs = {"prompt": prompt}
     llm = AzureChatOpenAI(
         azure_deployment=AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES,
         max_retries=6,
         request_timeout=10,
     )
+    chain_type_kwargs = {"prompt": prompt}
     return RetrievalQA.from_chain_type(
         llm=llm,
         chain_type="stuff",
-        retriever=retriever, chain_type_kwargs=chain_type_kwargs,
+        retriever=retriever,
+        chain_type_kwargs=chain_type_kwargs,
         return_source_documents=False
     )
 
@@ -185,34 +189,23 @@ def save_chroma(storage_filename: str, docs, doc_ids):
 
 def save_document(storage_filename: str):
     file_folder_path = get_file_folder_path(storage_filename)
-    chroma_folder_path = file_folder_path / "multivector"
-    file_path = file_folder_path / storage_filename
 
+    file_path = Path(f"{file_folder_path}/{storage_filename}")
     docs = get_docs(file_path)
-
-    # job = get_current_job()
-    # job.meta["progress"] = 0
-    # job.meta["full_work"] = len(docs)
-    # job.save_meta()
-
     doc_ids = get_doc_ids(docs)
 
-    if not os.path.isdir(chroma_folder_path / "documents"):
+    multivector_folder_path = f"{file_folder_path}/multivector"
+    docs_folder_path = Path(f"{multivector_folder_path}/documents")
+    if not docs_folder_path.is_dir():
         save_store(storage_filename, docs, doc_ids)
 
-    # if not os.path.isdir(chroma_folder_path / "chroma"):
-    #     save_chroma(storage_filename, docs, doc_ids)
+    chroma_folder_path = Path(f"{multivector_folder_path}/chroma")
+    if not chroma_folder_path.is_dir():
+        save_chroma(storage_filename, docs, doc_ids)
 
 
 def query(source_id, query):
     retriever = get_retriever(source_id)
     qa = get_retriever_qa(retriever)
-    response = qa.run(query)
+    response = qa.run(query=query)
     return response
-
-
-if __name__ == "__main__":
-    save_document(
-        "Dog23012023_BI_3D_ispr_prava",
-        "https://jkhlwowgrekoqgvfruhq.supabase.co/storage/v1/object/public/files/Dog23012023_BI_3D_ispr_prava.pdf"
-    )

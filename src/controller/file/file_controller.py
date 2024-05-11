@@ -7,7 +7,7 @@ from model import file_model
 from model.auth_model import get_current_user
 from model.file_model import extract_data_from_pdf
 from repository.file_repository import get_all_filenames_by_tenant_id
-from scheme.file_scheme import FileRead
+from scheme.file_scheme import FileRead, File
 from scheme.user_scheme import UserRead
 
 router = APIRouter()
@@ -35,7 +35,7 @@ async def extract_data_from_pdf_controller(
     return extract_data_from_pdf(file_object, with_metadata)
 
 
-@router.post("")
+@router.post("", response_model=File)
 @version(1)
 def upload_file(
     *,
@@ -46,7 +46,7 @@ def upload_file(
     """
     """
     tenant_id = current_user.tenants[0].id
-    return file_model.process_file(session, file_object, current_user.id, tenant_id)
+    return file_model.save_file(session, file_object, tenant_id)
 
 
 @router.delete("/{file_id}")

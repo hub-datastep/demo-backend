@@ -1,24 +1,39 @@
 import shutil
-from pathlib import Path
 
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores.faiss import FAISS
+from langchain_core.documents import Document
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 
-from datastep.components.file_path_util import get_file_folder_path
-from infra.env import AZURE_DEPLOYMENT_NAME_DB_ASSISTANT, AZURE_DEPLOYMENT_NAME_EMBEDDINGS
+from infra.env import AZURE_DEPLOYMENT_NAME_EMBEDDINGS, AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT
+from util.files_paths import get_file_folder_path
 
-template = """
-По данному тексту ответь на вопрос. Если для ответа на вопрос не хватает информации, напиши: Нет.
+DOCS_PROMPT_TEMPLATE = """
+You are a lawyer specializing in the field of legal documents,
+you understand various types of legal documentation like contracts, charters, regulations and others.
+You clearly understand the contents of the documents and perfectly answer questions about them.
+Determine the type and scope of the legal document to answer the question.
+Highlight the key points and terms of the document to answer the question.
 
-Вопрос:
+The content of the document can be solid text without spaces,
+you need semantically place spaces between words.
+
+
+
+Question:
 {query}
 
-Текст:
-{text}
+Document content:
+{document_content}
+
+You must answer in Russian language.
+Your answer:
 """
+
+
+# Your answer should contain only part of the text from the document that contains the answer to the question.
 
 
 def get_chain():
@@ -29,24 +44,54 @@ def get_chain():
     #     openai_api_base=OPENAI_API_BASE
     # )
     llm = AzureChatOpenAI(
-        azure_deployment=AZURE_DEPLOYMENT_NAME_DB_ASSISTANT,
+        azure_deployment=AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT,
         temperature=0,
-        verbose=False,
+        verbose=True,
     )
 
     prompt = PromptTemplate(
-        template=template,
-        input_variables=["query", "text"]
+        template=DOCS_PROMPT_TEMPLATE,
+        input_variables=["query", "document_content"]
     )
 
     return LLMChain(llm=llm, prompt=prompt)
 
 
+def search(storage_filename: str, query: str) -> tuple[str, int]:
+    file_folder_path = get_file_folder_path(storage_filename)
+
+    faiss_index = FAISS.load_local(
+        f"{file_folder_path}/faiss",
+        AzureOpenAIEmbeddings(
+            azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
+        ),
+        allow_dangerous_deserialization=True,
+    )
+    docs: list[Document] = faiss_index.similarity_search(query, k=3)
+    doc_content = "".join([doc.page_content for doc in docs])
+    page: int = docs[0].metadata['page']
+    # return docs[0]
+    return doc_content, page
+
+
+def query(storage_filename: str, query: str) -> tuple[str, int]:
+    chain = get_chain()
+    # doc = search(storage_filename, query)
+    doc_content, page = search(storage_filename, query)
+    response = chain.run(
+        query=query,
+        # document_content=doc.page_content,
+        document_content=doc_content,
+    )
+    # page: int = doc.metadata['page']
+    return response, page
+
+
 def save_document(storage_filename: str):
     file_folder_path = get_file_folder_path(storage_filename)
-    file_path = Path(f"{file_folder_path}/{storage_filename}")
+    file_path = f"{file_folder_path}/{storage_filename}"
 
-    loader = PyPDFLoader(str(file_path))
+    loader = PyPDFLoader(file_path)
     pages = loader.load_and_split()
     faiss_index = FAISS.from_documents(
         pages,
@@ -54,36 +99,9 @@ def save_document(storage_filename: str):
             azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
         ),
     )
-
-    faiss_folder_path = file_folder_path / "faiss"
-    faiss_index.save_local(str(faiss_folder_path))
+    faiss_index.save_local(f"{file_folder_path}/faiss")
 
 
-def search(storage_filename: str, query: str):
+def delete_document(storage_filename: str):
     file_folder_path = get_file_folder_path(storage_filename)
-    faiss_folder_path = file_folder_path / "faiss"
-
-    faiss_index = FAISS.load_local(
-        str(faiss_folder_path),
-        AzureOpenAIEmbeddings(
-            azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
-        ),
-        allow_dangerous_deserialization=True,
-    )
-    doc = faiss_index.similarity_search(query, k=1)
-    return doc[0]
-
-
-def query(source_id: str, query: str):
-    chain = get_chain()
-    doc = search(source_id, query)
-    response = chain.run(
-        query=query,
-        text=doc.page_content
-    )
-    return doc.metadata["page"], response
-
-
-def delete_document(source_id: str):
-    store_file_path = get_file_folder_path(source_id)
-    shutil.rmtree(store_file_path)
+    shutil.rmtree(file_folder_path)

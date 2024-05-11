@@ -1,16 +1,18 @@
-from datastep.components import datastep_faiss, datastep_multivector
+from sqlmodel import Session
+
+from datastep.components import datastep_faiss
+from repository import file_repository
 from scheme.prediction_scheme import DocumentPredictionRead
 
 
-def get_prediction(filename, query):
-    page, response = datastep_faiss.query(filename, query)
-    if "Нет" in str(response):
-        response = datastep_multivector.query(filename, query)
+def get_prediction(session: Session, query: str, file_id: int):
+    file = file_repository.get_file_by_id(session, file_id)
+
+    response, page = datastep_faiss.query(file.storage_filename, query)
+    # if "нет" in response.lower():
+    # response = datastep_multivector.query(file.storage_filename, query)
+
     return DocumentPredictionRead(
         answer=response,
         page=page,
     )
-
-
-if __name__ == "__main__":
-    print(get_prediction("Dog23012023_BI_3D_ispr_prava", "характеристики смесителя?"))
