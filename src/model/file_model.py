@@ -15,7 +15,7 @@ from infra.redis_queue import get_redis_queue, QueueName, MAX_JOB_TIMEOUT
 from repository import file_repository
 from scheme.file_scheme import File, DataExtract, FileCreate
 from scheme.nomenclature_scheme import JobIdRead
-from util.files_paths import get_file_folder_path
+from util.files_paths import get_file_folder_path, get_file_storage_path
 
 nomenclature_pattern = r"\bтовары\b|\bнаименование\b|\bпозиция\b|\bноменклатура\b|\bработы\b|\bуслуги\b|\bпредмет счета\b"
 
@@ -72,12 +72,12 @@ def get_unique_filename(original_filename: str) -> str:
 def save_file(session: Session, file_object: UploadFile, tenant_id: int) -> File:
     storage_filename = get_unique_filename(sanitize_filename(file_object.filename))
 
-    file_folder_path = get_file_folder_path(storage_filename)
+    file_storage_path = get_file_storage_path(storage_filename)
     file_create = FileCreate(
         original_filename=file_object.filename,
         storage_filename=storage_filename,
         tenant_id=tenant_id,
-        file_path=f"{file_folder_path}/{storage_filename}"
+        file_path=f"{file_storage_path}",
     )
     file = file_repository.save_file(session, file_create)
 
