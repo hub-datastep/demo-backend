@@ -3,6 +3,7 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
+from model import chat_model
 from model.auth_model import get_current_user
 from repository import chat_repository
 from scheme.chat_scheme import ChatRead, ChatCreate
@@ -21,7 +22,7 @@ def get_chat(
 ):
     """
     """
-    return chat_repository.get_chat_by_user_id(session, user_id)
+    return chat_model.get_chat_by_user_id(session, user_id)
 
 
 @router.post("", response_model=ChatRead)
