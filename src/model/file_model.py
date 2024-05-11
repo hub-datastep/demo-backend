@@ -72,9 +72,6 @@ def get_unique_filename(original_filename: str) -> str:
 def save_file(session: Session, file_object: UploadFile, tenant_id: int) -> File:
     storage_filename = get_unique_filename(sanitize_filename(file_object.filename))
 
-    save_file_locally(file_object.file, storage_filename)
-    _save_document_to_vectorstores(storage_filename)
-
     file_folder_path = get_file_folder_path(storage_filename)
     file_create = FileCreate(
         original_filename=file_object.filename,
@@ -83,6 +80,9 @@ def save_file(session: Session, file_object: UploadFile, tenant_id: int) -> File
         file_path=f"{file_folder_path}/{storage_filename}"
     )
     file = file_repository.save_file(session, file_create)
+
+    save_file_locally(file_object.file, storage_filename)
+    _save_document_to_vectorstores(storage_filename)
     return file
 
 
