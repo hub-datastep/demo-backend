@@ -3,6 +3,7 @@ from sqlmodel import SQLModel, Field, Relationship
 
 class ChatBase(SQLModel):
     user_id: int = Field(foreign_key="user.id")
+    mode_id: int | None = Field(foreign_key="mode.id")
 
 
 class Chat(ChatBase, table=True):

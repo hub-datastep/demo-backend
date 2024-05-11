@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "msu-backend"
+name = "demo-backend"
 version = "0.1.0"
 description = ""
-authors = ["Dmitry Bleschunov <bleshunov5b@yandex.ru>"]
+authors = []
 readme = "README.md"
 
 [tool.poetry.dependencies]
