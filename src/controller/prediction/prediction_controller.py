@@ -36,8 +36,9 @@ async def get_database_prediction(
 def get_document_prediction(
     *,
     current_user: UserRead = Depends(get_current_user),
-    query: DocumentPredictionQuery
+    session: Session = Depends(get_session),
+    body: DocumentPredictionQuery
 ):
     """
     """
-    return datastep_pdf_model.get_prediction(query.filename, query.query)
+    return datastep_pdf_model.get_prediction(session, body.query, body.file_id)

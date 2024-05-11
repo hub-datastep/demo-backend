@@ -11,7 +11,7 @@ class DatabasePredictionQuery(PredictionQueryBase):
 
 
 class DocumentPredictionQuery(PredictionQueryBase):
-    filename: str
+    file_id: int
 
 
 class PredictionReadBase(SQLModel):
@@ -27,4 +27,3 @@ class DatabasePredictionRead(PredictionReadBase):
 
 class DocumentPredictionRead(PredictionReadBase):
     page: int
-

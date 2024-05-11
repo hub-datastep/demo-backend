@@ -2,7 +2,6 @@ import traceback
 from pathlib import Path
 
 import uvicorn as uvicorn
-from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi_versioning import VersionedFastAPI
@@ -17,8 +16,6 @@ from controller.multi_classifier import multi_classifier_controller
 from controller.nomenclature import nomenclature_controller
 from controller.prediction import prediction_controller
 from controller.user import user_controller, auth_controller, tenant_controller, mode_controller, prompt_controller
-
-load_dotenv()
 
 app = FastAPI()
 

@@ -3,29 +3,26 @@ import re
 import shutil
 import tempfile
 from datetime import datetime
+from typing import BinaryIO
 
 import pdfplumber
 from fastapi import UploadFile
 from sqlmodel import Session
 
 from datastep.components import datastep_faiss, datastep_multivector
-from datastep.components.file_path_util import get_file_folder_path
 from exception.file_not_found_exception import FileNotFoundException
 from infra.redis_queue import get_redis_queue, QueueName, MAX_JOB_TIMEOUT
 from repository import file_repository
-from scheme.file_scheme import File, FileCreate, DataExtract
+from scheme.file_scheme import File, DataExtract, FileCreate
 from scheme.nomenclature_scheme import JobIdRead
+from util.files_paths import get_file_folder_path, get_file_storage_path
 
 nomenclature_pattern = r"\bтовары\b|\bнаименование\b|\bпозиция\b|\bноменклатура\b|\bработы\b|\bуслуги\b|\bпредмет счета\b"
 
 
 def _save_document_to_vectorstores(storage_filename: str):
-    try:
-        datastep_faiss.save_document(storage_filename)
-        datastep_multivector.save_document(storage_filename)
-    except Exception as e:
-        # delete_file(file)
-        raise e
+    datastep_faiss.save_document(storage_filename)
+    datastep_multivector.save_document(storage_filename)
 
 
 def save_file_to_vectorstores(file: File, user_id: int) -> JobIdRead:
@@ -42,19 +39,19 @@ def save_file_to_vectorstores(file: File, user_id: int) -> JobIdRead:
     return JobIdRead(job_id=job.id)
 
 
-def save_file_local(file: UploadFile, filename: str):
+def save_file_locally(file: BinaryIO, filename: str):
     file_folder_path = get_file_folder_path(filename)
-
-    if not os.path.exists(file_folder_path):
-        os.makedirs(file_folder_path)
+    print(f"filename: {filename}")
 
     file_path = f"{file_folder_path}/{filename}"
+    print(f"file_path: {file_path}")
 
-    try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-    except Exception:
-        pass
+    # Create folder if not exists
+    os.makedirs(f"{file_folder_path}", exist_ok=True)
+
+    # Save file to folder
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file, buffer)
 
 
 def sanitize_filename(filename):
@@ -72,20 +69,21 @@ def get_unique_filename(original_filename: str) -> str:
     return unique_filename
 
 
-def process_file(session: Session, file_object: UploadFile, user_id: int, tenant_id: int) -> JobIdRead:
+def save_file(session: Session, file_object: UploadFile, tenant_id: int) -> File:
     storage_filename = get_unique_filename(sanitize_filename(file_object.filename))
-    save_file_local(file_object, storage_filename)
 
-    filename, _ = os.path.splitext(storage_filename)
+    file_storage_path = get_file_storage_path(storage_filename)
     file_create = FileCreate(
         original_filename=file_object.filename,
         storage_filename=storage_filename,
         tenant_id=tenant_id,
-        file_path=f"{filename}/{storage_filename}"
+        file_path=f"{file_storage_path}",
     )
     file = file_repository.save_file(session, file_create)
-    # return save_file_to_vectorstores(file, user_id)
-    return _save_document_to_vectorstores(file.storage_filename)
+
+    save_file_locally(file_object.file, storage_filename)
+    _save_document_to_vectorstores(storage_filename)
+    return file
 
 
 def extract_data_from_pdf(file_object, with_metadata=False) -> list[str]:
@@ -143,4 +141,4 @@ def get_file_by_id(session: Session, file_id: int):
 def delete_file(session: Session, file_id: int):
     file = get_file_by_id(session, file_id)
     file_repository.delete_file(session, file)
-    delete_file_locally(file.original_filename)
+    delete_file_locally(file.storage_filename)
