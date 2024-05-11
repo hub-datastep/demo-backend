@@ -26,6 +26,7 @@ def upgrade() -> None:
     sa.Column('accuracy', sa.Float(), nullable=True),
     sa.Column('is_deleted', sa.Boolean(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
+    sa.Column('description', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.drop_table('nomenclature')
