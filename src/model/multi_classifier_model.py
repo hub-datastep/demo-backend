@@ -268,8 +268,12 @@ def get_groups_by_items(items: list[str], model_id: str) -> list[ClassificationR
     model = joblib.load(f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl")
     count_vect = joblib.load(f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl")
     result: list[ClassificationResultItem] = []
-    for item in items:
-        group_id = model.predict(count_vect.transform(normalize_name(item)))
+
+    normalized_data = DataFrame({
+        "names": [normalize_name(item) for item in items]
+    })
+    groups_ids = model.predict(count_vect.transform(normalized_data['names']))
+    for item, group_id in zip(items, groups_ids):
         result.append(ClassificationResultItem(item=item, group_id=group_id))
 
     return result
