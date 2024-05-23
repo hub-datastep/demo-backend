@@ -7,7 +7,6 @@ from model.auth_model import get_current_user
 from repository import user_repository
 from scheme.user_scheme import UserCreate, UserRead, User
 
-
 router = APIRouter()
 
 
