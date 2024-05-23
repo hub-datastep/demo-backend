@@ -23,4 +23,4 @@ class FileRead(FileBase):
 
 class DataExtract(SQLModel):
     nomenclature: str
-    file_metadata: dict[str, str]
+    file_metadata: dict[str, str] | None
