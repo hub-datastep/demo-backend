@@ -5,6 +5,8 @@ from chromadb import HttpClient
 
 from infra.chroma_store import FastembedChromaFunction
 from infra.env import CHROMA_HOST, CHROMA_PORT
+from model.feaure_extraction import extract_features
+from util.feature_extraction_regex import regex_patterns
 
 
 def create_chroma_collection(collection_name: str):
@@ -58,9 +60,25 @@ def create_and_save_embeddings(
     df = _fetch_noms()
     print(f"Number of nomenclatures: {len(df)}")
 
-    ids = df["Ссылка"].to_list()
-    documents = df["Наименование"].to_list()
-    metadatas = [{"group": g} for g in df["Родитель"].to_list()]
+
+    # Извлечение характеристик и добавление их в метаданные
+    df_with_features = extract_features(df)
+
+    # Разделяем сложную строку на несколько шагов
+    metadatas = []
+    for _, row in df_with_features.iterrows():
+        # Извлечение значений регулярных выражений
+        regex_values = row[regex_patterns.keys()].to_dict()
+        # Преобразование ряда в словарь
+        metadata = {"group": row["Родитель"]}
+        # Объединение словарей
+        metadata.update(regex_values)
+        metadatas.append(metadata)
+
+    ids = df_with_features["Ссылка"].to_list()
+    documents = df_with_features["Наименование"].to_list()
+
+
 
     _save_embeddings(ids, documents, metadatas)
 
