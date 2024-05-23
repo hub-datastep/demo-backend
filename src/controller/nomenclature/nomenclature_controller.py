@@ -7,7 +7,7 @@ from model.auth_model import get_current_user
 from scheme.classifier_scheme import RetrainClassifierUpload
 from scheme.nomenclature_scheme import JobIdRead, MappingNomenclaturesUpload, MappingNomenclaturesResultRead, \
     CreateAndSaveEmbeddingsUpload, \
-    SyncNomenclaturesUpload, SyncNomenclaturesResultRead
+    SyncNomenclaturesUpload, SyncNomenclaturesResultRead, CreateAndSaveEmbeddingsResult
 from scheme.user_scheme import UserRead
 
 router = APIRouter()
@@ -113,33 +113,33 @@ def delete_chroma_collection(
     return noms2embeddings_model.delete_chroma_collection(collection_name=collection_name)
 
 
-@router.put("/collection")
+@router.post("/collection/create_and_save", response_model=JobIdRead)
 @version(1)
 def create_and_save_embeddings(
     *,
     current_user: UserRead = Depends(get_current_user),
+    background_tasks: BackgroundTasks,
     body: CreateAndSaveEmbeddingsUpload,
-    background_tasks: BackgroundTasks
 ):
-    """
-    Создает и сохраняет вектора для всех номенклатур в ДВХ МСУ.
-
-    Args:
-        body (CreateAndSaveEmbeddingsUpload): Тело запроса.
-        
-    Returns:
-        None
-    """
-    background_tasks.add_task(
-        noms2embeddings_model.create_and_save_embeddings,
-        nom_db_con_str=body.nom_db_con_str,
-        table_name=body.table_name,
-        top_n=body.top_n,
-        order_by=body.order_by,
-        offset=body.offset,
-        chroma_collection_name=body.chroma_collection_name
+    job_id = noms2embeddings_model.start_creating_and_saving_nomenclatures(
+        db_con_str=body.db_con_str,
+        table_name=body.db_con_str,
+        collection_name=body.collection_name,
+        chunk_size=body.chunk_size,
     )
-    return
+    return job_id
+
+
+@router.get("/collection/create_and_save/result", response_model=CreateAndSaveEmbeddingsResult)
+@version(1)
+def create_and_save_embeddings_result(
+    *,
+    current_user: UserRead = Depends(get_current_user),
+    background_tasks: BackgroundTasks,
+    job_id: str,
+):
+    job_result = noms2embeddings_model.get_creating_and_saving_nomenclatures_job_result(job_id)
+    return job_result
 
 
 @router.post("/synchronize", response_model=JobIdRead)
