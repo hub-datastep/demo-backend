@@ -3,7 +3,7 @@ import json
 
 import joblib
 import numpy as np
-from chromadb import HttpClient, QueryResult
+from chromadb import QueryResult
 from fastembed.embedding import FlagEmbedding
 from pandas import read_sql, DataFrame
 from redis import Redis
@@ -12,14 +12,17 @@ from rq.job import Job, JobStatus
 from tqdm import tqdm
 
 from exception.noms_in_chroma_not_found_exception import NomsInChromaNotFoundException
-from infra.env import REDIS_HOST, REDIS_PASSWORD, CHROMA_PORT, CHROMA_HOST, DB_CONNECTION_STRING, DATA_FOLDER_PATH
+from infra.chroma_store import connect_to_chroma_collection
+from infra.env import REDIS_HOST, REDIS_PASSWORD, DB_CONNECTION_STRING, DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
 from scheme.nomenclature_scheme import MappingNomenclaturesUpload, MappingOneNomenclatureRead, \
     MappingOneNomenclatureUpload, \
     MappingNomenclaturesResultRead, JobIdRead
+from util.features_extraction import extract_features, get_noms_metadatas_with_features
 from util.normalize_name import normalize_name
 
 tqdm.pandas()
+# noinspection PyTypeChecker
 np.set_printoptions(threshold=np.inf)
 
 
@@ -30,15 +33,24 @@ def map_on_group(noms: DataFrame, model_id: str) -> list:
     return model.predict(count_vect.transform(noms['normalized']))
 
 
-def map_on_nom(nom_embeddings: np.ndarray, group: str, most_similar_count: int, chroma_collection_name: str):
-    chroma = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
-    collection = chroma.get_collection(name=chroma_collection_name)
+def map_on_nom(
+    nom_embeddings: np.ndarray,
+    group: str,
+    most_similar_count: int,
+    chroma_collection_name: str,
+    metadata: dict,
+):
+    collection = connect_to_chroma_collection(collection_name=chroma_collection_name)
+
+    metadatas_list = []
+    for key, val in metadata.items():
+        metadatas_list.append({key: val})
 
     nom_embeddings = nom_embeddings.tolist()
     response: QueryResult = collection.query(
         query_embeddings=[nom_embeddings],
         n_results=most_similar_count,
-        where={"group": group}
+        where={"$and": metadatas_list},
     )
 
     found_noms_count = len(response["ids"][0])
@@ -140,17 +152,16 @@ def process(
     most_similar_count: int,
     chroma_collection_name: str,
     model_id: str,
-    use_jobs: bool = True
 ):
-    if use_jobs:
-        job = get_current_job()
+    job = get_current_job()
 
     noms: DataFrame = parse_txt_file(nomenclatures)
 
-    if use_jobs:
-        job.meta["total_count"] = len(noms)
-        job.meta["ready_count"] = 0
-        job.save_meta()
+    job.meta["total_count"] = len(noms)
+    job.meta["ready_count"] = 0
+    job.save_meta()
+
+    noms['name'] = noms['nomenclature']
 
     noms['normalized'] = noms['nomenclature'].progress_apply(
         lambda nom: normalize_name(nom)
@@ -161,19 +172,29 @@ def process(
 
     noms['embeddings'] = get_embeddings(noms.nomenclature.to_list())
 
+    # Извлечение характеристик и добавление их в метаданные
+    noms = extract_features(noms)
+
+    # Получаем метаданные всех номенклатур с характеристиками
+    noms['metadata'] = get_noms_metadatas_with_features(noms)
+
     for i, nom in tqdm(noms.iterrows()):
         try:
-            nom.mappings = map_on_nom(nom.embeddings, nom.group, most_similar_count, chroma_collection_name)
+            nom.mappings = map_on_nom(
+                nom_embeddings=nom.embeddings,
+                group=nom.group,
+                most_similar_count=most_similar_count,
+                chroma_collection_name=chroma_collection_name,
+                metadata=nom.metadata,
+            )
         except NomsInChromaNotFoundException:
             pass
         noms.loc[i] = nom
-        if use_jobs:
-            job.meta['ready_count'] += 1
-            job.save_meta()
-
-    if use_jobs:
-        job.meta['status'] = "finished"
+        job.meta['ready_count'] += 1
         job.save_meta()
+
+    job.meta['status'] = "finished"
+    job.save_meta()
 
     return noms.to_json(orient="records", force_ascii=False)
 

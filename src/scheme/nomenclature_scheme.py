@@ -39,12 +39,17 @@ class MappingNomenclaturesResultRead(SQLModel):
 
 
 class CreateAndSaveEmbeddingsUpload(SQLModel):
-    nom_db_con_str: str
+    db_con_str: str
     table_name: str
-    top_n: int
-    order_by: str
-    offset: int
-    chroma_collection_name: str
+    collection_name: str
+    chunk_size: int | None = 500
+
+
+class CreateAndSaveEmbeddingsResult(SQLModel):
+    job_id: str
+    status: JobStatus
+    ready_count: int | None
+    total_count: int | None
 
 
 class SyncOneNomenclatureDataRead(SQLModel):
