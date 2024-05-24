@@ -25,17 +25,33 @@ FEATURES_REGEX_PATTERNS = {
 }
 
 
-def extract_match(pattern, text):
+def extract_match(pattern: str, text: str) -> str:
     match = re.search(pattern, text)
-    return match.group() if match else ''
+    result = str(match.group()) if match else ""
+    return result
 
 
 def extract_features(nomenclatures: DataFrame) -> DataFrame:
-    # Нормализуем названия номенклатур
-    # nomenclatures['normalized'] = nomenclatures['name'].apply(normalize_name)
-
     # Применяем регулярные выражения для извлечения характеристик
     for name, pattern in FEATURES_REGEX_PATTERNS.items():
         nomenclatures[name] = nomenclatures['name'].apply(lambda x: extract_match(pattern, x))
 
     return nomenclatures
+
+
+def get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[dict]:
+    metadatas = []
+
+    # Разделяем сложную строку на несколько шагов
+    for _, row in df_noms_with_features.iterrows():
+        # Извлечение значений регулярных выражений
+        regex_values = row[FEATURES_REGEX_PATTERNS.keys()].to_dict()
+
+        # Преобразование ряда в словарь
+        metadata = {"group": row['group']}
+
+        # Объединение словарей
+        metadata.update(regex_values)
+        metadatas.append(metadata)
+
+    return metadatas

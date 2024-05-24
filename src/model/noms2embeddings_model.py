@@ -4,7 +4,7 @@ from rq import get_current_job
 from infra.chroma_store import connect_to_chroma_collection, create_embeddings_by_chunks
 from infra.redis_queue import get_redis_queue, QueueName, MAX_JOB_TIMEOUT, get_job
 from scheme.nomenclature_scheme import JobIdRead, CreateAndSaveEmbeddingsResult
-from util.features_extraction import extract_features, FEATURES_REGEX_PATTERNS
+from util.features_extraction import extract_features, get_noms_metadatas_with_features
 
 
 def _fetch_all_noms(db_con_str: str, table_name: str) -> DataFrame:
@@ -15,23 +15,6 @@ def _fetch_all_noms(db_con_str: str, table_name: str) -> DataFrame:
      """
 
     return read_sql(st, db_con_str)
-
-
-def _get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[dict]:
-    metadatas = []
-
-    for _, row in df_noms_with_features.iterrows():
-        # Извлечение значений регулярных выражений
-        regex_values = row[FEATURES_REGEX_PATTERNS.keys()].to_dict()
-
-        # Преобразование ряда в словарь
-        metadata = {"group": row['group']}
-
-        # Объединение словарей
-        metadata.update(regex_values)
-        metadatas.append(metadata)
-
-    return metadatas
 
 
 def _create_and_save_embeddings(
@@ -57,8 +40,8 @@ def _create_and_save_embeddings(
     print(f"Nomenclatures with features:")
     print(df_noms_with_features)
 
-    # Разделяем сложную строку на несколько шагов
-    metadatas = _get_noms_metadatas_with_features(df_noms_with_features)
+    # Получаем метаданные всех номенклатур с характеристиками
+    metadatas = get_noms_metadatas_with_features(df_noms_with_features)
 
     ids = df_noms_with_features['id'].to_list()
     documents = df_noms_with_features['name'].to_list()
