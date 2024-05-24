@@ -41,6 +41,13 @@ def connect_to_chroma_collection(collection_name: str):
     return collection
 
 
+def get_all_collections() -> list[str]:
+    chroma_client = get_chroma_client()
+    collections_list = list(chroma_client.list_collections())
+    collections_names_list = [collection.name for collection in collections_list]
+    return collections_names_list
+
+
 def create_collection(collection_name: str):
     chroma_client = get_chroma_client()
     chroma_client.create_collection(
@@ -139,7 +146,7 @@ def create_embeddings_by_chunks(
     ids: str | list[str] | UUID | list[UUID],
     documents: str | list[str],
     metadatas: dict | list[dict],
-    chunk_size: int = 500,
+    chunk_size: int | None = 500,
     is_in_job: bool = True,
 ):
     if is_in_job:
@@ -154,5 +161,5 @@ def create_embeddings_by_chunks(
         )
 
         if is_in_job:
-            job.meta['ready_count'] += 1
+            job.meta['ready_count'] += chunk_size
             job.save_meta()

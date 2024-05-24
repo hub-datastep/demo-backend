@@ -11,7 +11,7 @@ def _fetch_all_noms(db_con_str: str, table_name: str) -> DataFrame:
     st = f"""
         SELECT * 
         FROM {table_name}
-        WHERE is_group = 0
+        WHERE is_group = FALSE
      """
 
     return read_sql(st, db_con_str)
@@ -54,7 +54,8 @@ def _create_and_save_embeddings(
 
     # Извлечение характеристик и добавление их в метаданные
     df_noms_with_features = extract_features(df_noms)
-    print(f"Nomenclatures with features: {df_noms_with_features}")
+    print(f"Nomenclatures with features:")
+    print(df_noms_with_features)
 
     # Разделяем сложную строку на несколько шагов
     metadatas = _get_noms_metadatas_with_features(df_noms_with_features)

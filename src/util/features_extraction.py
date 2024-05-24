@@ -2,8 +2,6 @@ import re
 
 from pandas import DataFrame
 
-from util.normalize_name import normalize_name
-
 # Определение регулярных выражений для разных категорий
 FEATURES_REGEX_PATTERNS = {
     # Общий размер в мм/см/м
@@ -34,10 +32,10 @@ def extract_match(pattern, text):
 
 def extract_features(nomenclatures: DataFrame) -> DataFrame:
     # Нормализуем названия номенклатур
-    nomenclatures['normalized'] = nomenclatures['nomenclature'].apply(normalize_name)
+    # nomenclatures['normalized'] = nomenclatures['name'].apply(normalize_name)
 
     # Применяем регулярные выражения для извлечения характеристик
     for name, pattern in FEATURES_REGEX_PATTERNS.items():
-        nomenclatures[name] = nomenclatures['nomenclature'].apply(lambda x: extract_match(pattern, x))
+        nomenclatures[name] = nomenclatures['name'].apply(lambda x: extract_match(pattern, x))
 
     return nomenclatures

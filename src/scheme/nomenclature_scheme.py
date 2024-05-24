@@ -42,7 +42,7 @@ class CreateAndSaveEmbeddingsUpload(SQLModel):
     db_con_str: str
     table_name: str
     collection_name: str
-    chunk_size: int | None = None
+    chunk_size: int | None = 500
 
 
 class CreateAndSaveEmbeddingsResult(SQLModel):
