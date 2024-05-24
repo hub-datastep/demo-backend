@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
 
+from rq import get_current_job
 from sqlmodel import Session, select, between
 from tqdm import tqdm
-
-from rq import get_current_job
 
 from exception.parent_not_found_exception import ParentNotFoundException
 from infra.chroma_store import is_in_vectorstore, \
@@ -61,6 +60,7 @@ def get_chroma_patch_for_sync(
         )
 
         if not nom.is_in_vectorstore:
+            # noinspection PyTypeChecker
             if nom.root_group_name == target_root_name and not bool.from_bytes(nom.is_deleted):
                 patch_for_chroma.append(
                     SyncNomenclaturesChromaPatch(
@@ -70,6 +70,7 @@ def get_chroma_patch_for_sync(
                 )
             continue
 
+        # noinspection PyTypeChecker
         if nom.root_group_name != target_root_name or bool.from_bytes(nom.is_deleted):
             patch_for_chroma.append(
                 SyncNomenclaturesChromaPatch(
@@ -132,7 +133,7 @@ def start_synchronizing_nomenclatures(
         chroma_collection_name,
         sync_period,
         result_ttl=-1,
-        job_timeout=MAX_JOB_TIMEOUT,        
+        job_timeout=MAX_JOB_TIMEOUT,
     )
     return JobIdRead(job_id=job.id)
 

@@ -23,7 +23,6 @@ def create_tenant(
     """
     return tenant_repository.create_tenant(session, tenant)
 
-
 # @router.get("/{tenant_id}/instruction", response_model=InstructionDto)
 # @version(1)
 # def get_instruction(
@@ -32,4 +31,3 @@ def create_tenant(
 #     tenant_id: int
 # ):
 #     return instruction_repository.get_instruction_by_tenant_id(tenant_id)
-

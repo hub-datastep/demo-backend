@@ -1,7 +1,7 @@
+from dto.config_dto import DatabasePredictionConfigDto
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 
-from dto.config_dto import DatabasePredictionConfigDto
 from model.auth_model import get_current_user
 from repository import config_repository
 from scheme.user_scheme import UserRead

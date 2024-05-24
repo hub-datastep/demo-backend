@@ -86,7 +86,7 @@ def save_file(session: Session, file_object: UploadFile, tenant_id: int) -> File
     return file
 
 
-def extract_data_from_pdf(file_object, with_metadata=False) -> list[str]:
+def extract_data_from_invoice(file_object, with_metadata=False) -> list[DataExtract]:
     result_list = []
 
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
@@ -118,7 +118,7 @@ def extract_data_from_pdf(file_object, with_metadata=False) -> list[str]:
                                             enumerate(column_names) if col_num != nomenclature_column_index}
                                 result_list.append(DataExtract(nomenclature=nomenclature, file_metadata=metadata))
                             else:
-                                result_list.append(nomenclature)
+                                result_list.append(DataExtract(nomenclature=nomenclature))
 
     return result_list
 

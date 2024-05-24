@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi_versioning import version
 
+from infra import chroma_store
 from model import nomenclature_model, noms2embeddings_model, synchronize_nomenclatures_model, \
     retrain_noms_classifier_by_groups_model
 from model.auth_model import get_current_user
 from scheme.classifier_scheme import RetrainClassifierUpload
 from scheme.nomenclature_scheme import JobIdRead, MappingNomenclaturesUpload, MappingNomenclaturesResultRead, \
     CreateAndSaveEmbeddingsUpload, \
-    SyncNomenclaturesUpload, SyncNomenclaturesResultRead
+    SyncNomenclaturesUpload, SyncNomenclaturesResultRead, CreateAndSaveEmbeddingsResult
 from scheme.user_scheme import UserRead
 
 router = APIRouter()
@@ -75,7 +76,16 @@ def create_chroma_collection(
     Args:
         collection_name (str): Название коллекции.
     """
-    return noms2embeddings_model.create_chroma_collection(collection_name=collection_name)
+    return chroma_store.create_collection(collection_name=collection_name)
+
+
+@router.get("/collection/list", response_model=list[str])
+@version(1)
+def get_all_chroma_collections(
+    *,
+    current_user: UserRead = Depends(get_current_user),
+):
+    return chroma_store.get_all_collections()
 
 
 @router.get("/collection/{collection_name}/length")
@@ -94,7 +104,7 @@ def get_chroma_collection_length(
     Returns:
         int: Количество векторов коллекции.
     """
-    return noms2embeddings_model.get_chroma_collection_length(collection_name=collection_name)
+    return chroma_store.get_collection_length(collection_name=collection_name)
 
 
 @router.delete("/collection/{collection_name}")
@@ -110,36 +120,32 @@ def delete_chroma_collection(
     Args:
         collection_name (str): Название коллекции.
     """
-    return noms2embeddings_model.delete_chroma_collection(collection_name=collection_name)
+    return chroma_store.delete_collection(collection_name=collection_name)
 
 
-@router.put("/collection")
+@router.post("/create_and_save_embeddings", response_model=JobIdRead)
 @version(1)
 def create_and_save_embeddings(
+    body: CreateAndSaveEmbeddingsUpload,
+    current_user: UserRead = Depends(get_current_user),
+):
+    return noms2embeddings_model.start_creating_and_saving_nomenclatures(
+        db_con_str=body.db_con_str,
+        table_name=body.table_name,
+        collection_name=body.collection_name,
+        chunk_size=body.chunk_size,
+    )
+
+
+@router.get("/collection/create_and_save/result", response_model=CreateAndSaveEmbeddingsResult)
+@version(1)
+def create_and_save_embeddings_result(
     *,
     current_user: UserRead = Depends(get_current_user),
-    body: CreateAndSaveEmbeddingsUpload,
-    background_tasks: BackgroundTasks
+    background_tasks: BackgroundTasks,
+    job_id: str,
 ):
-    """
-    Создает и сохраняет вектора для всех номенклатур в ДВХ МСУ.
-
-    Args:
-        body (CreateAndSaveEmbeddingsUpload): Тело запроса.
-        
-    Returns:
-        None
-    """
-    background_tasks.add_task(
-        noms2embeddings_model.create_and_save_embeddings,
-        nom_db_con_str=body.nom_db_con_str,
-        table_name=body.table_name,
-        top_n=body.top_n,
-        order_by=body.order_by,
-        offset=body.offset,
-        chroma_collection_name=body.chroma_collection_name
-    )
-    return
+    return noms2embeddings_model.get_creating_and_saving_nomenclatures_job_result(job_id)
 
 
 @router.post("/synchronize", response_model=JobIdRead)
@@ -212,29 +218,3 @@ def retrain_classifier_by_groups(
         table_name=body.table_name,
         model_description=body.model_description,
     )
-
-# @router.post("/by_views")
-# @version(1)
-# def retrain_classifier_by_views(
-#     *,
-#     body: RetrainClassifierUpload,
-#     current_user: UserRead = Depends(get_current_user),
-# ):
-#     return retrain_classifier_by_views_model.start_classifier_retraining(
-#         db_con_str=body.db_con_str,
-#         table_name=body.table_name,
-#     )
-
-
-# @router.post("/synchronize/by_views", response_model=JobIdRead)
-# @version(1)
-# def synchronize_nomenclatures_by_views(
-#     *,
-#     body: SyncNomenclaturesByViewsUpload,
-#     current_user: UserRead = Depends(get_current_user),
-# ):
-#     return synchronize_nomenclatures_by_views_model.start_synchronizing_nomenclatures(
-#         db_con_str=body.db_con_str,
-#         table_name=body.table_name,
-#         chroma_collection_name=body.chroma_collection_name,
-#     )
