@@ -31,9 +31,9 @@ _MAX_CLASSIFIERS_COUNT = 3
 
 def _fetch_items(db_con_str: str, table_name: str) -> DataFrame:
     st = text(f"""
-        SELECT Наименование, Родитель
+        SELECT "name", "group"
         FROM {table_name}
-        WHERE ЭтоГруппа = 0
+        WHERE "is_group" = FALSE
     """)
 
     return read_sql(st, db_con_str)
@@ -41,9 +41,9 @@ def _fetch_items(db_con_str: str, table_name: str) -> DataFrame:
 
 def _fetch_groups(db_con_str: str, table_name: str) -> DataFrame:
     st = text(f"""
-        SELECT DISTINCT Наименование, Ссылка
+        SELECT DISTINCT "id", "name"
         FROM {table_name}
-        WHERE ЭтоГруппа = 1
+        WHERE "is_group" = TRUE
     """)
 
     return read_sql(st, db_con_str)
@@ -53,8 +53,8 @@ def _has_child(db_con_str: str, table_name: str, group_id: str) -> bool:
     st = text(f"""
         SELECT *
         FROM {table_name}
-        WHERE Родитель = '{group_id}'
-        AND ЭтоГруппа = 1
+        WHERE "group" = '{group_id}'
+        AND "is_group" = TRUE
     """)
     children = read_sql(st, db_con_str)
 
@@ -70,7 +70,7 @@ def _fetch_narrow_groups(db_con_str: str, table_name: str) -> DataFrame:
     print(f"Checking if groups have children...")
     narrow_groups = []
     for _, group in groups.iterrows():
-        if not _has_child(db_con_str, table_name, group['Наименование']):
+        if not _has_child(db_con_str, table_name, group['id']):
             narrow_groups.append(group)
 
     narrow_groups = DataFrame(narrow_groups)
@@ -78,8 +78,8 @@ def _fetch_narrow_groups(db_con_str: str, table_name: str) -> DataFrame:
 
 
 def _get_narrow_group_items(all_items: DataFrame, narrow_groups: DataFrame) -> DataFrame:
-    # Return noms which Родитель in Ссылка of groups with no child
-    narrow_group_items = all_items[all_items['Родитель'].isin(narrow_groups['Ссылка'])]
+    # Return noms which "group" in "id" of groups with no child
+    narrow_group_items = all_items[all_items['group'].isin(narrow_groups['id'])]
 
     return narrow_group_items
 
@@ -101,7 +101,7 @@ def _get_training_data(db_con_str: str, table_name: str) -> DataFrame:
     print(narrow_group_items)
 
     print("Normalizing narrow group items...")
-    narrow_group_items['normalized'] = narrow_group_items['Наименование'].progress_apply(
+    narrow_group_items['normalized'] = narrow_group_items['name'].progress_apply(
         lambda x: normalize_name(x)
     )
     print(f"Count of normalized narrow group items: {len(narrow_group_items['normalized'])}")
@@ -162,8 +162,8 @@ def _retrain_classifier(db_con_str: str, table_name: str, model_description: str
     print("Training test split...")
     x_train, x_test, y_train, y_test = train_test_split(
         training_data_df['normalized'],
-        training_data_df['Родитель'],
-        random_state=0
+        training_data_df['group'],
+        random_state=0,
     )
     print("Test split trained.")
 
@@ -182,6 +182,7 @@ def _retrain_classifier(db_con_str: str, table_name: str, model_description: str
     print("Classifier is ready.")
 
     print("Getting model accuracy...")
+    # noinspection PyTypeChecker
     accuracy = _get_model_accuracy(
         classifier=classifier,
         vectorizer=vectorizer,
