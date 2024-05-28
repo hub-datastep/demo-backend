@@ -29,7 +29,7 @@ np.set_printoptions(threshold=np.inf)
 def map_on_group(noms: DataFrame, model_id: str) -> list:
     model = joblib.load(f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl")
     count_vect = joblib.load(f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl")
-    # return model.predict(count_vect.transform(noms["nomenclature"]))
+    # return model.predict(count_vect.transform(noms['nomenclature']))
     return model.predict(count_vect.transform(noms['normalized']))
 
 
@@ -53,7 +53,7 @@ def map_on_nom(
         where={"$and": metadatas_list},
     )
 
-    found_noms_count = len(response["ids"][0])
+    found_noms_count = len(response['ids'][0])
 
     if found_noms_count == 0:
         raise NomsInChromaNotFoundException(
@@ -61,11 +61,11 @@ def map_on_nom(
         )
 
     mapped_noms = []
-    for i in range(len(response["ids"][0])):
+    for i in range(len(response['ids'][0])):
         mapped_noms.append({
-            "nomenclature_guid": response["ids"][0][i],
-            "nomenclature": response["documents"][0][i],
-            "similarity_score": response["distances"][0][i]
+            "nomenclature_guid": response['ids'][0][i],
+            "nomenclature": response['documents'][0][i],
+            "similarity_score": response['distances'][0][i]
         })
 
     return mapped_noms
@@ -73,7 +73,7 @@ def map_on_nom(
 
 def parse_txt_file(nomenclatures: list[MappingOneNomenclatureUpload]) -> DataFrame:
     nomenclatures_as_json = [nom.dict().values() for nom in nomenclatures]
-    return DataFrame(nomenclatures_as_json, columns=["row_number", "nomenclature"])
+    return DataFrame(nomenclatures_as_json, columns=['row_number', 'nomenclature'])
 
 
 def get_nom_candidates(groups: list[str]) -> DataFrame:
@@ -157,8 +157,8 @@ def process(
 
     noms: DataFrame = parse_txt_file(nomenclatures)
 
-    job.meta["total_count"] = len(noms)
-    job.meta["ready_count"] = 0
+    job.meta['total_count'] = len(noms)
+    job.meta['ready_count'] = 0
     job.save_meta()
 
     noms['name'] = noms['nomenclature']
