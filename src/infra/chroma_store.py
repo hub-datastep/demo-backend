@@ -153,13 +153,17 @@ def create_embeddings_by_chunks(
         job = get_current_job()
 
     for i in range(0, len(ids), chunk_size):
+        created_count = i + chunk_size
         add_embeddings(
             collection=collection,
-            ids=ids[i:i + chunk_size],
-            documents=documents[i:i + chunk_size],
-            metadatas=metadatas[i:i + chunk_size],
+            ids=ids[i:created_count],
+            documents=documents[i:created_count],
+            metadatas=metadatas[i:created_count],
         )
 
+        if created_count > len(ids):
+            created_count = len(ids)
+
         if is_in_job:
-            job.meta['ready_count'] += chunk_size
+            job.meta['ready_count'] += created_count
             job.save_meta()
