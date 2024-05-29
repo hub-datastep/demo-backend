@@ -137,7 +137,7 @@ def create_and_save_embeddings(
     )
 
 
-@router.get("/collection/create_and_save/result", response_model=CreateAndSaveEmbeddingsResult)
+@router.get("/create_and_save_embeddings/result", response_model=CreateAndSaveEmbeddingsResult)
 @version(1)
 def create_and_save_embeddings_result(
     *,
