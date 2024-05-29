@@ -1,9 +1,11 @@
 import ast
 import json
+from pathlib import Path
 
 import joblib
 import numpy as np
 from chromadb import QueryResult
+from fastapi import HTTPException
 from fastembed.embedding import FlagEmbedding
 from pandas import read_sql, DataFrame
 from redis import Redis
@@ -18,6 +20,7 @@ from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
 from scheme.nomenclature_scheme import MappingNomenclaturesUpload, MappingOneNomenclatureRead, \
     MappingOneNomenclatureUpload, \
     MappingNomenclaturesResultRead, JobIdRead
+from util.extract_keyword import extract_keyword
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
 from util.normalize_name import normalize_name
 
@@ -26,11 +29,19 @@ tqdm.pandas()
 np.set_printoptions(threshold=np.inf)
 
 
-def map_on_group(noms: DataFrame, model_id: str) -> list:
-    model = joblib.load(f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl")
-    count_vect = joblib.load(f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl")
-    # return model.predict(count_vect.transform(noms['nomenclature']))
-    return model.predict(count_vect.transform(noms['normalized']))
+def get_nomenclatures_groups(noms: DataFrame, model_id: str) -> list[str]:
+    model_path = f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl"
+    vectorizer_path = f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl"
+
+    if not Path(model_path).exists() or not Path(vectorizer_path).exists():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Model with ID {model_id} not found locally.",
+        )
+
+    model = joblib.load(model_path)
+    vectorizer = joblib.load(vectorizer_path)
+    return model.predict(vectorizer.transform(noms['normalized']))
 
 
 def map_on_nom(
@@ -39,7 +50,7 @@ def map_on_nom(
     most_similar_count: int,
     chroma_collection_name: str,
     metadata: dict,
-):
+) -> list[dict]:
     collection = connect_to_chroma_collection(collection_name=chroma_collection_name)
 
     metadatas_list = []
@@ -52,6 +63,8 @@ def map_on_nom(
         n_results=most_similar_count,
         where={"$and": metadatas_list},
     )
+
+    # TODO: сделать поиск без параметров, чтобы выдавать аналоги
 
     found_noms_count = len(response['ids'][0])
 
@@ -87,7 +100,7 @@ def get_nom_candidates(groups: list[str]) -> DataFrame:
     return candidates
 
 
-def get_embeddings(strings: list[str]) -> list[np.ndarray]:
+def get_nomenclatures_embeddings(strings: list[str]) -> list[np.ndarray]:
     embedding_model = FlagEmbedding(
         model_name="intfloat/multilingual-e5-large"
     )
@@ -96,7 +109,7 @@ def get_embeddings(strings: list[str]) -> list[np.ndarray]:
     return result
 
 
-def nomenclature_segments(
+def get_nomenclature_segments(
     nomenclatures: list[MappingOneNomenclatureUpload],
     segment_length: int = 100
 ) -> list[list[MappingOneNomenclatureUpload]]:
@@ -133,8 +146,9 @@ def start_mapping(nomenclatures: MappingNomenclaturesUpload, model_id: str) -> J
     most_similar_count = nomenclatures.most_similar_count
     chroma_collection_name = nomenclatures.chroma_collection_name
 
+    segments = get_nomenclature_segments(nomenclatures_list, segment_length=nomenclatures.job_size)
     last_job_id = None
-    for segment in nomenclature_segments(nomenclatures_list, segment_length=nomenclatures.job_size):
+    for segment in segments:
         job = create_job(
             nomenclatures=segment,
             previous_job_id=last_job_id,
@@ -161,16 +175,22 @@ def process(
     job.meta['ready_count'] = 0
     job.save_meta()
 
+    # Copy noms to name column for extracting features
     noms['name'] = noms['nomenclature']
 
     noms['normalized'] = noms['nomenclature'].progress_apply(
-        lambda nom: normalize_name(nom)
+        lambda nom_name: normalize_name(nom_name)
     )
 
-    noms['group'] = map_on_group(noms, model_id)
+    noms['group'] = get_nomenclatures_groups(noms, model_id)
+
+    noms['keyword'] = noms['normalized'].progress_apply(
+        lambda nom_name: extract_keyword(nom_name)
+    )
+
     noms['mappings'] = None
 
-    noms['embeddings'] = get_embeddings(noms.nomenclature.to_list())
+    noms['embeddings'] = get_nomenclatures_embeddings(noms['nomenclature'].to_list())
 
     # Извлечение характеристик и добавление их в метаданные
     noms = extract_features(noms)
@@ -180,12 +200,16 @@ def process(
 
     for i, nom in tqdm(noms.iterrows()):
         try:
-            nom.mappings = map_on_nom(
-                nom_embeddings=nom.embeddings,
-                group=nom.group,
+            # TODO: придумать что делать с группой,
+            #       потому что у нас на этом этапе есть только ID группы, а названия нет,
+            #       но нам же надо понять есть ли ключевое слово в названии группы
+
+            nom['mappings'] = map_on_nom(
+                nom_embeddings=nom['embeddings'],
+                group=nom['group'],
                 most_similar_count=most_similar_count,
                 chroma_collection_name=chroma_collection_name,
-                metadata=nom.metadata,
+                metadata=nom['metadata'],
             )
         except NomsInChromaNotFoundException:
             pass
