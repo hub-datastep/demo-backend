@@ -47,20 +47,26 @@ def get_nomenclature_mappings(
 def start_nomenclature_mapping(
     *,
     current_user: UserRead = Depends(get_current_user),
-    nomenclatures: MappingNomenclaturesUpload,
-    model_id: str,
+    body: MappingNomenclaturesUpload,
 ):
     """
     Запускает процесс сопоставления номенклатур.
 
     Args:
-        nomenclatures (MappingNomenclaturesUpload): Номенклатуры для сопоставления.
-        model_id (str): ID модели классификатора.
+        body (MappingNomenclaturesUpload): Номенклатуры для сопоставления.
 
     Returns:
         JobIdRead: Идентификатор задачи.
     """
-    return nomenclature_model.start_mapping(nomenclatures, model_id)
+    return nomenclature_model.start_mapping(
+        nomenclatures=body.nomenclatures,
+        most_similar_count=body.most_similar_count,
+        chroma_collection_name=body.chroma_collection_name,
+        chunk_size=body.chunk_size,
+        model_id=body.model_id,
+        db_con_str=body.db_con_str,
+        table_name=body.table_name,
+    )
 
 
 @router.post("/collection/{collection_name}")
@@ -137,7 +143,7 @@ def create_and_save_embeddings(
     )
 
 
-@router.get("/collection/create_and_save/result", response_model=CreateAndSaveEmbeddingsResult)
+@router.get("/create_and_save_embeddings/result", response_model=CreateAndSaveEmbeddingsResult)
 @version(1)
 def create_and_save_embeddings_result(
     *,
