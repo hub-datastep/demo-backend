@@ -24,10 +24,13 @@ class MappingOneNomenclatureRead(SQLModel):
 
 
 class MappingNomenclaturesUpload(SQLModel):
-    nomenclatures: list[MappingOneNomenclatureUpload]
-    most_similar_count: int = 1
-    job_size: int
+    db_con_str: str
+    table_name: str
     chroma_collection_name: str
+    model_id: str
+    most_similar_count: int = 1
+    chunk_size: int
+    nomenclatures: list[MappingOneNomenclatureUpload]
 
 
 class MappingNomenclaturesResultRead(SQLModel):
