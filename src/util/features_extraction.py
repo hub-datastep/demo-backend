@@ -23,7 +23,7 @@ FEATURES_REGEX_PATTERNS = {
     # Мощность
     "power": r"(\d+)\s?(Вт|кВт)",
     # Вид арматуры
-    "reinforcement_type": r"А\d+\w*(?:\([A-Za-z0-9]+\))?",
+    "reinforcement_type": r"[АAаa]\d+[СCсc]?(?:\(([АAаa1])\))?",
     # Диаметр арматуры
     "reinforcement_diameter": r"No\s?(\d+)|(\d+)мм",
     # Характеристика перемычек
