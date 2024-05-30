@@ -165,5 +165,5 @@ def create_embeddings_by_chunks(
             created_count = len(ids)
 
         if is_in_job:
-            job.meta['ready_count'] += created_count
+            job.meta['ready_count'] = created_count
             job.save_meta()
