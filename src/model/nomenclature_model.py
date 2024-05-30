@@ -37,7 +37,7 @@ def _get_group_name_by_id(db_con_str: str, table_name: str, group_id: str):
         AND "id" = '{group_id}'
     """)
     result = read_sql(st, db_con_str)
-    group_name = result['name'].to_list()[0].lower()
+    group_name = result['name'].to_list()[0]
 
     return group_name
 
@@ -69,34 +69,53 @@ def map_on_nom(
 
     metadatas_list = []
     for key, val in metadata.items():
+        if key == "group":
+            continue
+
         metadatas_list.append({key: val})
+
+    where_metadatas = {"$and": [{"group": group}, {"$and": metadatas_list}]}
 
     nom_embeddings = nom_embeddings.tolist()
     response: QueryResult = collection.query(
         query_embeddings=[nom_embeddings],
         n_results=most_similar_count,
-        where={"$and": metadatas_list},
+        where=where_metadatas,
     )
-
-    # TODO: сделать поиск без параметров, чтобы выдавать аналоги
 
     # found_noms_count = len(response['ids'][0])
     # if found_noms_count == 0:
     #     raise NomsInChromaNotFoundException(
     #         f"В коллекции Chroma {chroma_collection_name} нет номенклатур, принадлежащих группе {group}."
     #     )
+    response_ids = response['ids'][0]
+    response_documents = response['documents'][0]
+    response_distances = response['distances'][0]
+
+    if len(response_ids) == 0:
+        where_metadatas = {"$and": [{"group": group}, {"$or": metadatas_list}]}
+
+        response: QueryResult = collection.query(
+            query_embeddings=[nom_embeddings],
+            n_results=3,
+            where=where_metadatas,
+        )
+
+        response_ids = response['ids'][0]
+        response_documents = response['documents'][0]
+        response_distances = response['distances'][0]
 
     mapped_noms = []
-    for i in range(len(response['ids'][0])):
+    for i in range(len(response_ids)):
         # mapped_noms.append(MappingOneTargetRead(
-        #     nomenclature_guid=response['ids'][0][i],
-        #     nomenclature=response['documents'][0][i],
-        #     similarity_score=response['distances'][0][i],
+        #     nomenclature_guid=response_ids[i],
+        #     nomenclature=response_documents[i],
+        #     similarity_score=response_distances[i],
         # ))
         mapped_noms.append({
-            "nomenclature_guid": response['ids'][0][i],
-            "nomenclature": response['documents'][0][i],
-            "similarity_score": response['distances'][0][i],
+            "nomenclature_guid": response_ids[i],
+            "nomenclature": response_documents[i],
+            "similarity_score": response_distances[i],
         })
 
     return mapped_noms
@@ -225,7 +244,6 @@ def map_nomenclatures_chunk(
             group_id=group_id,
         )
     )
-    print(noms['group_name'].to_list())
 
     noms['keyword'] = noms['normalized'].progress_apply(
         lambda nom_name: extract_keyword(nom_name)
@@ -247,7 +265,7 @@ def map_nomenclatures_chunk(
         # try:
 
         # Check if nom really belong to mapped group
-        if nom['keyword'] not in nom['group_name']:
+        if nom['keyword'] not in nom['group_name'].lower():
             # nom['mappings'] = [MappingOneTargetRead(
             #     nomenclature_guid="",
             #     nomenclature="Нет группы для такой номенклатуры",
@@ -256,7 +274,7 @@ def map_nomenclatures_chunk(
             nom['mappings'] = [{
                 "nomenclature_guid": "",
                 "nomenclature": "Для такой номенклатуры группы не нашлось",
-                "similarity_score": 0,
+                "similarity_score": -1,
             }]
         else:
             nom['mappings'] = map_on_nom(
