@@ -11,13 +11,13 @@ from pandas import read_sql, DataFrame
 from redis import Redis
 from rq import get_current_job
 from rq.job import Job, JobStatus
+from sqlalchemy import text
 from tqdm import tqdm
 
-from exception.noms_in_chroma_not_found_exception import NomsInChromaNotFoundException
 from infra.chroma_store import connect_to_chroma_collection
 from infra.env import REDIS_HOST, REDIS_PASSWORD, DB_CONNECTION_STRING, DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
-from scheme.nomenclature_scheme import MappingNomenclaturesUpload, MappingOneNomenclatureRead, \
+from scheme.nomenclature_scheme import MappingOneNomenclatureRead, \
     MappingOneNomenclatureUpload, \
     MappingNomenclaturesResultRead, JobIdRead
 from util.extract_keyword import extract_keyword
@@ -27,6 +27,19 @@ from util.normalize_name import normalize_name
 tqdm.pandas()
 # noinspection PyTypeChecker
 np.set_printoptions(threshold=np.inf)
+
+
+def _get_group_name_by_id(db_con_str: str, table_name: str, group_id: str):
+    st = text(f"""
+        SELECT "name"
+        FROM {table_name}
+        WHERE "is_group" = TRUE
+        AND "id" = '{group_id}'
+    """)
+    result = read_sql(st, db_con_str)
+    group_name = result['name'].to_list()[0].lower()
+
+    return group_name
 
 
 def get_nomenclatures_groups(noms: DataFrame, model_id: str) -> list[str]:
@@ -50,6 +63,7 @@ def map_on_nom(
     most_similar_count: int,
     chroma_collection_name: str,
     metadata: dict,
+    # ) -> list[MappingOneTargetRead]:
 ) -> list[dict]:
     collection = connect_to_chroma_collection(collection_name=chroma_collection_name)
 
@@ -66,25 +80,29 @@ def map_on_nom(
 
     # TODO: сделать поиск без параметров, чтобы выдавать аналоги
 
-    found_noms_count = len(response['ids'][0])
-
-    if found_noms_count == 0:
-        raise NomsInChromaNotFoundException(
-            f"В коллекции Chroma {chroma_collection_name} нет номенклатур, принадлежащих группе {group}."
-        )
+    # found_noms_count = len(response['ids'][0])
+    # if found_noms_count == 0:
+    #     raise NomsInChromaNotFoundException(
+    #         f"В коллекции Chroma {chroma_collection_name} нет номенклатур, принадлежащих группе {group}."
+    #     )
 
     mapped_noms = []
     for i in range(len(response['ids'][0])):
+        # mapped_noms.append(MappingOneTargetRead(
+        #     nomenclature_guid=response['ids'][0][i],
+        #     nomenclature=response['documents'][0][i],
+        #     similarity_score=response['distances'][0][i],
+        # ))
         mapped_noms.append({
             "nomenclature_guid": response['ids'][0][i],
             "nomenclature": response['documents'][0][i],
-            "similarity_score": response['distances'][0][i]
+            "similarity_score": response['distances'][0][i],
         })
 
     return mapped_noms
 
 
-def parse_txt_file(nomenclatures: list[MappingOneNomenclatureUpload]) -> DataFrame:
+def convert_nomenclatures_to_df(nomenclatures: list[MappingOneNomenclatureUpload]) -> DataFrame:
     nomenclatures_as_json = [nom.dict().values() for nom in nomenclatures]
     return DataFrame(nomenclatures_as_json, columns=['row_number', 'nomenclature'])
 
@@ -109,29 +127,33 @@ def get_nomenclatures_embeddings(strings: list[str]) -> list[np.ndarray]:
     return result
 
 
-def get_nomenclature_segments(
+def split_nomenclatures_by_chunks(
     nomenclatures: list[MappingOneNomenclatureUpload],
-    segment_length: int = 100
+    chunk_size: int = 100
 ) -> list[list[MappingOneNomenclatureUpload]]:
     # https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
-    for i in range(0, len(nomenclatures), segment_length):
-        yield nomenclatures[i:i + segment_length]
+    for i in range(0, len(nomenclatures), chunk_size):
+        yield nomenclatures[i:i + chunk_size]
 
 
-def create_job(
+def create_mapping_job(
     nomenclatures: list[MappingOneNomenclatureUpload],
     previous_job_id: str | None,
     most_similar_count: int,
     chroma_collection_name: str,
     model_id: str,
+    db_con_str: str,
+    table_name: str,
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.MAPPING)
     job = queue.enqueue(
-        process,
+        map_nomenclatures_chunk,
         nomenclatures,
         most_similar_count,
         chroma_collection_name,
         model_id,
+        db_con_str,
+        table_name,
         meta={
             "previous_nomenclature_id": previous_job_id
         },
@@ -141,69 +163,102 @@ def create_job(
     return JobIdRead(job_id=job.id)
 
 
-def start_mapping(nomenclatures: MappingNomenclaturesUpload, model_id: str) -> JobIdRead:
-    nomenclatures_list = nomenclatures.nomenclatures
-    most_similar_count = nomenclatures.most_similar_count
-    chroma_collection_name = nomenclatures.chroma_collection_name
-
-    segments = get_nomenclature_segments(nomenclatures_list, segment_length=nomenclatures.job_size)
+def start_mapping(
+    nomenclatures: list[MappingOneNomenclatureUpload],
+    most_similar_count: int,
+    chroma_collection_name: str,
+    chunk_size: int,
+    model_id: str,
+    db_con_str: str,
+    table_name: str,
+) -> JobIdRead:
+    segments = split_nomenclatures_by_chunks(
+        nomenclatures=nomenclatures,
+        chunk_size=chunk_size,
+    )
     last_job_id = None
     for segment in segments:
-        job = create_job(
+        job = create_mapping_job(
             nomenclatures=segment,
             previous_job_id=last_job_id,
             most_similar_count=most_similar_count,
             chroma_collection_name=chroma_collection_name,
-            model_id=model_id
+            model_id=model_id,
+            db_con_str=db_con_str,
+            table_name=table_name,
         )
         last_job_id = job.job_id
 
     return JobIdRead(job_id=last_job_id)
 
 
-def process(
+def map_nomenclatures_chunk(
     nomenclatures: list[MappingOneNomenclatureUpload],
     most_similar_count: int,
     chroma_collection_name: str,
     model_id: str,
+    db_con_str: str,
+    table_name: str,
 ):
     job = get_current_job()
 
-    noms: DataFrame = parse_txt_file(nomenclatures)
+    # Convert nomenclatures to DataFrame
+    noms = convert_nomenclatures_to_df(nomenclatures)
 
     job.meta['total_count'] = len(noms)
     job.meta['ready_count'] = 0
     job.save_meta()
 
-    # Copy noms to name column for extracting features
-    noms['name'] = noms['nomenclature']
-
+    # Normalize nomenclatures names
     noms['normalized'] = noms['nomenclature'].progress_apply(
         lambda nom_name: normalize_name(nom_name)
     )
 
+    # Classification to get nomenclature group
     noms['group'] = get_nomenclatures_groups(noms, model_id)
+
+    # Get group name of every nomenclature
+    noms['group_name'] = noms['group'].progress_apply(
+        lambda group_id: _get_group_name_by_id(
+            db_con_str=db_con_str,
+            table_name=table_name,
+            group_id=group_id,
+        )
+    )
+    print(noms['group_name'].to_list())
 
     noms['keyword'] = noms['normalized'].progress_apply(
         lambda nom_name: extract_keyword(nom_name)
     )
 
-    noms['mappings'] = None
-
+    # Create embeddings for every nomenclature
     noms['embeddings'] = get_nomenclatures_embeddings(noms['nomenclature'].to_list())
 
+    # Copy noms to name column for extracting features
+    noms['name'] = noms['nomenclature']
     # Извлечение характеристик и добавление их в метаданные
     noms = extract_features(noms)
 
     # Получаем метаданные всех номенклатур с характеристиками
     noms['metadata'] = get_noms_metadatas_with_features(noms)
 
+    noms['mappings'] = None
     for i, nom in tqdm(noms.iterrows()):
-        try:
-            # TODO: придумать что делать с группой,
-            #       потому что у нас на этом этапе есть только ID группы, а названия нет,
-            #       но нам же надо понять есть ли ключевое слово в названии группы
+        # try:
 
+        # Check if nom really belong to mapped group
+        if nom['keyword'] not in nom['group_name']:
+            # nom['mappings'] = [MappingOneTargetRead(
+            #     nomenclature_guid="",
+            #     nomenclature="Нет группы для такой номенклатуры",
+            #     similarity_score=0,
+            # )]
+            nom['mappings'] = [{
+                "nomenclature_guid": "",
+                "nomenclature": "Для такой номенклатуры группы не нашлось",
+                "similarity_score": 0,
+            }]
+        else:
             nom['mappings'] = map_on_nom(
                 nom_embeddings=nom['embeddings'],
                 group=nom['group'],
@@ -211,8 +266,10 @@ def process(
                 chroma_collection_name=chroma_collection_name,
                 metadata=nom['metadata'],
             )
-        except NomsInChromaNotFoundException:
-            pass
+
+        # except NomsInChromaNotFoundException:
+        #     pass
+
         noms.loc[i] = nom
         job.meta['ready_count'] += 1
         job.save_meta()
