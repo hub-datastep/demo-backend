@@ -24,6 +24,7 @@ keyword_extractor = KeywordExtractor(
 def extract_keyword(text: str) -> str:
     normalized_text = normalize_name(text)
     normalized_text = remove_adjectives(normalized_text)
+
     extracted_list: list[tuple[str, float]] = keyword_extractor.extract_keywords(normalized_text)
     keyword, _ = extracted_list[0]
 
