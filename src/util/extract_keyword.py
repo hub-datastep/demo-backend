@@ -1,3 +1,4 @@
+import snowballstemmer
 from yake import KeywordExtractor
 
 from util.normalize_name import normalize_name
@@ -20,11 +21,19 @@ keyword_extractor = KeywordExtractor(
     top=numOfKeywords,
 )
 
+stemmer = snowballstemmer.stemmer("russian")
+
 
 def extract_keyword(text: str) -> str:
+    # Normalizing text
     normalized_text = normalize_name(text)
     normalized_text = remove_adjectives(normalized_text)
+
+    # Extract keyword from text
     extracted_list: list[tuple[str, float]] = keyword_extractor.extract_keywords(normalized_text)
     keyword, _ = extracted_list[0]
 
-    return keyword
+    # Stemming of keyword
+    stemmed_keyword = stemmer.stemWord(keyword)
+
+    return stemmed_keyword

@@ -21,7 +21,7 @@ FEATURES_REGEX_PATTERNS = {
     # Объем потока
     "flow_volume": r"(\d+,\d+|\d+) - (\d+,\d+|\d+) л/час",
     # Мощность
-    "power": r"(\d+)\s?(Вт|кВт)",
+    "power": r"(\d+,\d+|\d+)\s?(Вт|кВт)",
     # Вид арматуры
     "reinforcement_type": r"[АAаa]\d+[СCсc]?(?:\(([АAаa1])\))?",
     # Диаметр арматуры
@@ -32,6 +32,8 @@ FEATURES_REGEX_PATTERNS = {
     "jumpers_diameter": r"Д(\d+)",
     # Плиты перекрытия
     "floor_slabs": r"П[КБ]\s?\d{2}(?:[.,]?\d+)?(?:-\d+){1,2}",
+    # Опорная плита
+    "base_plate": r"П\s\d[.,]\d",
     # Типы радиаторов и подключение
     "radiator_types": r"(FK0|FTV)(?: - с (боковым|нижним) подключением)?",
     # Плотность материала
@@ -61,11 +63,12 @@ def get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[d
         # Извлечение значений регулярных выражений
         regex_values = row[FEATURES_REGEX_PATTERNS.keys()].to_dict()
 
-        # Преобразование ряда в словарь
-        metadata = {"group": row['group']}
-
-        # Объединение словарей
-        metadata.update(regex_values)
-        metadatas.append(metadata)
+        # # Преобразование ряда в словарь
+        # metadata = {"group": row['group']}
+        #
+        # # Объединение словарей
+        # metadata.update(regex_values)
+        # metadatas.append(metadata)
+        metadatas.append(regex_values)
 
     return metadatas

@@ -14,12 +14,14 @@ class MappingOneTargetRead(SQLModel):
     nomenclature_guid: str
     nomenclature: str
     similarity_score: float
+    nomenclature_params: list[dict]
 
 
 class MappingOneNomenclatureRead(SQLModel):
     row_number: int
     nomenclature: str | None
     group: str
+    group_name: str
     mappings: list[MappingOneTargetRead] | None
 
 
@@ -38,7 +40,7 @@ class MappingNomenclaturesResultRead(SQLModel):
     ready_count: int | None
     total_count: int | None
     general_status: str
-    nomenclatures: list[MappingOneNomenclatureRead]
+    nomenclatures: list[MappingOneNomenclatureRead] | None
 
 
 class CreateAndSaveEmbeddingsUpload(SQLModel):
