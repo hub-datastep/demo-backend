@@ -21,7 +21,7 @@ FEATURES_REGEX_PATTERNS = {
     # Объем потока
     "flow_volume": r"(\d+,\d+|\d+) - (\d+,\d+|\d+) л/час",
     # Мощность
-    "power": r"(\d+)\s?(Вт|кВт)",
+    "power": r"(\d+,\d+|\d+)\s?(Вт|кВт)",
     # Вид арматуры
     "reinforcement_type": r"[АAаa]\d+[СCсc]?(?:\(([АAаa1])\))?",
     # Диаметр арматуры
