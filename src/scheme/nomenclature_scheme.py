@@ -40,7 +40,7 @@ class MappingNomenclaturesResultRead(SQLModel):
     ready_count: int | None
     total_count: int | None
     general_status: str
-    nomenclatures: list[MappingOneNomenclatureRead]
+    nomenclatures: list[MappingOneNomenclatureRead] | None
 
 
 class CreateAndSaveEmbeddingsUpload(SQLModel):
