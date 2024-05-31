@@ -1,4 +1,3 @@
-import ast
 import json
 from pathlib import Path
 
@@ -15,7 +14,7 @@ from sqlalchemy import text
 from tqdm import tqdm
 
 from infra.chroma_store import connect_to_chroma_collection
-from infra.env import REDIS_HOST, REDIS_PASSWORD, DB_CONNECTION_STRING, DATA_FOLDER_PATH
+from infra.env import REDIS_HOST, REDIS_PASSWORD, DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
 from scheme.nomenclature_scheme import MappingOneNomenclatureRead, \
     MappingOneNomenclatureUpload, \
@@ -63,7 +62,6 @@ def map_on_nom(
     most_similar_count: int,
     chroma_collection_name: str,
     metadata: dict,
-    # ) -> list[MappingOneTargetRead]:
 ) -> list[dict]:
     collection = connect_to_chroma_collection(collection_name=chroma_collection_name)
 
@@ -83,11 +81,6 @@ def map_on_nom(
         where=where_metadatas,
     )
 
-    # found_noms_count = len(response['ids'][0])
-    # if found_noms_count == 0:
-    #     raise NomsInChromaNotFoundException(
-    #         f"В коллекции Chroma {chroma_collection_name} нет номенклатур, принадлежащих группе {group}."
-    #     )
     response_ids = response['ids'][0]
     response_documents = response['documents'][0]
     response_distances = response['distances'][0]
@@ -107,15 +100,11 @@ def map_on_nom(
 
     mapped_noms = []
     for i in range(len(response_ids)):
-        # mapped_noms.append(MappingOneTargetRead(
-        #     nomenclature_guid=response_ids[i],
-        #     nomenclature=response_documents[i],
-        #     similarity_score=response_distances[i],
-        # ))
         mapped_noms.append({
             "nomenclature_guid": response_ids[i],
             "nomenclature": response_documents[i],
             "similarity_score": response_distances[i],
+            "nomenclature_params": metadatas_list
         })
 
     return mapped_noms
@@ -124,17 +113,6 @@ def map_on_nom(
 def convert_nomenclatures_to_df(nomenclatures: list[MappingOneNomenclatureUpload]) -> DataFrame:
     nomenclatures_as_json = [nom.dict().values() for nom in nomenclatures]
     return DataFrame(nomenclatures_as_json, columns=['row_number', 'nomenclature'])
-
-
-def get_nom_candidates(groups: list[str]) -> DataFrame:
-    groups_str = ", ".join([f"'{g}'" for g in groups])
-    candidates = read_sql(
-        f'SELECT * FROM nomenclature WHERE "group" in ({groups_str})',
-        DB_CONNECTION_STRING
-    )
-    candidates = candidates.replace({np.nan: "[]"})
-    candidates.embeddings = candidates.embeddings.progress_apply(ast.literal_eval).progress_apply(np.array)
-    return candidates
 
 
 def get_nomenclatures_embeddings(strings: list[str]) -> list[np.ndarray]:
@@ -148,7 +126,7 @@ def get_nomenclatures_embeddings(strings: list[str]) -> list[np.ndarray]:
 
 def split_nomenclatures_by_chunks(
     nomenclatures: list[MappingOneNomenclatureUpload],
-    chunk_size: int = 100
+    chunk_size: int = 100,
 ) -> list[list[MappingOneNomenclatureUpload]]:
     # https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
     for i in range(0, len(nomenclatures), chunk_size):
@@ -262,15 +240,8 @@ def map_nomenclatures_chunk(
 
     noms['mappings'] = None
     for i, nom in tqdm(noms.iterrows()):
-        # try:
-
         # Check if nom really belong to mapped group
         if nom['keyword'] not in nom['group_name'].lower():
-            # nom['mappings'] = [MappingOneTargetRead(
-            #     nomenclature_guid="",
-            #     nomenclature="Нет группы для такой номенклатуры",
-            #     similarity_score=0,
-            # )]
             nom['mappings'] = [{
                 "nomenclature_guid": "",
                 "nomenclature": "Для такой номенклатуры группы не нашлось",
@@ -284,9 +255,6 @@ def map_nomenclatures_chunk(
                 chroma_collection_name=chroma_collection_name,
                 metadata=nom['metadata'],
             )
-
-        # except NomsInChromaNotFoundException:
-        #     pass
 
         noms.loc[i] = nom
         job.meta['ready_count'] += 1
@@ -312,7 +280,7 @@ def get_jobs_from_rq(nomenclature_id: str) -> list[MappingNomenclaturesResultRea
             ready_count=job_meta.get("ready_count", None),
             total_count=job_meta.get("total_count", None),
             general_status=job_status,
-            nomenclatures=[]
+            nomenclatures=[],
         )
 
         if job_status == JobStatus.FINISHED:
