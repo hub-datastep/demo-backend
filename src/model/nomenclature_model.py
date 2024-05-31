@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import joblib
@@ -16,9 +15,8 @@ from tqdm import tqdm
 from infra.chroma_store import connect_to_chroma_collection
 from infra.env import REDIS_HOST, REDIS_PASSWORD, DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
-from scheme.nomenclature_scheme import MappingOneNomenclatureRead, \
-    MappingOneNomenclatureUpload, \
-    MappingNomenclaturesResultRead, JobIdRead
+from scheme.nomenclature_scheme import MappingOneNomenclatureUpload, \
+    MappingNomenclaturesResultRead, JobIdRead, MappingOneTargetRead, MappingOneNomenclatureRead
 from util.extract_keyword import extract_keyword
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
 from util.normalize_name import normalize_name
@@ -62,7 +60,7 @@ def map_on_nom(
     most_similar_count: int,
     chroma_collection_name: str,
     metadata: dict,
-) -> list[dict]:
+) -> list[MappingOneTargetRead]:
     collection = connect_to_chroma_collection(collection_name=chroma_collection_name)
 
     metadatas_list = []
@@ -100,12 +98,12 @@ def map_on_nom(
 
     mapped_noms = []
     for i in range(len(response_ids)):
-        mapped_noms.append({
-            "nomenclature_guid": response_ids[i],
-            "nomenclature": response_documents[i],
-            "similarity_score": response_distances[i],
-            "nomenclature_params": metadatas_list
-        })
+        mapped_noms.append(MappingOneTargetRead(
+            nomenclature_guid=response_ids[i],
+            nomenclature=response_documents[i],
+            similarity_score=response_distances[i],
+            nomenclature_params=metadatas_list,
+        ))
 
     return mapped_noms
 
@@ -196,7 +194,7 @@ def map_nomenclatures_chunk(
     model_id: str,
     db_con_str: str,
     table_name: str,
-):
+) -> list[MappingOneNomenclatureRead]:
     job = get_current_job()
 
     # Convert nomenclatures to DataFrame
@@ -242,11 +240,12 @@ def map_nomenclatures_chunk(
     for i, nom in tqdm(noms.iterrows()):
         # Check if nom really belong to mapped group
         if nom['keyword'] not in nom['group_name'].lower():
-            nom['mappings'] = [{
-                "nomenclature_guid": "",
-                "nomenclature": "Для такой номенклатуры группы не нашлось",
-                "similarity_score": -1,
-            }]
+            nom['mappings'] = [MappingOneTargetRead(
+                nomenclature_guid="",
+                nomenclature="Для такой номенклатуры группы не нашлось",
+                similarity_score=-1,
+                nomenclature_params=nom['metadata'],
+            )]
         else:
             nom['mappings'] = map_on_nom(
                 nom_embeddings=nom['embeddings'],
@@ -263,7 +262,12 @@ def map_nomenclatures_chunk(
     job.meta['status'] = "finished"
     job.save_meta()
 
-    return noms.to_json(orient="records", force_ascii=False)
+    noms['embeddings'] = None
+
+    noms_dict = noms.to_dict(orient="records")
+    result_nomenclatures = [MappingOneNomenclatureRead(**nom) for nom in noms_dict]
+
+    return result_nomenclatures
 
 
 def get_jobs_from_rq(nomenclature_id: str) -> list[MappingNomenclaturesResultRead]:
@@ -280,13 +284,11 @@ def get_jobs_from_rq(nomenclature_id: str) -> list[MappingNomenclaturesResultRea
             ready_count=job_meta.get("ready_count", None),
             total_count=job_meta.get("total_count", None),
             general_status=job_status,
-            nomenclatures=[],
         )
 
         if job_status == JobStatus.FINISHED:
-            result_json = job.return_value()
-            result_dict = json.loads(result_json)
-            job_result.nomenclatures = [MappingOneNomenclatureRead(**d) for d in result_dict]
+            result_mappings: list[MappingOneNomenclatureRead] = job.return_value(refresh=True)
+            job_result.nomenclatures = result_mappings
 
         jobs_list.append(job_result)
         prev_job_id = job_meta['previous_nomenclature_id']
