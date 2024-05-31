@@ -3,7 +3,6 @@ from pathlib import Path
 import joblib
 import numpy as np
 from chromadb import QueryResult
-from fastapi import HTTPException
 from fastembed.embedding import FlagEmbedding
 from pandas import read_sql, DataFrame
 from redis import Redis
@@ -44,10 +43,7 @@ def get_nomenclatures_groups(noms: DataFrame, model_id: str) -> list[str]:
     vectorizer_path = f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl"
 
     if not Path(model_path).exists() or not Path(vectorizer_path).exists():
-        raise HTTPException(
-            status_code=400,
-            detail=f"Model with ID {model_id} not found locally.",
-        )
+        raise Exception(f"Model with ID {model_id} not found locally.")
 
     model = joblib.load(model_path)
     vectorizer = joblib.load(vectorizer_path)
