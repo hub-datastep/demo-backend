@@ -55,16 +55,9 @@ def map_on_nom(
     group: str,
     most_similar_count: int,
     chroma_collection_name: str,
-    metadata: dict,
+    metadatas_list: list[dict],
 ) -> list[MappingOneTargetRead]:
     collection = connect_to_chroma_collection(collection_name=chroma_collection_name)
-
-    metadatas_list = []
-    for key, val in metadata.items():
-        if key == "group":
-            continue
-
-        metadatas_list.append({key: val})
 
     where_metadatas = {"$and": [{"group": group}, {"$and": metadatas_list}]}
 
@@ -234,13 +227,17 @@ def map_nomenclatures_chunk(
 
     noms['mappings'] = None
     for i, nom in tqdm(noms.iterrows()):
+        metadatas_list = []
+        for key, val in nom['metadata'].items():
+            metadatas_list.append({key: val})
+
         # Check if nom really belong to mapped group
         if nom['keyword'] not in nom['group_name'].lower():
             nom['mappings'] = [MappingOneTargetRead(
                 nomenclature_guid="",
                 nomenclature="Для такой номенклатуры группы не нашлось",
                 similarity_score=-1,
-                nomenclature_params=nom['metadata'],
+                nomenclature_params=metadatas_list,
             )]
         else:
             nom['mappings'] = map_on_nom(
@@ -248,7 +245,7 @@ def map_nomenclatures_chunk(
                 group=nom['group'],
                 most_similar_count=most_similar_count,
                 chroma_collection_name=chroma_collection_name,
-                metadata=nom['metadata'],
+                metadatas_list=metadatas_list,
             )
 
         noms.loc[i] = nom
