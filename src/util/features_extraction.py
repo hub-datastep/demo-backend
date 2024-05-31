@@ -63,11 +63,12 @@ def get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[d
         # Извлечение значений регулярных выражений
         regex_values = row[FEATURES_REGEX_PATTERNS.keys()].to_dict()
 
-        # Преобразование ряда в словарь
-        metadata = {"group": row['group']}
-
-        # Объединение словарей
-        metadata.update(regex_values)
-        metadatas.append(metadata)
+        # # Преобразование ряда в словарь
+        # metadata = {"group": row['group']}
+        #
+        # # Объединение словарей
+        # metadata.update(regex_values)
+        # metadatas.append(metadata)
+        metadatas.append(regex_values)
 
     return metadatas
