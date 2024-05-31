@@ -14,6 +14,7 @@ class MappingOneTargetRead(SQLModel):
     nomenclature_guid: str
     nomenclature: str
     similarity_score: float
+    nomenclature_params: list[dict]
 
 
 class MappingOneNomenclatureRead(SQLModel):
