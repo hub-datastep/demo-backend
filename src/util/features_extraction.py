@@ -1,6 +1,9 @@
 import re
 
 from pandas import DataFrame
+from tqdm import tqdm
+
+tqdm.pandas()
 
 # Определение регулярных выражений для разных категорий
 FEATURES_REGEX_PATTERNS = {
