@@ -7,7 +7,7 @@ FEATURES_REGEX_PATTERNS = {
     # Общий размер в мм/см/м
     "overall_size_mm_cm_m": r"(\d+)\s?(мм|см|м)",
     # Диаметр условного отверстия
-    "nominal_bore_diameter": r"Ду-?(\d+)|DN=?(\d+)",
+    "nominal_bore_diameter": r"Ду[-\s]?(\d+)|DN[=\s]?(\d+)",
     # Диаметр (в дюймах)
     "diameter_inches": r"(\d+\/\d+\"|\d+\")",
     # Прямоугольные размеры
@@ -19,13 +19,13 @@ FEATURES_REGEX_PATTERNS = {
     # Максимальная температура
     "maximum_temperature": r"[ТT][mMмМ][aAаА][xXкК][Сс]?\s*=?\s*(\d+)\s*[°\s]?[гГ]?[рР]?[CcСсoO]?",
     # Объем потока
-    "flow_volume": r"(\d+,\d+|\d+) - (\d+,\d+|\d+) л/час",
+    "flow_volume": r"(\d+,\d+|\d+)\s?-\s?(\d+,\d+|\d+) л/час",
     # Мощность
     "power": r"(\d+,\d+|\d+)\s?(Вт|кВт)",
     # Вид арматуры
     "reinforcement_type": r"[АAаa]\d+[СCсc]?(?:\(([АAаa1])\))?",
     # Диаметр арматуры
-    "reinforcement_diameter": r"No\s?(\d+)|(\d+)мм",
+    "reinforcement_diameter": r"(No|№)\s?(\d+)|(\d+)мм",
     # Характеристика перемычек
     "jumpers_params": r"(\d+П[ФБ]\d+-\d+)",
     # Диаметр перемычек
@@ -35,7 +35,7 @@ FEATURES_REGEX_PATTERNS = {
     # Опорная плита
     "base_plate": r"П\s\d[.,]\d",
     # Типы радиаторов и подключение
-    "radiator_types": r"(FK0|FTV)(?: - с (боковым|нижним) подключением)?",
+    "radiator_types": r"(FK0|FTV)|(с (боковым|нижним) подключением)",
     # Плотность материала
     "density": r"(\d+)кг/м3",
 }
@@ -43,18 +43,24 @@ FEATURES_REGEX_PATTERNS = {
 
 def extract_match(pattern: str, text: str) -> str:
     # Extract param by pattern
-    match = re.search(pattern, text)
+    match = re.search(pattern, text, flags=re.IGNORECASE)
     # Get param as str
     result = str(match.group()) if match else ""
     # Replace special symbols to spaces
-    result = re.sub(r"\W+", " ", result)
+    result = re.sub(r"[^A-zА-я0-9 ]+|[xх_]+", "-", result)
+    # Turn to lower case
+    result = result.lower()
+    # Remove spaces and other at the start and end of string
+    result = str(result.strip())
     return result
 
 
 def extract_features(nomenclatures: DataFrame) -> DataFrame:
     # Применяем регулярные выражения для извлечения характеристик
     for name, pattern in FEATURES_REGEX_PATTERNS.items():
-        nomenclatures[name] = nomenclatures['name'].apply(lambda x: extract_match(pattern, x))
+        nomenclatures[name] = nomenclatures['name'].progress_apply(
+            lambda nom_name: extract_match(pattern, nom_name)
+        )
 
     return nomenclatures
 
