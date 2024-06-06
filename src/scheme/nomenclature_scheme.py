@@ -23,6 +23,7 @@ class MappingOneNomenclatureRead(SQLModel):
     group: str
     group_name: str
     mappings: list[MappingOneTargetRead] | None
+    similar_mappings: list[MappingOneTargetRead] | None
 
 
 class MappingNomenclaturesUpload(SQLModel):

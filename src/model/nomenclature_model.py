@@ -3,6 +3,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 from chromadb import QueryResult
+from chromadb.api.models.Collection import Collection
 from fastembed.embedding import FlagEmbedding
 from pandas import read_sql, DataFrame
 from redis import Redis
@@ -23,6 +24,8 @@ from util.normalize_name import normalize_name
 tqdm.pandas()
 # noinspection PyTypeChecker
 np.set_printoptions(threshold=np.inf)
+
+SIMILAR_NOMS_COUNT = 3
 
 
 def _get_group_name_by_id(db_con_str: str, table_name: str, group_id: str):
@@ -51,21 +54,23 @@ def get_nomenclatures_groups(noms: DataFrame, model_id: str) -> list[str]:
 
 
 def map_on_nom(
+    collection: Collection,
     nom_embeddings: np.ndarray,
     group: str,
     most_similar_count: int,
-    chroma_collection_name: str,
     metadatas_list: list[dict],
-) -> list[MappingOneTargetRead]:
-    collection = connect_to_chroma_collection(collection_name=chroma_collection_name)
-
-    where_metadatas = {"$and": [{"group": group}, {"$and": metadatas_list}]}
+    is_hard_params: bool,
+) -> list[MappingOneTargetRead] | None:
+    if is_hard_params:
+        where_metadatas = {"$and": [{"group": group}, {"$and": metadatas_list}]}
+    else:
+        where_metadatas = {"$and": [{"group": group}, {"$or": metadatas_list}]}
 
     nom_embeddings = nom_embeddings.tolist()
     response: QueryResult = collection.query(
         query_embeddings=[nom_embeddings],
-        n_results=most_similar_count,
         where=where_metadatas,
+        n_results=most_similar_count,
     )
 
     response_ids = response['ids'][0]
@@ -73,17 +78,7 @@ def map_on_nom(
     response_distances = response['distances'][0]
 
     if len(response_ids) == 0:
-        where_metadatas = {"$and": [{"group": group}, {"$or": metadatas_list}]}
-
-        response: QueryResult = collection.query(
-            query_embeddings=[nom_embeddings],
-            n_results=3,
-            where=where_metadatas,
-        )
-
-        response_ids = response['ids'][0]
-        response_documents = response['documents'][0]
-        response_distances = response['distances'][0]
+        return None
 
     mapped_noms = []
     for i in range(len(response_ids)):
@@ -225,6 +220,8 @@ def map_nomenclatures_chunk(
     # Получаем метаданные всех номенклатур с характеристиками
     noms['metadata'] = get_noms_metadatas_with_features(noms)
 
+    collection = connect_to_chroma_collection(collection_name=chroma_collection_name)
+
     noms['mappings'] = None
     for i, nom in tqdm(noms.iterrows()):
         metadatas_list = []
@@ -240,13 +237,28 @@ def map_nomenclatures_chunk(
                 nomenclature_params=metadatas_list,
             )]
         else:
-            nom['mappings'] = map_on_nom(
+            # Map nomenclature with equal group and params
+            mappings = map_on_nom(
+                collection=collection,
                 nom_embeddings=nom['embeddings'],
                 group=nom['group'],
                 most_similar_count=most_similar_count,
-                chroma_collection_name=chroma_collection_name,
                 metadatas_list=metadatas_list,
+                is_hard_params=True,
             )
+            nom['mappings'] = mappings
+
+            # Map similar nomenclatures if nom's group or params is not valid
+            if mappings is None:
+                similar_mappings = map_on_nom(
+                    collection=collection,
+                    nom_embeddings=nom['embeddings'],
+                    group=nom['group'],
+                    most_similar_count=SIMILAR_NOMS_COUNT,
+                    metadatas_list=metadatas_list,
+                    is_hard_params=False,
+                )
+                nom['similar_mappings'] = similar_mappings
 
         noms.loc[i] = nom
         job.meta['ready_count'] += 1
