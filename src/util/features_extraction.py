@@ -42,8 +42,12 @@ FEATURES_REGEX_PATTERNS = {
 
 
 def extract_match(pattern: str, text: str) -> str:
+    # Extract param by pattern
     match = re.search(pattern, text)
+    # Get param as str
     result = str(match.group()) if match else ""
+    # Replace special symbols to spaces
+    result = re.sub(r"\W+", " ", result)
     return result
 
 
@@ -63,12 +67,6 @@ def get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[d
         # Извлечение значений регулярных выражений
         regex_values = row[FEATURES_REGEX_PATTERNS.keys()].to_dict()
 
-        # # Преобразование ряда в словарь
-        # metadata = {"group": row['group']}
-        #
-        # # Объединение словарей
-        # metadata.update(regex_values)
-        # metadatas.append(metadata)
         metadatas.append(regex_values)
 
     return metadatas
