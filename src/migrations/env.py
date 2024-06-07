@@ -24,6 +24,7 @@ config.set_main_option('sqlalchemy.url', os.getenv("DB_CONNECTION_STRING"))
 # from myapp import mymodel
 from scheme.chat_scheme import Chat
 from scheme.database_prediction_config_scheme import DatabasePredictionConfig
+from scheme.classifier_config_scheme import ClassifierConfig
 from scheme.file_scheme import File
 from scheme.mark_scheme import Mark
 from scheme.message_scheme import Message
