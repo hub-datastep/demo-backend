@@ -9,6 +9,7 @@ from pandas import read_sql, DataFrame
 from redis import Redis
 from rq import get_current_job
 from rq.job import Job, JobStatus
+from scheme.classifier_config_scheme import ClassifierConfig
 from sqlalchemy import text
 from tqdm import tqdm
 
@@ -125,6 +126,7 @@ def create_mapping_job(
     model_id: str,
     db_con_str: str,
     table_name: str,
+    classifier_config: ClassifierConfig,
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.MAPPING)
     job = queue.enqueue(
@@ -139,7 +141,8 @@ def create_mapping_job(
             "previous_nomenclature_id": previous_job_id
         },
         result_ttl=-1,
-        job_timeout=MAX_JOB_TIMEOUT
+        job_timeout=MAX_JOB_TIMEOUT,
+        classifier_config=classifier_config,
     )
     return JobIdRead(job_id=job.id)
 
@@ -152,6 +155,7 @@ def start_mapping(
     model_id: str,
     db_con_str: str,
     table_name: str,
+    classifier_config: ClassifierConfig
 ) -> JobIdRead:
     segments = split_nomenclatures_by_chunks(
         nomenclatures=nomenclatures,
@@ -167,6 +171,7 @@ def start_mapping(
             model_id=model_id,
             db_con_str=db_con_str,
             table_name=table_name,
+            classifier_config=classifier_config,
         )
         last_job_id = job.job_id
 
@@ -180,6 +185,7 @@ def map_nomenclatures_chunk(
     model_id: str,
     db_con_str: str,
     table_name: str,
+    classifier_config: ClassifierConfig
 ) -> list[MappingOneNomenclatureRead]:
     job = get_current_job()
 
@@ -206,10 +212,12 @@ def map_nomenclatures_chunk(
             group_id=group_id,
         )
     )
-
-    noms['keyword'] = noms['normalized'].progress_apply(
-        lambda nom_name: extract_keyword(nom_name)
-    )
+    if classifier_config.is_use_keywords_detection:
+        noms['keyword'] = noms['normalized'].progress_apply(
+            lambda nom_name: extract_keyword(nom_name)
+        )
+    else:
+        noms['keyword'] = None
 
     # Create embeddings for every nomenclature
     noms['embeddings'] = get_nomenclatures_embeddings(noms['nomenclature'].to_list())
@@ -231,8 +239,10 @@ def map_nomenclatures_chunk(
         for key, val in nom['metadata'].items():
             metadatas_list.append({str(key): val})
 
-        # Check if nom really belong to mapped group
-        if nom['keyword'] not in nom['group_name'].lower():
+        is_use_keywords = classifier_config.is_use_keywords_detection
+
+        # Check if nom really belong to mapped group, only if is_use_keywords is True
+        if is_use_keywords and nom['keyword'] not in nom['group_name'].lower():
             nom['mappings'] = [MappingOneTargetRead(
                 nomenclature_guid="",
                 nomenclature="Для такой номенклатуры группы не нашлось",
@@ -262,7 +272,6 @@ def map_nomenclatures_chunk(
                     is_hard_params=False,
                 )
                 nom['similar_mappings'] = similar_mappings
-
         noms.loc[i] = nom
         job.meta['ready_count'] += 1
         job.save_meta()
@@ -276,7 +285,6 @@ def map_nomenclatures_chunk(
     result_nomenclatures = [MappingOneNomenclatureRead(**nom) for nom in noms_dict]
 
     return result_nomenclatures
-
 
 def get_jobs_from_rq(nomenclature_id: str) -> list[MappingNomenclaturesResultRead]:
     redis = Redis(host=REDIS_HOST, password=REDIS_PASSWORD)

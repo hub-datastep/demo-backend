@@ -66,6 +66,7 @@ def start_nomenclature_mapping(
         model_id=body.model_id,
         db_con_str=body.db_con_str,
         table_name=body.table_name,
+        classifier_config=current_user.classifier_config
     )
 
 
