@@ -41,7 +41,7 @@ def _get_group_name_by_id(db_con_str: str, table_name: str, group_id: str):
     return group_name
 
 
-def get_nomenclatures_groups(noms: DataFrame, model_id: str) -> list[str]:
+def get_nomenclatures_groups(noms: DataFrame, model_id: str) -> list[int]:
     model_path = f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl"
     vectorizer_path = f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl"
 
@@ -56,11 +56,13 @@ def get_nomenclatures_groups(noms: DataFrame, model_id: str) -> list[str]:
 def map_on_nom(
     collection: Collection,
     nom_embeddings: np.ndarray,
-    group: str,
+    group: int,
     most_similar_count: int,
     metadatas_list: list[dict],
     is_hard_params: bool,
 ) -> list[MappingOneTargetRead] | None:
+    # Just sure that group is int
+    group = int(group)
     if is_hard_params:
         where_metadatas = {"$and": [{"group": group}, {"$and": metadatas_list}]}
     else:
@@ -223,10 +225,11 @@ def map_nomenclatures_chunk(
     collection = connect_to_chroma_collection(collection_name=chroma_collection_name)
 
     noms['mappings'] = None
+    noms['similar_mappings'] = None
     for i, nom in tqdm(noms.iterrows()):
         metadatas_list = []
         for key, val in nom['metadata'].items():
-            metadatas_list.append({key: val})
+            metadatas_list.append({str(key): val})
 
         # Check if nom really belong to mapped group
         if nom['keyword'] not in nom['group_name'].lower():
@@ -248,7 +251,7 @@ def map_nomenclatures_chunk(
             )
             nom['mappings'] = mappings
 
-            # Map similar nomenclatures if nom's group or params is not valid
+            # Map similar nomenclatures if nom's params is not valid
             if mappings is None:
                 similar_mappings = map_on_nom(
                     collection=collection,
