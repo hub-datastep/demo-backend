@@ -43,6 +43,11 @@ def _create_and_save_embeddings(
     # Получаем метаданные всех номенклатур с характеристиками
     metadatas = get_noms_metadatas_with_features(df_noms_with_features)
 
+    for i, metadata in enumerate(metadatas):
+        metadatas[i].update({
+            "group": int(df_noms.loc[i]['group'])
+        })
+
     ids = df_noms_with_features['id'].to_list()
     documents = df_noms_with_features['name'].to_list()
 
