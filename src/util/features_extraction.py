@@ -5,6 +5,21 @@ from tqdm import tqdm
 
 tqdm.pandas()
 
+ENG_TO_RUS_CHARS = {
+    'a': 'а',
+    'b': 'в',
+    'e': 'е',
+    'k': 'к',
+    'm': 'м',
+    'h': 'н',
+    'o': 'о',
+    'p': 'р',
+    'c': 'с',
+    't': 'т',
+    'y': 'у',
+    'x': 'х',
+}
+
 # Определение регулярных выражений для разных категорий
 FEATURES_REGEX_PATTERNS = {
     # Общий размер в мм/см/м
@@ -14,7 +29,7 @@ FEATURES_REGEX_PATTERNS = {
     # Диаметр (в дюймах)
     "diameter_inches": r"(\d+\/\d+\"|\d+\")",
     # Прямоугольные размеры
-    "rectangular_dimensions": r"(\d+)[xх](\d+)(?:[xх](\d+))?",
+    "rectangular_dimensions": r"(\d+)([^\w\s]|[xх])(\d+)(([^\w\s]|[xх])(\d+))?",
     # Давление (PN)
     "pressure_PN": r"[PР][Nn](\d+)",
     # Рабочее давление (Ру)
@@ -49,12 +64,32 @@ def extract_match(pattern: str, text: str) -> str:
     match = re.search(pattern, text, flags=re.IGNORECASE)
     # Get param as str
     result = str(match.group()) if match else ""
+
     # Replace special symbols to spaces
     result = re.sub(r"[^A-zА-я0-9 ]+|[xх_]+", "-", result)
+
+    # Remove "No", "№", "мм" from reinforcement_diameter param
+    # It should contain only number
+    if re.match(FEATURES_REGEX_PATTERNS['reinforcement_diameter'], result):
+        result = re.sub(r"(No|№)|(мм)", "", result)
+
+    # Change "FK0" to "с боковым подключением" in radiator_types param
+    if re.match(r"(FK0)", result):
+        result = re.sub(r"(FK0)", "с боковым подключением", result)
+
+    # Change "FTV" to "с нижним подключением" in radiator_types param
+    elif re.match(r"(FTV)", result):
+        result = re.sub(r"(FTV)", "с нижним подключением", result)
+
     # Turn to lower case
     result = result.lower()
     # Remove spaces and other at the start and end of string
     result = str(result.strip())
+
+    # Replace eng chars to equal russian
+    for en_char, ru_char in ENG_TO_RUS_CHARS.items():
+        result = result.replace(en_char, ru_char)
+
     return result
 
 
