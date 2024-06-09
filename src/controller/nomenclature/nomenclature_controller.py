@@ -15,9 +15,8 @@ router = APIRouter()
 @router.post("/mapping", response_model=JobIdRead)
 @version(1)
 def start_nomenclature_mapping(
-    *,
-    current_user: UserRead = Depends(get_current_user),
     body: MappingNomenclaturesUpload,
+    current_user: UserRead = Depends(get_current_user),
 ):
     """
     Запускает процесс сопоставления номенклатур.
@@ -33,12 +32,11 @@ def start_nomenclature_mapping(
     )
 
 
-@router.get("/mapping/{job_ib}", response_model=list[MappingNomenclaturesResultRead])
+@router.get("/mapping/{job_id}", response_model=list[MappingNomenclaturesResultRead])
 @version(1)
 def get_nomenclature_mapping_result(
-    *,
+    job_id: str,
     current_user: UserRead = Depends(get_current_user),
-    job_id: str
 ):
     """
     Получает результат сопоставления номенклатур по указанному идентификаторы задачи.
@@ -49,9 +47,8 @@ def get_nomenclature_mapping_result(
 @router.post("/create_and_save_embeddings", response_model=JobIdRead)
 @version(1)
 def create_and_save_embeddings(
-    *,
-    current_user: UserRead = Depends(get_current_user),
     body: CreateAndSaveEmbeddingsUpload,
+    current_user: UserRead = Depends(get_current_user),
 ):
     """
     Создаёт вектора в векторсторе для всех номенклатур из БД.
@@ -67,9 +64,8 @@ def create_and_save_embeddings(
 @router.get("/create_and_save_embeddings/{job_id}", response_model=CreateAndSaveEmbeddingsResult)
 @version(1)
 def create_and_save_embeddings_result(
-    *,
-    current_user: UserRead = Depends(get_current_user),
     job_id: str,
+    current_user: UserRead = Depends(get_current_user),
 ):
     """
     Получает результат создания создания векторов в векторсторе для номенклатур из БД.
@@ -80,9 +76,8 @@ def create_and_save_embeddings_result(
 @router.post("/synchronize", response_model=JobIdRead)
 @version(1)
 def synchronize_nomenclatures(
-    *,
-    current_user: UserRead = Depends(get_current_user),
     body: SyncNomenclaturesUpload,
+    current_user: UserRead = Depends(get_current_user),
 ):
     """
     Синхронизирует номенклатуры в БД и векторсторе за указанный период.
@@ -97,9 +92,8 @@ def synchronize_nomenclatures(
 @router.get("/synchronize/{job_id}")
 @version(1)
 def synchronize_nomenclatures_result(
-    *,
+    job_id: str,
     current_user: UserRead = Depends(get_current_user),
-    job_id: str
 ) -> SyncNomenclaturesResultRead:
     """
     Получает результат синхронизации номенклатур в БД и векторсторе.
@@ -110,9 +104,8 @@ def synchronize_nomenclatures_result(
 @router.post("/retrain_classifier", deprecated=True)
 @version(1)
 def retrain_classifier_by_groups(
-    *,
-    current_user: UserRead = Depends(get_current_user),
     body: RetrainClassifierUpload,
+    current_user: UserRead = Depends(get_current_user),
 ):
     """
     Переобучает классификатор по Группам номенклатур.
