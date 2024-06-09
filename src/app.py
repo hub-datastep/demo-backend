@@ -11,6 +11,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
 from controller.chat import message_controller, chat_controller
+from controller.chroma_collection import chroma_collection_controller
 from controller.file import file_controller, task_controller
 from controller.multi_classifier import multi_classifier_controller
 from controller.nomenclature import nomenclature_controller
@@ -31,6 +32,7 @@ app.include_router(message_controller.router, tags=["message"], prefix="/message
 # app.include_router(review_controller.router, tags=["review"], prefix="/review")
 app.include_router(prediction_controller.router, tags=["prediction"])
 app.include_router(nomenclature_controller.router, tags=["nomenclature"], prefix="/nomenclature")
+app.include_router(chroma_collection_controller.router, tags=["chroma_collection"], prefix="/collection")
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
 app.include_router(multi_classifier_controller.router, tags=["multi_classifier"], prefix="/multi_classifier")
 app.include_router(task_controller.router, tags=["task"], prefix="/task")
@@ -72,4 +74,4 @@ def on_startup():
 
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8080, reload=False)
+    uvicorn.run("app:app", host="0.0.0.0", port=8080, reload=True)
