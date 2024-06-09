@@ -63,10 +63,20 @@ def map_on_nom(
 ) -> list[MappingOneTargetRead] | None:
     # Just sure that group is int
     group = int(group)
-    if is_hard_params:
-        where_metadatas = {"$and": [{"group": group}, {"$and": metadatas_list}]}
+
+    if len(metadatas_list) == 0:
+        where_metadatas = {"group": group}
     else:
-        where_metadatas = {"$and": [{"group": group}, {"$or": metadatas_list}]}
+        metadatas_list_with_group = [{"group": group}]
+        for metadata in metadatas_list:
+            metadatas_list_with_group.append(metadata)
+
+        # Get metadatas for hard-search
+        if is_hard_params:
+            where_metadatas = {"$and": metadatas_list_with_group}
+        # Get metadatas for soft-search
+        else:
+            where_metadatas = {"$or": metadatas_list_with_group}
 
     nom_embeddings = nom_embeddings.tolist()
     response: QueryResult = collection.query(
@@ -226,10 +236,13 @@ def map_nomenclatures_chunk(
 
     noms['mappings'] = None
     noms['similar_mappings'] = None
-    for i, nom in tqdm(noms.iterrows()):
+    for i, nom in noms.iterrows():
+        # Create nomenclature metadatas list for query
         metadatas_list = []
         for key, val in nom['metadata'].items():
-            metadatas_list.append({str(key): val})
+            # Check if nomenclature param is not empty
+            if val != "":
+                metadatas_list.append({str(key): val})
 
         # Check if nom really belong to mapped group
         if nom['keyword'] not in nom['group_name'].lower():
