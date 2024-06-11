@@ -36,6 +36,11 @@ _text_features = make_column_selector(dtype_include=object)
 
 _FEATURES = list(FEATURES_REGEX_PATTERNS.keys())
 
+TRAINING_COLUMNS = [
+    "normalized",
+    *_FEATURES,
+]
+
 _text_transformer = make_pipeline(
     SimpleImputer(
         strategy="constant",
@@ -179,12 +184,7 @@ def _retrain_classifier(db_con_str: str, table_name: str, model_description: str
     # training_data_df = read_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
     print(f"Count of training data: {len(training_data_df)}")
 
-    training_columns = [
-        "normalized",
-        *_FEATURES,
-    ]
-
-    final_training_data = training_data_df[training_columns]
+    final_training_data = training_data_df[TRAINING_COLUMNS]
     targets = training_data_df['group']
 
     print(f"Training columns count: {len(final_training_data.columns)}")
