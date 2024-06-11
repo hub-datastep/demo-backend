@@ -1,62 +1,25 @@
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 
-from infra import chroma_store
-from model import nomenclature_model, noms2embeddings_model, synchronize_nomenclatures_model, \
-    retrain_noms_classifier_by_groups_model
+from model import nomenclature_model, synchronize_nomenclatures_model, \
+    retrain_noms_classifier_by_groups_model, noms2embeddings_model
 from model.auth_model import get_current_user
 from scheme.classifier_scheme import RetrainClassifierUpload
 from scheme.nomenclature_scheme import JobIdRead, MappingNomenclaturesUpload, MappingNomenclaturesResultRead, \
-    CreateAndSaveEmbeddingsUpload, \
-    SyncNomenclaturesUpload, SyncNomenclaturesResultRead, CreateAndSaveEmbeddingsResult
+    SyncNomenclaturesUpload, SyncNomenclaturesResultRead, CreateAndSaveEmbeddingsUpload, CreateAndSaveEmbeddingsResult
 from scheme.user_scheme import UserRead
 
 router = APIRouter()
 
 
-@router.get("/{job_id}", response_model=list[MappingNomenclaturesResultRead])
-@version(1)
-def get_nomenclature_mappings(
-    *,
-    current_user: UserRead = Depends(get_current_user),
-    job_id: str
-):
-    """
-    Получает результат сопоставления номенклатур по указанному идентификаторы задачи.
-
-    Args:
-        job_id (str): Идентификатор задачи.
-
-    Returns:
-        list[MappingNomenclaturesResultRead]: Список результатов сопоставления.
-        - ready_count (int): То, сколько номенклатур уже смаппилось.
-        - total_count (int): То, сколько всего номенклатур нужно смаппить.
-        - nomenclatures (list): Итоги маппинга
-        -- nomenclature (str): Название исходной номенклатуры
-        -- group (str): Найденная группа для исходной номенклатуры
-        -- mappings (list): Варианты похожих номенклатур
-        ---- nomenclature (str): Смаппленная номенклатура
-        ---- similarity_score (float): Расстояние между векторами (от 0 до 1).
-        Чем меньше значение, тем более похожи номенклатуры (0 - значит они идентичны).
-    """
-    return nomenclature_model.get_all_jobs(job_id)
-
-
 @router.post("/mapping", response_model=JobIdRead)
 @version(1)
 def start_nomenclature_mapping(
-    *,
-    current_user: UserRead = Depends(get_current_user),
     body: MappingNomenclaturesUpload,
+    current_user: UserRead = Depends(get_current_user),
 ):
     """
     Запускает процесс сопоставления номенклатур.
-
-    Args:
-        body (MappingNomenclaturesUpload): Номенклатуры для сопоставления.
-
-    Returns:
-        JobIdRead: Идентификатор задачи.
     """
     return nomenclature_model.start_mapping(
         nomenclatures=body.nomenclatures,
@@ -69,64 +32,16 @@ def start_nomenclature_mapping(
     )
 
 
-@router.post("/collection/{collection_name}")
+@router.get("/mapping/{job_id}", response_model=list[MappingNomenclaturesResultRead])
 @version(1)
-def create_chroma_collection(
-    *,
-    current_user: UserRead = Depends(get_current_user),
-    collection_name: str
-):
-    """
-    Создает Chroma коллекцию.
-
-    Args:
-        collection_name (str): Название коллекции.
-    """
-    return chroma_store.create_collection(collection_name=collection_name)
-
-
-@router.get("/collection/list", response_model=list[str])
-@version(1)
-def get_all_chroma_collections(
-    *,
+def get_nomenclature_mapping_result(
+    job_id: str,
     current_user: UserRead = Depends(get_current_user),
 ):
-    return chroma_store.get_all_collections()
-
-
-@router.get("/collection/{collection_name}/length")
-@version(1)
-def get_chroma_collection_length(
-    *,
-    current_user: UserRead = Depends(get_current_user),
-    collection_name: str
-) -> int:
     """
-    Получает количество векторов в Chroma коллекции.
-
-    Args:
-        collection_name (str): Название коллекции.
-
-    Returns:
-        int: Количество векторов коллекции.
+    Получает результат сопоставления номенклатур по указанному идентификаторы задачи.
     """
-    return chroma_store.get_collection_length(collection_name=collection_name)
-
-
-@router.delete("/collection/{collection_name}")
-@version(1)
-def delete_chroma_collection(
-    *,
-    current_user: UserRead = Depends(get_current_user),
-    collection_name: str
-):
-    """
-    Удаляет Chroma коллекцию.
-
-    Args:
-        collection_name (str): Название коллекции.
-    """
-    return chroma_store.delete_collection(collection_name=collection_name)
+    return nomenclature_model.get_all_jobs(job_id)
 
 
 @router.post("/create_and_save_embeddings", response_model=JobIdRead)
@@ -135,6 +50,9 @@ def create_and_save_embeddings(
     body: CreateAndSaveEmbeddingsUpload,
     current_user: UserRead = Depends(get_current_user),
 ):
+    """
+    Создаёт вектора в векторсторе для всех номенклатур из БД.
+    """
     return noms2embeddings_model.start_creating_and_saving_nomenclatures(
         db_con_str=body.db_con_str,
         table_name=body.table_name,
@@ -143,35 +61,26 @@ def create_and_save_embeddings(
     )
 
 
-@router.get("/create_and_save_embeddings/result", response_model=CreateAndSaveEmbeddingsResult)
+@router.get("/create_and_save_embeddings/{job_id}", response_model=CreateAndSaveEmbeddingsResult)
 @version(1)
 def create_and_save_embeddings_result(
-    *,
-    current_user: UserRead = Depends(get_current_user),
-    background_tasks: BackgroundTasks,
     job_id: str,
+    current_user: UserRead = Depends(get_current_user),
 ):
+    """
+    Получает результат создания создания векторов в векторсторе для номенклатур из БД.
+    """
     return noms2embeddings_model.get_creating_and_saving_nomenclatures_job_result(job_id)
 
 
 @router.post("/synchronize", response_model=JobIdRead)
 @version(1)
 def synchronize_nomenclatures(
-    *,
     body: SyncNomenclaturesUpload,
     current_user: UserRead = Depends(get_current_user),
 ):
     """
-    Синхронизирует номенклатуры в ДВХ МСУ и векторсторе за указанный период.
-
-    Args:
-        body (SyncNomenclaturesUpload): Тело запроса.
-            - nom_db_con_str (str): Строка подключения к базе данных
-            - chroma_collection_name (str): Название Chroma коллекции
-            - sync_period (int): Период синхронизации в часах
-
-    Returns:
-        JobIdRead: Идентификатор задачи.
+    Синхронизирует номенклатуры в БД и векторсторе за указанный период.
     """
     return synchronize_nomenclatures_model.start_synchronizing_nomenclatures(
         nom_db_con_str=body.nom_db_con_str,
@@ -180,44 +89,27 @@ def synchronize_nomenclatures(
     )
 
 
-@router.post("/synchronize/result")
+@router.get("/synchronize/{job_id}")
 @version(1)
 def synchronize_nomenclatures_result(
-    *,
+    job_id: str,
     current_user: UserRead = Depends(get_current_user),
-    job_id: str
 ) -> SyncNomenclaturesResultRead:
     """
-    Получает результат синхронизации номенклатур в ДВХ МСУ и векторсторе.
-
-    Args:
-        job_id (str): Идентификатор задачи.
-
-    Returns:
-        SyncNomenclaturesResultRead: Результат синхронизации номенклатур.
+    Получает результат синхронизации номенклатур в БД и векторсторе.
     """
     return synchronize_nomenclatures_model.get_sync_nomenclatures_job_result(job_id)
 
 
-@router.post("/retrain_classifier")
+@router.post("/retrain_classifier", deprecated=True)
 @version(1)
 def retrain_classifier_by_groups(
-    *,
     body: RetrainClassifierUpload,
     current_user: UserRead = Depends(get_current_user),
 ):
     """
     Переобучает классификатор по Группам номенклатур.
     Используется фильтрация актуальная только для номенклатур по Группам.
-
-    Args:
-        body (RetrainClassifierUpload): Тело запроса.
-            - db_con_str (str): Строка подключения к базе данных
-            - table_name (str): Таблица, по которой классификатор будет обучаться (например: us.СправочникНоменклатура)
-            - model_description (str): Описание классификатора (на чём обучен, для чего и т.п.)
-
-    Returns:
-        JobIdRead: Идентификатор задачи.
     """
     return retrain_noms_classifier_by_groups_model.start_classifier_retraining(
         db_con_str=body.db_con_str,

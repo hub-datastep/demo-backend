@@ -3,6 +3,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 from chromadb import QueryResult
+from chromadb.api.models.Collection import Collection
 from fastembed.embedding import FlagEmbedding
 from pandas import read_sql, DataFrame
 from redis import Redis
@@ -24,6 +25,8 @@ tqdm.pandas()
 # noinspection PyTypeChecker
 np.set_printoptions(threshold=np.inf)
 
+SIMILAR_NOMS_COUNT = 3
+
 
 def _get_group_name_by_id(db_con_str: str, table_name: str, group_id: str):
     st = text(f"""
@@ -38,7 +41,7 @@ def _get_group_name_by_id(db_con_str: str, table_name: str, group_id: str):
     return group_name
 
 
-def get_nomenclatures_groups(noms: DataFrame, model_id: str) -> list[str]:
+def get_nomenclatures_groups(noms: DataFrame, model_id: str) -> list[int]:
     model_path = f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl"
     vectorizer_path = f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl"
 
@@ -51,21 +54,35 @@ def get_nomenclatures_groups(noms: DataFrame, model_id: str) -> list[str]:
 
 
 def map_on_nom(
+    collection: Collection,
     nom_embeddings: np.ndarray,
-    group: str,
+    group: int,
     most_similar_count: int,
-    chroma_collection_name: str,
     metadatas_list: list[dict],
-) -> list[MappingOneTargetRead]:
-    collection = connect_to_chroma_collection(collection_name=chroma_collection_name)
+    is_hard_params: bool,
+) -> list[MappingOneTargetRead] | None:
+    # Just sure that group is int
+    group = int(group)
 
-    where_metadatas = {"$and": [{"group": group}, {"$and": metadatas_list}]}
+    if len(metadatas_list) == 0:
+        where_metadatas = {"group": group}
+    else:
+        metadatas_list_with_group = [{"group": group}]
+        for metadata in metadatas_list:
+            metadatas_list_with_group.append(metadata)
+
+        # Get metadatas for hard-search
+        if is_hard_params:
+            where_metadatas = {"$and": metadatas_list_with_group}
+        # Get metadatas for soft-search
+        else:
+            where_metadatas = {"$or": metadatas_list_with_group}
 
     nom_embeddings = nom_embeddings.tolist()
     response: QueryResult = collection.query(
         query_embeddings=[nom_embeddings],
-        n_results=most_similar_count,
         where=where_metadatas,
+        n_results=most_similar_count,
     )
 
     response_ids = response['ids'][0]
@@ -73,17 +90,7 @@ def map_on_nom(
     response_distances = response['distances'][0]
 
     if len(response_ids) == 0:
-        where_metadatas = {"$and": [{"group": group}, {"$or": metadatas_list}]}
-
-        response: QueryResult = collection.query(
-            query_embeddings=[nom_embeddings],
-            n_results=3,
-            where=where_metadatas,
-        )
-
-        response_ids = response['ids'][0]
-        response_documents = response['documents'][0]
-        response_distances = response['distances'][0]
+        return None
 
     mapped_noms = []
     for i in range(len(response_ids)):
@@ -225,11 +232,17 @@ def map_nomenclatures_chunk(
     # Получаем метаданные всех номенклатур с характеристиками
     noms['metadata'] = get_noms_metadatas_with_features(noms)
 
+    collection = connect_to_chroma_collection(collection_name=chroma_collection_name)
+
     noms['mappings'] = None
-    for i, nom in tqdm(noms.iterrows()):
+    noms['similar_mappings'] = None
+    for i, nom in noms.iterrows():
+        # Create nomenclature metadatas list for query
         metadatas_list = []
         for key, val in nom['metadata'].items():
-            metadatas_list.append({key: val})
+            # Check if nomenclature param is not empty
+            if val != "":
+                metadatas_list.append({str(key): val})
 
         # Check if nom really belong to mapped group
         if nom['keyword'] not in nom['group_name'].lower():
@@ -240,13 +253,28 @@ def map_nomenclatures_chunk(
                 nomenclature_params=metadatas_list,
             )]
         else:
-            nom['mappings'] = map_on_nom(
+            # Map nomenclature with equal group and params
+            mappings = map_on_nom(
+                collection=collection,
                 nom_embeddings=nom['embeddings'],
                 group=nom['group'],
                 most_similar_count=most_similar_count,
-                chroma_collection_name=chroma_collection_name,
                 metadatas_list=metadatas_list,
+                is_hard_params=True,
             )
+            nom['mappings'] = mappings
+
+            # Map similar nomenclatures if nom's params is not valid
+            if mappings is None:
+                similar_mappings = map_on_nom(
+                    collection=collection,
+                    nom_embeddings=nom['embeddings'],
+                    group=nom['group'],
+                    most_similar_count=SIMILAR_NOMS_COUNT,
+                    metadatas_list=metadatas_list,
+                    is_hard_params=False,
+                )
+                nom['similar_mappings'] = similar_mappings
 
         noms.loc[i] = nom
         job.meta['ready_count'] += 1

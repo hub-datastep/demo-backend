@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends, UploadFile, HTTPException
 from fastapi_versioning import version
 from sqlmodel import Session
 
@@ -47,7 +47,10 @@ def upload_file(
     """
     """
     tenant_id = current_user.tenants[0].id
-    return file_model.save_file(session, file_object, tenant_id)
+    # TODO: В контроллере не должно быть логики, перенести генерацию описания в save_file
+    # description = get_file_description(file_object)
+    description = ""
+    return file_model.save_file(session, file_object, tenant_id, description)
 
 
 @router.delete("/{file_id}")
