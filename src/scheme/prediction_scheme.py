@@ -27,3 +27,12 @@ class DatabasePredictionRead(PredictionReadBase):
 
 class DocumentPredictionRead(PredictionReadBase):
     page: int
+
+
+class KnowledgeBasePredictionRead(DocumentPredictionRead):
+    filename: str
+
+
+class DocumentEmptyPredictionRead(PredictionReadBase):
+    page: None
+    filename: None
