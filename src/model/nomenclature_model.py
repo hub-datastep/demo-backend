@@ -15,6 +15,7 @@ from infra.chroma_store import connect_to_chroma_collection
 from infra.env import REDIS_HOST, REDIS_PASSWORD, DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
 from model.multi_classifier_model import TRAINING_COLUMNS
+from scheme.classifier_config_scheme import ClassifierConfig
 from scheme.nomenclature_scheme import MappingOneNomenclatureUpload, \
     MappingNomenclaturesResultRead, JobIdRead, MappingOneTargetRead, MappingOneNomenclatureRead
 from util.extract_keyword import extract_keyword
@@ -118,6 +119,7 @@ def create_mapping_job(
     most_similar_count: int,
     chroma_collection_name: str,
     model_id: str,
+    classifier_config: ClassifierConfig,
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.MAPPING)
     job = queue.enqueue(
@@ -130,7 +132,8 @@ def create_mapping_job(
             "previous_nomenclature_id": previous_job_id
         },
         result_ttl=-1,
-        job_timeout=MAX_JOB_TIMEOUT
+        job_timeout=MAX_JOB_TIMEOUT,
+        classifier_config=classifier_config,
     )
     return JobIdRead(job_id=job.id)
 
@@ -141,6 +144,7 @@ def start_mapping(
     chroma_collection_name: str,
     chunk_size: int,
     model_id: str,
+    classifier_config: ClassifierConfig
 ) -> JobIdRead:
     segments = split_nomenclatures_by_chunks(
         nomenclatures=nomenclatures,
@@ -154,6 +158,7 @@ def start_mapping(
             most_similar_count=most_similar_count,
             chroma_collection_name=chroma_collection_name,
             model_id=model_id,
+            classifier_config=classifier_config,
         )
         last_job_id = job.job_id
 
@@ -165,6 +170,7 @@ def map_nomenclatures_chunk(
     most_similar_count: int,
     chroma_collection_name: str,
     model_id: str,
+    classifier_config: ClassifierConfig
 ) -> list[MappingOneNomenclatureRead]:
     job = get_current_job()
 
@@ -180,10 +186,14 @@ def map_nomenclatures_chunk(
         lambda nom_name: normalize_name(nom_name)
     )
 
-    # Extract keyword from normalized nomenclature name
-    noms['keyword'] = noms['normalized'].progress_apply(
-        lambda nom_name: extract_keyword(nom_name)
-    )
+    is_use_keywords = classifier_config.is_use_keywords_detection
+
+    if is_use_keywords:
+        noms['keyword'] = noms['normalized'].progress_apply(
+            lambda nom_name: extract_keyword(nom_name)
+        )
+    else:
+        noms['keyword'] = None
 
     # Create embeddings for every nomenclature
     noms['embeddings'] = get_nomenclatures_embeddings(noms['nomenclature'].to_list())
@@ -214,8 +224,8 @@ def map_nomenclatures_chunk(
 
         nom['nomenclature_params'] = metadatas_list
 
-        # Check if nom really belong to mapped group
-        if nom['keyword'] not in nom['group'].lower():
+        # Check if nom really belong to mapped group, only if is_use_keywords is True
+        if is_use_keywords and nom['keyword'] not in nom['group_name'].lower():
             nom['mappings'] = [MappingOneTargetRead(
                 nomenclature_guid="",
                 nomenclature="Для такой номенклатуры группы не нашлось",
@@ -244,7 +254,6 @@ def map_nomenclatures_chunk(
                     is_hard_params=False,
                 )
                 nom['similar_mappings'] = similar_mappings
-
         noms.loc[i] = nom
         job.meta['ready_count'] += 1
         job.save_meta()

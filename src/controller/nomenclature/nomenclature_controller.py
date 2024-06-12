@@ -25,6 +25,7 @@ def start_nomenclature_mapping(
         chroma_collection_name=body.chroma_collection_name,
         chunk_size=body.chunk_size,
         model_id=body.model_id,
+        classifier_config=current_user.classifier_config,
     )
 
 
@@ -81,7 +82,7 @@ def synchronize_nomenclatures(
     return synchronize_nomenclatures_model.start_synchronizing_nomenclatures(
         nom_db_con_str=body.nom_db_con_str,
         chroma_collection_name=body.chroma_collection_name,
-        sync_period=body.sync_period
+        sync_period=body.sync_period,
     )
 
 
