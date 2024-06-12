@@ -1,8 +1,7 @@
 from sqlmodel import SQLModel, Field, Relationship
 
-# конфиг для конфигурации шагов в пайплайне классификатора
+
 class ClassifierConfigBase(SQLModel):
-    # использовать ли часть пайплайна классификатора с кейвордами
     is_use_keywords_detection: bool
 
 
