@@ -27,6 +27,7 @@ class UserRead(UserBase):
     id: int
     tenants: list["TenantRead"]
     database_prediction_config: Optional["DatabasePredictionConfig"] = None
+    classifier_config: Optional["ClassifierConfig"] = None
 
 
 from scheme.tenant_scheme import Tenant, TenantRead
