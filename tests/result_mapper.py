@@ -7,8 +7,18 @@ def process_results(test_cases, api_results):
         # Сравнение номенклатур и групп
         expected_nomenclature = test_case['Ожидание номенклатура']
         expected_group = test_case['Ожидание группа']
-        actual_group = api_result['group_name']
-        actual_nomenclature = api_result['mappings'][0]['nomenclature'] if api_result['mappings'] else ''
+        actual_group = api_result['group']
+
+        if api_result['mappings']:
+            actual_nomenclature = api_result['mappings'][0]['nomenclature']
+        else:
+            actual_nomenclature = ""
+
+        if actual_nomenclature == "":
+            if api_result['similar_mappings']:
+                actual_nomenclature = "Таких признаков не найдено, но вот номенклатуры"
+            else:
+                actual_nomenclature = ""
 
         # Определение корректности
         correct_group = expected_group == actual_group
@@ -28,5 +38,5 @@ def process_results(test_cases, api_results):
         }
 
         processed_results.append(processed_result)
-    
+
     return processed_results

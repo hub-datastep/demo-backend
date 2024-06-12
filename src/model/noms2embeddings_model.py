@@ -45,7 +45,7 @@ def _create_and_save_embeddings(
 
     for i, metadata in enumerate(metadatas):
         metadatas[i].update({
-            "group": int(df_noms.loc[i]['group'])
+            "group": str(df_noms.loc[i]['group'])
         })
 
     ids = df_noms_with_features['id'].to_list()
@@ -58,7 +58,7 @@ def _create_and_save_embeddings(
         documents=documents,
         metadatas=metadatas,
         chunk_size=chunk_size,
-        is_in_job=True
+        is_in_job=True,
     )
 
 

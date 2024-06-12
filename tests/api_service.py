@@ -1,11 +1,17 @@
+import os
 import time
 
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+TEST_MAPPING_API_URL = os.getenv('TEST_MAPPING_API_URL')
+TEST_MAPPING_MODEL_ID = os.getenv('TEST_MAPPING_MODEL_ID')
 
 # URL для авторизации и API
-AUTH_URL = "http://45.8.98.160:8090/api/v1/auth/sign_in"
-API_URL = "http://45.8.98.160:8090/api/v1/nomenclature/mapping"
-JOB_STATUS_URL = "http://45.8.98.160:8090/api/v1/nomenclature"
+AUTH_URL = f"{TEST_MAPPING_API_URL}/auth/sign_in"
+API_URL = f"{TEST_MAPPING_API_URL}/nomenclature/mapping"
 
 # Данные для авторизации
 AUTH_PAYLOAD = {
@@ -18,10 +24,8 @@ AUTH_PAYLOAD = {
 }
 
 START_NOMENCLATURE_MAPPING_PAYLOAD_CONFIG = {
-    "db_con_str": "postgresql://postgres:jdDBwfIWizA6IdlW@45.8.98.160:5442/postgres",
-    "table_name": "unistroy.nomenclatures",
     "chroma_collection_name": "test_unistroy_nomenclatures",
-    "model_id": "9d73d49f-29bb-43f2-8fcd-6acacf833241",
+    "model_id": TEST_MAPPING_MODEL_ID,
     "most_similar_count": 1,
     "chunk_size": 100,
 }
@@ -67,7 +71,7 @@ def get_nomenclature_mappings(job_id, token):
         "Content-Type": "application/json"
     }
 
-    url = f"{JOB_STATUS_URL}/{job_id}"
+    url = f"{API_URL}/{job_id}"
     response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
