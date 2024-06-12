@@ -13,12 +13,4 @@ class ClassifierConfig(ClassifierConfigBase, table=True):
     user: "User" = Relationship(back_populates="classifier_config")
 
 
-class ClassifierConfigCreate(ClassifierConfigBase):
-    pass
-
-
-class ClassifierConfigRead(ClassifierConfigBase):
-    id: int
-
-
 from scheme.user_scheme import User

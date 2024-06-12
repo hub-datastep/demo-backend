@@ -119,7 +119,7 @@ def create_mapping_job(
     most_similar_count: int,
     chroma_collection_name: str,
     model_id: str,
-    classifier_config: ClassifierConfig,
+    classifier_config: ClassifierConfig | None,
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.MAPPING)
     job = queue.enqueue(
@@ -144,7 +144,7 @@ def start_mapping(
     chroma_collection_name: str,
     chunk_size: int,
     model_id: str,
-    classifier_config: ClassifierConfig
+    classifier_config: ClassifierConfig | None,
 ) -> JobIdRead:
     segments = split_nomenclatures_by_chunks(
         nomenclatures=nomenclatures,
@@ -170,7 +170,7 @@ def map_nomenclatures_chunk(
     most_similar_count: int,
     chroma_collection_name: str,
     model_id: str,
-    classifier_config: ClassifierConfig
+    classifier_config: ClassifierConfig | None,
 ) -> list[MappingOneNomenclatureRead]:
     job = get_current_job()
 
@@ -186,7 +186,7 @@ def map_nomenclatures_chunk(
         lambda nom_name: normalize_name(nom_name)
     )
 
-    is_use_keywords = classifier_config.is_use_keywords_detection
+    is_use_keywords = classifier_config is None or classifier_config.is_use_keywords_detection
 
     if is_use_keywords:
         noms['keyword'] = noms['normalized'].progress_apply(
@@ -225,7 +225,7 @@ def map_nomenclatures_chunk(
         nom['nomenclature_params'] = metadatas_list
 
         # Check if nom really belong to mapped group, only if is_use_keywords is True
-        if is_use_keywords and nom['keyword'] not in nom['group_name'].lower():
+        if is_use_keywords and nom['keyword'] not in nom['group'].lower():
             nom['mappings'] = [MappingOneTargetRead(
                 nomenclature_guid="",
                 nomenclature="Для такой номенклатуры группы не нашлось",
