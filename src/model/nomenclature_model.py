@@ -9,14 +9,13 @@ from pandas import DataFrame
 from redis import Redis
 from rq import get_current_job
 from rq.job import Job, JobStatus
-from scheme.classifier_config_scheme import ClassifierConfig
-from sqlalchemy import text
 from tqdm import tqdm
 
 from infra.chroma_store import connect_to_chroma_collection
 from infra.env import REDIS_HOST, REDIS_PASSWORD, DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
 from model.multi_classifier_model import TRAINING_COLUMNS
+from scheme.classifier_config_scheme import ClassifierConfig
 from scheme.nomenclature_scheme import MappingOneNomenclatureUpload, \
     MappingNomenclaturesResultRead, JobIdRead, MappingOneTargetRead, MappingOneNomenclatureRead
 from util.extract_keyword import extract_keyword
@@ -268,6 +267,7 @@ def map_nomenclatures_chunk(
     result_nomenclatures = [MappingOneNomenclatureRead(**nom) for nom in noms_dict]
 
     return result_nomenclatures
+
 
 def get_jobs_from_rq(nomenclature_id: str) -> list[MappingNomenclaturesResultRead]:
     redis = Redis(host=REDIS_HOST, password=REDIS_PASSWORD)
