@@ -1,10 +1,8 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 
-from model import nomenclature_model, synchronize_nomenclatures_model, \
-    retrain_noms_classifier_by_groups_model, noms2embeddings_model
+from model import nomenclature_model, synchronize_nomenclatures_model, noms2embeddings_model
 from model.auth_model import get_current_user
-from scheme.classifier_scheme import RetrainClassifierUpload
 from scheme.nomenclature_scheme import JobIdRead, MappingNomenclaturesUpload, MappingNomenclaturesResultRead, \
     SyncNomenclaturesUpload, SyncNomenclaturesResultRead, CreateAndSaveEmbeddingsUpload, CreateAndSaveEmbeddingsResult
 from scheme.user_scheme import UserRead
@@ -27,8 +25,7 @@ def start_nomenclature_mapping(
         chroma_collection_name=body.chroma_collection_name,
         chunk_size=body.chunk_size,
         model_id=body.model_id,
-        db_con_str=body.db_con_str,
-        table_name=body.table_name,
+        classifier_config=current_user.classifier_config,
     )
 
 
@@ -39,7 +36,7 @@ def get_nomenclature_mapping_result(
     current_user: UserRead = Depends(get_current_user),
 ):
     """
-    Получает результат сопоставления номенклатур по указанному идентификаторы задачи.
+    Получает результат сопоставления номенклатур через указанный идентификатор задачи.
     """
     return nomenclature_model.get_all_jobs(job_id)
 
@@ -68,7 +65,7 @@ def create_and_save_embeddings_result(
     current_user: UserRead = Depends(get_current_user),
 ):
     """
-    Получает результат создания создания векторов в векторсторе для номенклатур из БД.
+    Получает результат создания векторов в векторсторе для номенклатур из БД.
     """
     return noms2embeddings_model.get_creating_and_saving_nomenclatures_job_result(job_id)
 
@@ -85,7 +82,7 @@ def synchronize_nomenclatures(
     return synchronize_nomenclatures_model.start_synchronizing_nomenclatures(
         nom_db_con_str=body.nom_db_con_str,
         chroma_collection_name=body.chroma_collection_name,
-        sync_period=body.sync_period
+        sync_period=body.sync_period,
     )
 
 
@@ -99,20 +96,3 @@ def synchronize_nomenclatures_result(
     Получает результат синхронизации номенклатур в БД и векторсторе.
     """
     return synchronize_nomenclatures_model.get_sync_nomenclatures_job_result(job_id)
-
-
-@router.post("/retrain_classifier", deprecated=True)
-@version(1)
-def retrain_classifier_by_groups(
-    body: RetrainClassifierUpload,
-    current_user: UserRead = Depends(get_current_user),
-):
-    """
-    Переобучает классификатор по Группам номенклатур.
-    Используется фильтрация актуальная только для номенклатур по Группам.
-    """
-    return retrain_noms_classifier_by_groups_model.start_classifier_retraining(
-        db_con_str=body.db_con_str,
-        table_name=body.table_name,
-        model_description=body.model_description,
-    )

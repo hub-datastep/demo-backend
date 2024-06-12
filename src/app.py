@@ -13,7 +13,7 @@ from starlette.responses import JSONResponse
 from controller.chat import message_controller, chat_controller
 from controller.chroma_collection import chroma_collection_controller
 from controller.file import file_controller, task_controller
-from controller.multi_classifier import multi_classifier_controller
+from controller.multi_classifier import multi_classifier_controller, classifier_config_controller
 from controller.nomenclature import nomenclature_controller
 from controller.prediction import prediction_controller
 from controller.user import user_controller, auth_controller, tenant_controller, mode_controller, prompt_controller
@@ -31,6 +31,7 @@ app.include_router(message_controller.router, tags=["message"], prefix="/message
 # app.include_router(mark_controller.router, tags=["mark"], prefix="/mark")
 # app.include_router(review_controller.router, tags=["review"], prefix="/review")
 app.include_router(prediction_controller.router, tags=["prediction"])
+app.include_router(classifier_config_controller.router, tags=["classifier_config"], prefix="/classifier_config")
 app.include_router(nomenclature_controller.router, tags=["nomenclature"], prefix="/nomenclature")
 app.include_router(chroma_collection_controller.router, tags=["chroma_collection"], prefix="/collection")
 app.include_router(file_controller.router, tags=["file"], prefix="/file")

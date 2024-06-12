@@ -14,21 +14,18 @@ class MappingOneTargetRead(SQLModel):
     nomenclature_guid: str
     nomenclature: str
     similarity_score: float
-    nomenclature_params: list[dict]
 
 
 class MappingOneNomenclatureRead(SQLModel):
     row_number: int
     nomenclature: str | None
-    group: int
-    group_name: str
+    group: str
+    nomenclature_params: list[dict]
     mappings: list[MappingOneTargetRead] | None
     similar_mappings: list[MappingOneTargetRead] | None
 
 
 class MappingNomenclaturesUpload(SQLModel):
-    db_con_str: str
-    table_name: str
     chroma_collection_name: str
     model_id: str
     most_similar_count: int = 1

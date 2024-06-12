@@ -1,14 +1,20 @@
+import os
+
 import gspread
+from dotenv import load_dotenv
 from oauth2client.service_account import ServiceAccountCredentials
 
 from infra.env import DATA_FOLDER_PATH
+
+load_dotenv()
 
 CREDENTIALS_PATH = f"{DATA_FOLDER_PATH}/datastep-excel-for-classifier-66a610dc9ff6.json"
 
 TEST_CASES_TABLE_HEADERS = ['Тест-Кейс ID', 'Шаг алгоритма', 'Тип ошибки', 'Номенклатура поставщика',
                             'Ожидание номенклатура', 'Ожидание группа']
-SPREADSHEET_NAME = '[Unistroy noms] classifier test cases'
-TEST_CASES_TABLE_NAME = 'test cases'
+
+TEST_MAPPING_SPREADSHEET_NAME = os.getenv('TEST_MAPPING_SPREADSHEET_NAME')
+TEST_MAPPING_TEST_CASES_TABLE_NAME = os.getenv('TEST_MAPPING_TEST_CASES_TABLE_NAME')
 
 
 def get_google_sheets_client():
@@ -40,13 +46,13 @@ def write_to_sheet(spreadsheet_name, sheet_name, data):
 
 
 def get_test_cases():
-    return read_sheet(SPREADSHEET_NAME, TEST_CASES_TABLE_NAME, TEST_CASES_TABLE_HEADERS)
+    return read_sheet(TEST_MAPPING_SPREADSHEET_NAME, TEST_MAPPING_TEST_CASES_TABLE_NAME, TEST_CASES_TABLE_HEADERS)
 
 
 def create_new_sheet_and_write_results(new_sheet_name, processed_results):
     client = get_google_sheets_client()
-    spreadsheet = client.open(SPREADSHEET_NAME)
-    new_sheet = spreadsheet.add_worksheet(title=new_sheet_name, rows="100", cols="20")
+    spreadsheet = client.open(TEST_MAPPING_SPREADSHEET_NAME)
+    new_sheet = spreadsheet.add_worksheet(title=new_sheet_name, rows=100, cols=20)
 
     headers = ['Тест-Кейс ID', 'Шаг алгоритма', 'Тип ошибки', 'Корректно?', 'Номенклатура', 'Ожидание группа',
                'Реальность группа', 'Ожидание номенклатура', 'Реальность номенклатура']
@@ -65,3 +71,4 @@ def create_new_sheet_and_write_results(new_sheet_name, processed_results):
             result['Реальность номенклатура']
         ]
         new_sheet.insert_row(row, i)
+    print(f"Результаты тестов успешно сохранены: {new_sheet.url}")

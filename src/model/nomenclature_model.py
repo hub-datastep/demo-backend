@@ -5,16 +5,17 @@ import numpy as np
 from chromadb import QueryResult
 from chromadb.api.models.Collection import Collection
 from fastembed.embedding import FlagEmbedding
-from pandas import read_sql, DataFrame
+from pandas import DataFrame
 from redis import Redis
 from rq import get_current_job
 from rq.job import Job, JobStatus
-from sqlalchemy import text
 from tqdm import tqdm
 
 from infra.chroma_store import connect_to_chroma_collection
 from infra.env import REDIS_HOST, REDIS_PASSWORD, DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
+from model.multi_classifier_model import TRAINING_COLUMNS
+from scheme.classifier_config_scheme import ClassifierConfig
 from scheme.nomenclature_scheme import MappingOneNomenclatureUpload, \
     MappingNomenclaturesResultRead, JobIdRead, MappingOneTargetRead, MappingOneNomenclatureRead
 from util.extract_keyword import extract_keyword
@@ -28,41 +29,27 @@ np.set_printoptions(threshold=np.inf)
 SIMILAR_NOMS_COUNT = 3
 
 
-def _get_group_name_by_id(db_con_str: str, table_name: str, group_id: str):
-    st = text(f"""
-        SELECT "name"
-        FROM {table_name}
-        WHERE "is_group" = TRUE
-        AND "id" = '{group_id}'
-    """)
-    result = read_sql(st, db_con_str)
-    group_name = result['name'].to_list()[0]
-
-    return group_name
-
-
 def get_nomenclatures_groups(noms: DataFrame, model_id: str) -> list[int]:
-    model_path = f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl"
-    vectorizer_path = f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl"
+    model_path = f"{DATA_FOLDER_PATH}/model_{model_id}.pkl"
 
-    if not Path(model_path).exists() or not Path(vectorizer_path).exists():
+    if not Path(model_path).exists():
         raise Exception(f"Model with ID {model_id} not found locally.")
 
     model = joblib.load(model_path)
-    vectorizer = joblib.load(vectorizer_path)
-    return model.predict(vectorizer.transform(noms['normalized']))
+    prediction_df = noms[TRAINING_COLUMNS]
+    return model.predict(prediction_df)
 
 
 def map_on_nom(
     collection: Collection,
     nom_embeddings: np.ndarray,
-    group: int,
+    group: str,
     most_similar_count: int,
     metadatas_list: list[dict],
     is_hard_params: bool,
 ) -> list[MappingOneTargetRead] | None:
-    # Just sure that group is int
-    group = int(group)
+    # Just sure that group is str
+    group = str(group)
 
     if len(metadatas_list) == 0:
         where_metadatas = {"group": group}
@@ -98,7 +85,6 @@ def map_on_nom(
             nomenclature_guid=response_ids[i],
             nomenclature=response_documents[i],
             similarity_score=response_distances[i],
-            nomenclature_params=metadatas_list,
         ))
 
     return mapped_noms
@@ -133,8 +119,7 @@ def create_mapping_job(
     most_similar_count: int,
     chroma_collection_name: str,
     model_id: str,
-    db_con_str: str,
-    table_name: str,
+    classifier_config: ClassifierConfig | None,
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.MAPPING)
     job = queue.enqueue(
@@ -143,13 +128,12 @@ def create_mapping_job(
         most_similar_count,
         chroma_collection_name,
         model_id,
-        db_con_str,
-        table_name,
         meta={
             "previous_nomenclature_id": previous_job_id
         },
         result_ttl=-1,
-        job_timeout=MAX_JOB_TIMEOUT
+        job_timeout=MAX_JOB_TIMEOUT,
+        classifier_config=classifier_config,
     )
     return JobIdRead(job_id=job.id)
 
@@ -160,8 +144,7 @@ def start_mapping(
     chroma_collection_name: str,
     chunk_size: int,
     model_id: str,
-    db_con_str: str,
-    table_name: str,
+    classifier_config: ClassifierConfig | None,
 ) -> JobIdRead:
     segments = split_nomenclatures_by_chunks(
         nomenclatures=nomenclatures,
@@ -175,8 +158,7 @@ def start_mapping(
             most_similar_count=most_similar_count,
             chroma_collection_name=chroma_collection_name,
             model_id=model_id,
-            db_con_str=db_con_str,
-            table_name=table_name,
+            classifier_config=classifier_config,
         )
         last_job_id = job.job_id
 
@@ -188,8 +170,7 @@ def map_nomenclatures_chunk(
     most_similar_count: int,
     chroma_collection_name: str,
     model_id: str,
-    db_con_str: str,
-    table_name: str,
+    classifier_config: ClassifierConfig | None,
 ) -> list[MappingOneNomenclatureRead]:
     job = get_current_job()
 
@@ -205,21 +186,14 @@ def map_nomenclatures_chunk(
         lambda nom_name: normalize_name(nom_name)
     )
 
-    # Classification to get nomenclature group
-    noms['group'] = get_nomenclatures_groups(noms, model_id)
+    is_use_keywords = classifier_config is None or classifier_config.is_use_keywords_detection
 
-    # Get group name of every nomenclature
-    noms['group_name'] = noms['group'].progress_apply(
-        lambda group_id: _get_group_name_by_id(
-            db_con_str=db_con_str,
-            table_name=table_name,
-            group_id=group_id,
+    if is_use_keywords:
+        noms['keyword'] = noms['normalized'].progress_apply(
+            lambda nom_name: extract_keyword(nom_name)
         )
-    )
-
-    noms['keyword'] = noms['normalized'].progress_apply(
-        lambda nom_name: extract_keyword(nom_name)
-    )
+    else:
+        noms['keyword'] = None
 
     # Create embeddings for every nomenclature
     noms['embeddings'] = get_nomenclatures_embeddings(noms['nomenclature'].to_list())
@@ -229,6 +203,9 @@ def map_nomenclatures_chunk(
     # Извлечение характеристик и добавление их в метаданные
     noms = extract_features(noms)
 
+    # Classification to get nomenclature group
+    noms['group'] = get_nomenclatures_groups(noms, model_id)
+
     # Получаем метаданные всех номенклатур с характеристиками
     noms['metadata'] = get_noms_metadatas_with_features(noms)
 
@@ -236,6 +213,7 @@ def map_nomenclatures_chunk(
 
     noms['mappings'] = None
     noms['similar_mappings'] = None
+    noms['nomenclature_params'] = None
     for i, nom in noms.iterrows():
         # Create nomenclature metadatas list for query
         metadatas_list = []
@@ -244,13 +222,14 @@ def map_nomenclatures_chunk(
             if val != "":
                 metadatas_list.append({str(key): val})
 
-        # Check if nom really belong to mapped group
-        if nom['keyword'] not in nom['group_name'].lower():
+        nom['nomenclature_params'] = metadatas_list
+
+        # Check if nom really belong to mapped group, only if is_use_keywords is True
+        if is_use_keywords and nom['keyword'] not in nom['group'].lower():
             nom['mappings'] = [MappingOneTargetRead(
                 nomenclature_guid="",
                 nomenclature="Для такой номенклатуры группы не нашлось",
                 similarity_score=-1,
-                nomenclature_params=metadatas_list,
             )]
         else:
             # Map nomenclature with equal group and params
@@ -275,7 +254,6 @@ def map_nomenclatures_chunk(
                     is_hard_params=False,
                 )
                 nom['similar_mappings'] = similar_mappings
-
         noms.loc[i] = nom
         job.meta['ready_count'] += 1
         job.save_meta()
