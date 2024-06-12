@@ -1,12 +1,14 @@
-import pprint
 import logging
+import pprint
 from datetime import datetime
+
+from api_service import authenticate, start_nomenclature_mapping, wait_for_job_completion
 from google_sheets_service import create_new_sheet_and_write_results, get_test_cases
-from api_service import authenticate, start_nomenclature_mapping, wait_for_job_completion, get_nomenclature_mappings
 from result_mapper import process_results
 
 # Настройка логгирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 def run_tests():
     try:
@@ -18,11 +20,11 @@ def run_tests():
 
         logging.info("Запуск маппинга номенклатур.")
         job_id = start_nomenclature_mapping(test_cases, token)
-        
+
         if job_id:
             logging.info(f"Job ID: {job_id}")
             logging.info("Ожидание завершения задачи маппинга.")
-             # Ожидание завершения задачи
+            # Ожидание завершения задачи
             result = wait_for_job_completion(job_id, token)
 
             if result:
@@ -44,6 +46,7 @@ def run_tests():
     except Exception as e:
         logging.error(f"Произошла ошибка: {e}")
         logging.error("Подробности:", exc_info=True)
+
 
 if __name__ == "__main__":
     run_tests()
