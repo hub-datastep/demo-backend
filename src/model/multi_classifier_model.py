@@ -4,11 +4,14 @@ from uuid import uuid4
 
 import joblib
 from fastapi import HTTPException, status
-from pandas import DataFrame, read_sql
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from pandas import DataFrame, read_sql, Series
+from sklearn.compose import make_column_selector, make_column_transformer
+from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-from sklearn.svm import LinearSVC
+from sklearn.neural_network import MLPClassifier
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.preprocessing import OneHotEncoder
 from sqlalchemy import text
 from tqdm import tqdm
 
@@ -19,6 +22,7 @@ from repository.classifier_version_repository import get_classifier_versions, de
 from scheme.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult, \
     ClassificationResult, ClassificationResultItem
 from scheme.nomenclature_scheme import JobIdRead
+from util.features_extraction import FEATURES_REGEX_PATTERNS, extract_features
 from util.normalize_name import normalize_name
 
 tqdm.pandas()
@@ -27,6 +31,29 @@ _FILE_SEPARATOR = ";"
 _TRAINING_FILE_NAME = "training_data.csv"
 
 _MAX_CLASSIFIERS_COUNT = 3
+
+_text_features = make_column_selector(dtype_include=object)
+
+_FEATURES = list(FEATURES_REGEX_PATTERNS.keys())
+
+TRAINING_COLUMNS = [
+    "normalized",
+    *_FEATURES,
+]
+
+_text_transformer = make_pipeline(
+    SimpleImputer(
+        strategy="constant",
+        fill_value="unknown",
+    ),
+    OneHotEncoder(
+        handle_unknown="ignore",
+    ),
+)
+
+_preprocessor = make_column_transformer(
+    (_text_transformer, _text_features),
+)
 
 
 def _fetch_items(db_con_str: str, table_name: str) -> DataFrame:
@@ -41,7 +68,7 @@ def _fetch_items(db_con_str: str, table_name: str) -> DataFrame:
 
 def _fetch_groups(db_con_str: str, table_name: str) -> DataFrame:
     st = text(f"""
-        SELECT DISTINCT "id", "name"
+        SELECT DISTINCT "name"
         FROM {table_name}
         WHERE "is_group" = TRUE
     """)
@@ -49,11 +76,11 @@ def _fetch_groups(db_con_str: str, table_name: str) -> DataFrame:
     return read_sql(st, db_con_str)
 
 
-def _has_child(db_con_str: str, table_name: str, group_id: str) -> bool:
+def _has_child(db_con_str: str, table_name: str, group: str) -> bool:
     st = text(f"""
         SELECT *
         FROM {table_name}
-        WHERE "group" = '{group_id}'
+        WHERE "group" = '{group}'
         AND "is_group" = TRUE
     """)
     children = read_sql(st, db_con_str)
@@ -70,7 +97,7 @@ def _fetch_narrow_groups(db_con_str: str, table_name: str) -> DataFrame:
     print(f"Checking if groups have children...")
     narrow_groups = []
     for _, group in groups.iterrows():
-        if not _has_child(db_con_str, table_name, group['id']):
+        if not _has_child(db_con_str, table_name, group['name']):
             narrow_groups.append(group)
 
     narrow_groups = DataFrame(narrow_groups)
@@ -79,7 +106,7 @@ def _fetch_narrow_groups(db_con_str: str, table_name: str) -> DataFrame:
 
 def _get_narrow_group_items(all_items: DataFrame, narrow_groups: DataFrame) -> DataFrame:
     # Return noms which "group" in "id" of groups with no child
-    narrow_group_items = all_items[all_items['group'].isin(narrow_groups['id'])]
+    narrow_group_items = all_items[all_items['group'].isin(narrow_groups['name'])]
 
     return narrow_group_items
 
@@ -100,6 +127,11 @@ def _get_training_data(db_con_str: str, table_name: str) -> DataFrame:
     print(f"Count of narrow group items: {len(narrow_group_items)}")
     print(narrow_group_items)
 
+    print("Extracting items features...")
+    narrow_group_items = extract_features(narrow_group_items)
+    print("All features extracted.")
+    print(narrow_group_items)
+
     print("Normalizing narrow group items...")
     narrow_group_items['normalized'] = narrow_group_items['name'].progress_apply(
         lambda x: normalize_name(x)
@@ -107,24 +139,21 @@ def _get_training_data(db_con_str: str, table_name: str) -> DataFrame:
     print(f"Count of normalized narrow group items: {len(narrow_group_items['normalized'])}")
     print(narrow_group_items['normalized'])
 
-    # narrow_group_noms.to_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
+    # narrow_group_items.to_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
     return narrow_group_items
 
 
-def _get_model_accuracy(classifier, vectorizer: CountVectorizer, x_test, y_test) -> float:
-    y_pred = classifier.predict(vectorizer.transform(x_test))
+def _get_model_accuracy(classifier: Pipeline, x_test: DataFrame, y_test: Series) -> float:
+    y_pred = classifier.predict(x_test)
     accuracy = accuracy_score(y_test, y_pred)
     return accuracy
 
 
-def _dump_model(version_id: str, classifier, vectorizer: CountVectorizer) -> None:
-    vectorizer_file_name = f"vectorizer_{version_id}.pkl"
-    classifier_file_name = f"linear_svc_model_{version_id}.pkl"
-    vectorizer_path = f"{DATA_FOLDER_PATH}/{vectorizer_file_name}"
+def _dump_model(version_id: str, classifier) -> None:
+    classifier_file_name = f"model_{version_id}.pkl"
     classifier_path = f"{DATA_FOLDER_PATH}/{classifier_file_name}"
 
     joblib.dump(classifier, classifier_path)
-    joblib.dump(vectorizer, vectorizer_path)
 
 
 def _save_classifier_version_to_db(classifier_version: ClassifierVersion) -> ClassifierVersionRead:
@@ -137,20 +166,16 @@ def _save_classifier_version_to_db(classifier_version: ClassifierVersion) -> Cla
     return saved_version
 
 
-def _get_model_and_vectorizer_paths(model_id: str) -> tuple[Path, Path]:
-    model_path = Path(f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl")
-    vectorizer_path = Path(f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl")
-    return model_path, vectorizer_path
+def _get_model_path(model_id: str) -> Path:
+    model_path = Path(f"{DATA_FOLDER_PATH}/model_{model_id}.pkl")
+    return model_path
 
 
 def _delete_classifier_version_files(model_id: str) -> None:
-    model_path, vectorizer_path = _get_model_and_vectorizer_paths(model_id)
+    model_path = _get_model_path(model_id)
     # Remove model file if exists
     if model_path.exists():
         os.remove(model_path)
-    # Remove vectorizer file if exists
-    if vectorizer_path.exists():
-        os.remove(vectorizer_path)
 
 
 def _retrain_classifier(db_con_str: str, table_name: str, model_description: str) -> ClassifierVersionRead:
@@ -159,33 +184,39 @@ def _retrain_classifier(db_con_str: str, table_name: str, model_description: str
     # training_data_df = read_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
     print(f"Count of training data: {len(training_data_df)}")
 
-    print("Training test split...")
+    final_training_data = training_data_df[TRAINING_COLUMNS]
+    targets = training_data_df['group']
+
+    print(f"Training columns count: {len(final_training_data.columns)}")
+    print(f"Training columns: {list(final_training_data.columns)}")
+
+    print(f"Final training data length: {len(final_training_data)}")
+    print(final_training_data)
+
+    print(f"Final targets length: {len(targets)}")
+    print(targets)
+
     x_train, x_test, y_train, y_test = train_test_split(
-        training_data_df['normalized'],
-        training_data_df['group'],
+        final_training_data,
+        targets,
         random_state=0,
     )
-    print("Test split trained.")
 
-    print("Fitting vectorizer...")
-    vectorizer = CountVectorizer()
-    x_train_counts = vectorizer.fit_transform(x_train.astype(str))
-    print("Vectorizer is fitted.")
+    print(f"Shapes of x_train, y_train: {x_train.shape} {y_train.shape}")
+    print(f"Shapes of x_test, y_test: {x_test.shape} {y_test.shape}")
 
-    print("Fitting TF-IDF transformer...")
-    tfidf_transformer = TfidfTransformer()
-    x_train_tfidf = tfidf_transformer.fit_transform(x_train_counts)
-    print("Transformer is fitted.")
+    classifier = make_pipeline(
+        _preprocessor,
+        MLPClassifier(),
+    )
 
     print("Fitting classifier...")
-    classifier = LinearSVC().fit(x_train_tfidf, y_train)
+    classifier.fit(x_train, y_train)
     print("Classifier is ready.")
 
     print("Getting model accuracy...")
-    # noinspection PyTypeChecker
     accuracy = _get_model_accuracy(
         classifier=classifier,
-        vectorizer=vectorizer,
         x_test=x_test,
         y_test=y_test
     )
@@ -197,7 +228,6 @@ def _retrain_classifier(db_con_str: str, table_name: str, model_description: str
     _dump_model(
         version_id=version_id,
         classifier=classifier,
-        vectorizer=vectorizer
     )
     print("Model dumped.")
 
@@ -266,14 +296,13 @@ def delete_classifier_version(model_id: str):
 
 
 def get_groups_by_items(items: list[str], model_id: str) -> list[ClassificationResultItem]:
-    model = joblib.load(f"{DATA_FOLDER_PATH}/linear_svc_model_{model_id}.pkl")
-    count_vect = joblib.load(f"{DATA_FOLDER_PATH}/vectorizer_{model_id}.pkl")
+    model = joblib.load(f"{DATA_FOLDER_PATH}/model_{model_id}.pkl")
     result: list[ClassificationResultItem] = []
 
     normalized_data = DataFrame({
         "names": [normalize_name(item) for item in items]
     })
-    groups_ids = model.predict(count_vect.transform(normalized_data['names']))
+    groups_ids = model.predict(normalized_data['names'])
     for item, group_id in zip(items, groups_ids):
         result.append(ClassificationResultItem(item=item, group_id=group_id))
 

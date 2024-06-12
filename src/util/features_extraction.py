@@ -65,9 +65,6 @@ def extract_match(pattern: str, text: str) -> str:
     # Get param as str
     result = str(match.group()) if match else ""
 
-    # Replace special symbols to spaces
-    result = re.sub(r"[^A-zА-я0-9 ]+|[xх_]+", "-", result)
-
     # Remove "No", "№", "мм" from reinforcement_diameter param
     # It should contain only number
     if re.match(FEATURES_REGEX_PATTERNS['reinforcement_diameter'], result):
@@ -80,6 +77,9 @@ def extract_match(pattern: str, text: str) -> str:
     # Change "FTV" to "с нижним подключением" in radiator_types param
     elif re.match(r"(FTV)", result):
         result = re.sub(r"(FTV)", "с нижним подключением", result)
+
+    # Replace special symbols to spaces
+    result = re.sub(r"[^A-zА-я0-9 ]+|[xх_]+", "-", result)
 
     # Turn to lower case
     result = result.lower()
@@ -109,6 +109,7 @@ def get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[d
     # Разделяем сложную строку на несколько шагов
     for _, row in df_noms_with_features.iterrows():
         # Извлечение значений регулярных выражений
+        # Возвращает объект вида {regex_name: nomenclature_param}
         regex_values = row[FEATURES_REGEX_PATTERNS.keys()].to_dict()
 
         metadatas.append(regex_values)

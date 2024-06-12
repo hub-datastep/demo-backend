@@ -5,6 +5,7 @@ class FileBase(SQLModel):
     original_filename: str
     storage_filename: str
     file_path: str
+    description: str | None
 
 
 class File(FileBase, table=True):
@@ -14,7 +15,6 @@ class File(FileBase, table=True):
 
 class FileCreate(FileBase):
     tenant_id: int
-    file_path: str
 
 
 class FileRead(FileBase):
@@ -22,5 +22,5 @@ class FileRead(FileBase):
 
 
 class DataExtract(SQLModel):
-    nomenclature: str
+    nomenclature: str | None
     file_metadata: dict[str, str] | None

@@ -9,7 +9,7 @@ from model.datastep_model import datastep_get_prediction
 from repository import tenant_repository
 from scheme.prediction_scheme import (
     DatabasePredictionQuery, DatabasePredictionRead,
-    DocumentPredictionRead, DocumentPredictionQuery
+    DocumentPredictionRead, DocumentPredictionQuery, PredictionQueryBase, KnowledgeBasePredictionRead
 )
 from scheme.user_scheme import UserRead
 
@@ -42,3 +42,16 @@ def get_document_prediction(
     """
     """
     return datastep_pdf_model.get_prediction(session, body.query, body.file_id)
+
+
+@router.post("/chat_knowledge_base/prediction", response_model=KnowledgeBasePredictionRead)
+@version(1)
+def get_knowledge_base_prediction(
+    *,
+    current_user: UserRead = Depends(get_current_user),
+    session: Session = Depends(get_session),
+    body: PredictionQueryBase
+):
+    """
+    """
+    return datastep_pdf_model.get_prediction_with_relevant_file(session, body.query, current_user.tenants[0].id)

@@ -9,7 +9,6 @@ services:
     command: bash -c "
       cd /app/src
       && python -m alembic upgrade head
-      && cd /
       && python3 /app/src/app.py"
     ports:
       - "8090:8080"
@@ -37,6 +36,7 @@ services:
       - DATA_FOLDER_PATH=${DATA_FOLDER_PATH}
       - FASTEMBED_CACHE_PATH=${FASTEMBED_CACHE_PATH}
     volumes:
+      - $PWD/src:/app/src
       - server:${DATA_FOLDER_PATH}
 
   redis-server:
@@ -76,6 +76,7 @@ services:
       - DATA_FOLDER_PATH=${DATA_FOLDER_PATH}
       - FASTEMBED_CACHE_PATH=${FASTEMBED_CACHE_PATH}
     volumes:
+      - $PWD/src:/app/src
       - server:${DATA_FOLDER_PATH}
 
   db:
