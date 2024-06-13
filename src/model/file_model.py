@@ -120,14 +120,15 @@ def extract_data_from_invoice(file_object, with_metadata=False) -> List[DataExtr
         all_tables = []
         for page_num, page in enumerate(pdf.pages):
             tables = page.extract_tables()
+            print(tables)
             for table in tables:
                 if is_nomenclature_table(table):
                     column_names = [name.lower() if name else "" for name in table[0]]
                     nomenclature_column_index = get_nomenclature_column_index(column_names)
                     if nomenclature_column_index is not None:
                         print("Содержимое столбца с номенклатурой:",
-                              [row[nomenclature_column_index] for row in table[3:]])
-                        for row in table[3:]:  # Начинаем с третьей строки
+                              [row[nomenclature_column_index] for row in table[1:]])
+                        for row in table[1:]:  # Начинаем со второй строки
                             if nomenclature_column_index < len(row):
                                 nomenclature = row[nomenclature_column_index]
                                 if with_metadata:
@@ -153,7 +154,7 @@ def is_nomenclature_table(table):
                 if any(keyword in cell.lower() for keyword in seller_buyer_keywords):
                     # Если найдено ключевое слово, пропускаем эту строку и переходим к следующей
                     break
-                if re.search(nomenclature_pattern_cp, cell.lower()):
+                if re.search(nomenclature_pattern, cell.lower()):
                     print("Найден подходящий столбец:", cell)
                     return True
     print("Столбец с номенклатурой не найден в таблице")
@@ -163,7 +164,7 @@ def is_nomenclature_table(table):
 def get_nomenclature_column_index(column_names):
     # Находим индекс столбца с номенклатурой, удовлетворяющий регулярному выражению
     for i, col_name in enumerate(column_names):
-        if re.search(nomenclature_pattern_cp, col_name):
+        if re.search(nomenclature_pattern, col_name):
             return i
     return None
 
