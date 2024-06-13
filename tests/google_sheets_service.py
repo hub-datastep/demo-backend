@@ -1,5 +1,8 @@
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
+import pandas as pd
 import gspread
 from dotenv import load_dotenv
 from oauth2client.service_account import ServiceAccountCredentials
@@ -72,3 +75,16 @@ def create_new_sheet_and_write_results(new_sheet_name, processed_results):
         ]
         new_sheet.insert_row(row, i)
     print(f"Результаты тестов успешно сохранены: {new_sheet.url}")
+
+
+def create_new_offline_sheet_and_write_results(new_sheet_name, processed_results):
+    headers = ['Тест-Кейс ID', 'Шаг алгоритма', 'Тип ошибки', 'Корректно?', 'Номенклатура', 'Ожидание группа',
+               'Реальность группа', 'Ожидание номенклатура', 'Реальность номенклатура']
+
+    # Преобразуем данные в DataFrame
+    df = pd.DataFrame(processed_results, columns=headers)
+
+    # Сохраняем DataFrame в Excel файл
+    file_path = f"{new_sheet_name}.xlsx"
+    df.to_excel(file_path, index=False)
+    print(f"Результаты тестов успешно сохранены: {file_path}")

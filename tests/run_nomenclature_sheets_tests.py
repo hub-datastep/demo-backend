@@ -3,7 +3,7 @@ import pprint
 from datetime import datetime
 
 from api_service import authenticate, start_nomenclature_mapping, wait_for_job_completion
-from google_sheets_service import create_new_sheet_and_write_results, get_test_cases
+from google_sheets_service import create_new_offline_sheet_and_write_results, get_test_cases
 from result_mapper import process_results
 
 # Настройка логгирования
@@ -38,7 +38,7 @@ def run_tests():
                 new_sheet_name = 'Mapping Results ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
 
                 logging.info(f"Сохранение результатов в новый лист: {new_sheet_name}.")
-                create_new_sheet_and_write_results(new_sheet_name, processed_results)
+                create_new_offline_sheet_and_write_results(new_sheet_name, processed_results)
             else:
                 logging.error("Не удалось получить результаты маппинга.")
         else:
