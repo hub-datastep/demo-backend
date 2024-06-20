@@ -4,6 +4,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents import Document
 from langchain_openai import AzureOpenAIEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from datastep.chains.datastep_docs_chain import get_chain_for_docs
 from datastep.chains.datastep_knowledge_base_chain import get_chain_for_knowledge_base
@@ -12,7 +13,7 @@ from infra.env import AZURE_DEPLOYMENT_NAME_EMBEDDINGS
 from util.files_paths import get_file_folder_path
 
 
-def search(storage_filename: str, query: str) -> tuple[str, int]:
+def search(storage_filename: str, query: str) -> str:
     file_folder_path = get_file_folder_path(storage_filename)
 
     faiss_index = FAISS.load_local(
@@ -24,9 +25,11 @@ def search(storage_filename: str, query: str) -> tuple[str, int]:
     )
     docs: list[Document] = faiss_index.similarity_search(query, k=3)
     doc_content = "".join([doc.page_content for doc in docs])
-    page: int = docs[0].metadata['page']
+    print("doc-content: " + doc_content)
+    # page: int = docs[0].metadata['page']
     # return docs[0]
-    return doc_content, page
+    return doc_content
+
 
 def doc_query(storage_filename: str, query: str) -> tuple[str, int]:
     chain = get_chain_for_docs()
@@ -56,13 +59,43 @@ def search_relevant_description(descriptions: list[dict], query: str, ) -> str:
 
 def knowledge_base_query(storage_filename: str, query: str) -> tuple[str, int]:
     chain = get_chain_for_knowledge_base()
-    doc_content, page = search(storage_filename, query)
+    doc_content = search(storage_filename, query)
     response = chain.run(
         query=query,
         document_content=doc_content,
         document_name=storage_filename
     )
-    return response, page
+    return response
+
+
+# def save_document(storage_filename: str):
+#     file_folder_path = get_file_folder_path(storage_filename)
+#     file_path = f"{file_folder_path}/{storage_filename}"
+#
+#     loader = PyPDFLoader(file_path)
+#     pages = loader.load_and_split()
+#     faiss_index = FAISS.from_documents(
+#         pages,
+#         AzureOpenAIEmbeddings(
+#             azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
+#         ),
+#     )
+#     faiss_index.save_local(f"{file_folder_path}/faiss")
+
+def split_text_into_chunks(text):
+    text_splitter = RecursiveCharacterTextSplitter(
+        separators=[
+            r'(?<=\n)(?=\d+\.\d+\s)',  # Разделение по пунктам списка типа 3.2, 3.3, и т.д.
+            r'(?<=\n)(?=\d+\.\s)',  # Разделение по пунктам списка типа 1., 2., и т.д.
+            r'\n\n+',  # Разделение по абзацам
+        ],
+        is_separator_regex=True,
+        chunk_size=700,
+        chunk_overlap=0,
+        length_function=len
+    )
+    chunks = text_splitter.split_text(text)
+    return [Document(page_content=chunk.strip()) for chunk in chunks if chunk.strip()]
 
 
 def save_document(storage_filename: str):
@@ -70,9 +103,12 @@ def save_document(storage_filename: str):
     file_path = f"{file_folder_path}/{storage_filename}"
 
     loader = PyPDFLoader(file_path)
-    pages = loader.load_and_split()
+    document_text = loader.load()
+    full_text = " ".join([page.page_content for page in document_text])
+    chunks = split_text_into_chunks(full_text)
+
     faiss_index = FAISS.from_documents(
-        pages,
+        chunks,
         AzureOpenAIEmbeddings(
             azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
         ),
