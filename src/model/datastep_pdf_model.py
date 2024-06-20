@@ -30,16 +30,16 @@ def get_prediction_with_relevant_file(session: Session, query: str, file_id: int
         # Если релевантное описание не найдено
         return DocumentEmptyPredictionRead(
             answer="На основе представленной информации невозможно ответить.",
-            page=None,
+            # page=None,
             filename=None
         )
 
-    response, page = datastep_faiss.knowledge_base_query(relevant_filename, query)
+    response = datastep_faiss.knowledge_base_query(relevant_filename, query)
     # if "нет" in response.lower():
     # response = datastep_multivector.query(file.storage_filename, query)
 
     return KnowledgeBasePredictionRead(
         answer=response,
-        page=page,
+        # page=page,
         filename=relevant_filename
     )
