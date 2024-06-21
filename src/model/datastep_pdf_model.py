@@ -20,8 +20,8 @@ def get_prediction(session: Session, query: str, file_id: int):
     )
 
 
-def get_prediction_with_relevant_file(session: Session, query: str, file_id: int):
-    files = get_all_filenames_by_tenant_id(session, file_id)
+def get_prediction_with_relevant_file(session: Session, query: str, tenant_id: int):
+    files = get_all_filenames_by_tenant_id(session, tenant_id)
     file_descriptions = [{"filename": file.storage_filename, "description": file.description} for file in files]
 
     relevant_filename = search_relevant_description(file_descriptions, query)

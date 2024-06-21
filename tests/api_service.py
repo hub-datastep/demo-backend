@@ -6,12 +6,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TEST_MAPPING_API_URL = os.getenv('TEST_MAPPING_API_URL')
+TESTS_API_URL = os.getenv('TESTS_API_URL')
 TEST_MAPPING_MODEL_ID = os.getenv('TEST_MAPPING_MODEL_ID')
 
 # URL для авторизации и API
-AUTH_URL = f"{TEST_MAPPING_API_URL}/auth/sign_in"
-API_URL = f"{TEST_MAPPING_API_URL}/nomenclature/mapping"
+AUTH_URL = f"{TESTS_API_URL}/auth/sign_in"
+API_URL = f"{TESTS_API_URL}/nomenclature/mapping"
 
 # Данные для авторизации
 AUTH_PAYLOAD = {

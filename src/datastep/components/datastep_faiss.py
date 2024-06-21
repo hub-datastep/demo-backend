@@ -44,7 +44,8 @@ def doc_query(storage_filename: str, query: str) -> tuple[str, int]:
 def search_relevant_description(descriptions: list[dict], query: str, ) -> str:
     chain = get_chain_for_relevant_description()
     descriptions_str = "\n".join(
-        [f"Filename: {file['filename']}, Description: {file['description']}" for file in descriptions])
+        [f"Filename: {file['filename']}, Description: {file['description']}" for file in descriptions]
+    )
 
     relevant_filename = chain.run(
         document_descriptions=descriptions_str,
