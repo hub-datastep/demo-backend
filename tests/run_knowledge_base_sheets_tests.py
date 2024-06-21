@@ -1,9 +1,8 @@
 import logging
-import pprint
 from datetime import datetime
 
 from api_service_kb import authenticate, start_knowledge_base_prediction
-from google_sheets_service_kb import create_new_offline_sheet_and_write_results, get_test_cases
+from google_sheets_service_kb import get_test_cases, create_new_sheet_and_write_results
 from result_knowledge_base import process_results
 
 # Настройка логгирования
@@ -23,7 +22,6 @@ def run_tests():
 
         if responses:
             logging.info("Результаты от ассистента получены успешно.")
-            pprint.pprint(responses)
 
             logging.info("Предобработка результатов.")
             processed_results = process_results(test_cases, responses)
@@ -32,7 +30,7 @@ def run_tests():
             new_sheet_name = 'Test Results ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
 
             logging.info(f"Сохранение результатов в новый лист: {new_sheet_name}.")
-            create_new_offline_sheet_and_write_results(new_sheet_name, processed_results)
+            create_new_sheet_and_write_results(new_sheet_name, processed_results)
         else:
             logging.error("Не удалось получить результаты ассистента.")
 
