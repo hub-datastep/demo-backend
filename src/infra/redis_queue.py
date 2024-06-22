@@ -1,4 +1,4 @@
-import os
+from enum import Enum
 
 from redis import Redis
 from rq.job import Job
@@ -16,6 +16,21 @@ class QueueName:
     RETRAINING = "retrain_classifier"
     CLASSIFICATION = "classification"
     DOCUMENTS = "documents"
+
+
+# Enum for "clear queue endpoint"
+QueuesEnum = Enum(
+    "QueuesEnum",
+    {
+        attr: value for attr, value in QueueName.__dict__.items() if
+        not attr.startswith('__') and not callable(getattr(QueueName, attr))
+    }
+)
+
+
+def get_queues_list():
+    queues_list: list[str] = [value for key, value in vars(QueueName).items() if not key.startswith('__')]
+    return queues_list
 
 
 def get_redis_connection():

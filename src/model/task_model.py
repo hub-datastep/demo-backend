@@ -2,9 +2,10 @@ from fastapi import HTTPException, status
 from rq.command import send_stop_job_command
 from rq.exceptions import InvalidJobOperation
 from rq.job import JobStatus
-from rq.registry import FinishedJobRegistry, StartedJobRegistry, ScheduledJobRegistry, FailedJobRegistry
+from rq.registry import FinishedJobRegistry, StartedJobRegistry, ScheduledJobRegistry, FailedJobRegistry, \
+    clean_registries
 
-from infra.redis_queue import get_redis_connection, QueueName
+from infra.redis_queue import get_redis_connection, get_queues_list, get_redis_queue
 from scheme.task_scheme import RQJob
 
 REGISTRIES = [
@@ -17,7 +18,7 @@ REGISTRIES = [
 
 def get_all_jobs() -> list[RQJob]:
     redis = get_redis_connection()
-    queues_list: list[str] = [value for key, value in vars(QueueName).items() if not key.startswith('__')]
+    queues_list = get_queues_list()
 
     jobs_list = []
     for queue in queues_list:
@@ -34,6 +35,12 @@ def get_all_jobs() -> list[RQJob]:
                 jobs_list.append(rq_job)
 
     return jobs_list
+
+
+def cleanup_queue(queue_name: str):
+    queue = get_redis_queue(queue_name)
+    queue.empty()
+    clean_registries(queue)
 
 
 def stop_job_by_id(job_id: str):
