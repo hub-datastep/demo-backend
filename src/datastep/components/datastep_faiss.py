@@ -23,7 +23,7 @@ def search(storage_filename: str, query: str) -> str:
         ),
         allow_dangerous_deserialization=True,
     )
-    docs: list[Document] = faiss_index.similarity_search(query, k=3)
+    docs: list[Document] = faiss_index.similarity_search(query, k=7)
     doc_content = "".join([doc.page_content for doc in docs])
     print("doc-content: " + doc_content)
     # page: int = docs[0].metadata['page']
@@ -90,7 +90,7 @@ def split_text_into_chunks(text):
             r'\n\n+',  # Разделение по абзацам
         ],
         is_separator_regex=True,
-        chunk_size=700,
+        chunk_size=1000,
         chunk_overlap=0,
         length_function=len
     )
