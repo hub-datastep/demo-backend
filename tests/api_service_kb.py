@@ -56,9 +56,7 @@ def start_knowledge_base_prediction(test_cases, token):
 
         if response.status_code == 200:
             responses.append(response.json())
-            print(response)
         else:
             print(f"Failed to start knowledge base prediction. Status code: {response.status_code}")
-            print(response.json())
             return None
     return responses
