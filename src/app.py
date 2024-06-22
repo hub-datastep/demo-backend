@@ -12,7 +12,8 @@ from starlette.responses import JSONResponse
 
 from controller.chat import message_controller, chat_controller
 from controller.chroma_collection import chroma_collection_controller
-from controller.file import file_controller, task_controller
+from controller.file import file_controller
+from controller.task import task_controller
 from controller.multi_classifier import multi_classifier_controller, classifier_config_controller
 from controller.nomenclature import nomenclature_controller
 from controller.prediction import prediction_controller
