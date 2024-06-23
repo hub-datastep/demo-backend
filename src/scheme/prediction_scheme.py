@@ -29,7 +29,7 @@ class DocumentPredictionRead(PredictionReadBase):
     page: int
 
 
-class KnowledgeBasePredictionRead(DocumentPredictionRead):
+class KnowledgeBasePredictionRead(PredictionReadBase):
     filename: str
 
 

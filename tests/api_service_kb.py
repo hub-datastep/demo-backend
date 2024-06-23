@@ -13,7 +13,16 @@ AUTH_URL = f"{TESTS_API_URL}/auth/sign_in"
 API_URL = f"{TESTS_API_URL}/chat_knowledge_base/prediction"
 
 # Данные для авторизации
-AUTH_PAYLOAD = {
+AUTH_PAYLOAD_LOCAL = {
+    "grant_type": "password",
+    "username": "admin@admin.com",
+    "password": "admin",
+    "scope": "",
+    "client_id": "",
+    "client_secret": ""
+}
+
+AUTH_PAYLOAD_PROD = {
     "grant_type": "password",
     "username": "stroy_control",
     "password": "1234567890",
@@ -24,7 +33,7 @@ AUTH_PAYLOAD = {
 
 
 def authenticate():
-    response = requests.post(AUTH_URL, data=AUTH_PAYLOAD)
+    response = requests.post(AUTH_URL, data=AUTH_PAYLOAD_LOCAL)
     if response.status_code == 200:
         return response.json().get("access_token")
     else:
@@ -49,6 +58,5 @@ def start_knowledge_base_prediction(test_cases, token):
             responses.append(response.json())
         else:
             print(f"Failed to start knowledge base prediction. Status code: {response.status_code}")
-            print(response.text)
             return None
     return responses
