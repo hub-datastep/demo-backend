@@ -27,6 +27,8 @@ Your answer (include the document name and page number where the answer was foun
 """
 
 # set_verbose(True)
+
+
 def get_chain_for_knowledge_base():
     # TODO: попробовать 3.5-instruct
     # llm = ChatOpenAI(
