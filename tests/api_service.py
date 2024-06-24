@@ -8,6 +8,7 @@ load_dotenv()
 
 TESTS_API_URL = os.getenv('TESTS_API_URL')
 TEST_MAPPING_MODEL_ID = os.getenv('TEST_MAPPING_MODEL_ID')
+TEST_MAPPING_CHROMA_COLLECTION = os.getenv('TEST_MAPPING_CHROMA_COLLECTION')
 
 # URL для авторизации и API
 AUTH_URL = f"{TESTS_API_URL}/auth/sign_in"
@@ -24,7 +25,7 @@ AUTH_PAYLOAD = {
 }
 
 START_NOMENCLATURE_MAPPING_PAYLOAD_CONFIG = {
-    "chroma_collection_name": "test_unistroy_nomenclatures",
+    "chroma_collection_name": TEST_MAPPING_CHROMA_COLLECTION,
     "model_id": TEST_MAPPING_MODEL_ID,
     "most_similar_count": 1,
     "chunk_size": 100,
@@ -75,8 +76,15 @@ def get_nomenclature_mappings(job_id, token):
     response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
-        print(f"Response data: {response.json()}")
-        return response.json()
+        response_datas = response.json()
+        print(f"Mapping status: {response_datas[0]['general_status']}")
+        for mapping_results in response_datas:
+            print(f"Mapping job id: {mapping_results['job_id']}")
+            print(f"Mapping status: {mapping_results['general_status']}")
+            print(f"Mapping ready count: {mapping_results['ready_count']}")
+            print(f"Mapping total count: {mapping_results['total_count']}")
+            print()
+        return response_datas
     else:
         print(response.text)
         return None
