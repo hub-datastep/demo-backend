@@ -25,7 +25,7 @@ def run_tests():
             logging.info(f"Job ID: {job_id}")
             logging.info("Ожидание завершения задачи маппинга.")
             # Ожидание завершения задачи
-            result = wait_for_job_completion(job_id, token)
+            result = wait_for_job_completion(job_id, token, interval=30)
 
             if result:
                 logging.info("Результаты маппинга получены успешно.")
