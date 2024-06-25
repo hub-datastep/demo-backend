@@ -13,10 +13,7 @@ router = APIRouter()
 
 @router.get("")
 @version(1)
-def get_multi_classifier_versions(
-    *,
-    current_user: UserRead = Depends(get_current_user),
-) -> list[ClassifierVersionRead]:
+def get_multi_classifier_versions(current_user: UserRead = Depends(get_current_user)) -> list[ClassifierVersionRead]:
     """
     Получает все версии обученных классификаторов.
     """
@@ -26,7 +23,6 @@ def get_multi_classifier_versions(
 @router.post("/retrain")
 @version(1)
 def retrain_multi_classifier(
-    *,
     body: RetrainClassifierUpload,
     current_user: UserRead = Depends(get_current_user),
 ):
@@ -37,6 +33,7 @@ def retrain_multi_classifier(
         db_con_str=body.db_con_str,
         table_name=body.table_name,
         model_description=body.model_description,
+        with_params=body.with_params,
     )
 
 
@@ -55,9 +52,8 @@ def retrain_multi_classifier_result(
 @router.delete("/{model_id}")
 @version(1)
 def delete_multi_classifier_by_id(
-    *,
+    model_id: str,
     current_user: UserRead = Depends(get_current_user),
-    model_id: str
 ):
     """
     Удаляет версию классификатора с указанным идентификатором.
@@ -68,7 +64,6 @@ def delete_multi_classifier_by_id(
 @router.post("/classification")
 @version(1)
 def start_classification(
-    *,
     model_id: str,
     items: list[str],
     current_user: UserRead = Depends(get_current_user),

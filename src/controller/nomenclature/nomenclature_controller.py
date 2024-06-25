@@ -25,6 +25,7 @@ def start_nomenclature_mapping(
         chroma_collection_name=body.chroma_collection_name,
         chunk_size=body.chunk_size,
         model_id=body.model_id,
+        use_params=body.use_params,
         classifier_config=current_user.classifier_config,
     )
 

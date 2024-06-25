@@ -29,14 +29,24 @@ np.set_printoptions(threshold=np.inf)
 SIMILAR_NOMS_COUNT = 3
 
 
-def get_nomenclatures_groups(noms: DataFrame, model_id: str) -> list[int]:
+def get_nomenclatures_groups(
+    noms: DataFrame,
+    model_id: str,
+    use_params: bool,
+) -> list[int]:
     model_path = f"{DATA_FOLDER_PATH}/model_{model_id}.pkl"
 
     if not Path(model_path).exists():
         raise Exception(f"Model with ID {model_id} not found locally.")
 
     model = joblib.load(model_path)
-    prediction_df = noms[TRAINING_COLUMNS]
+
+    # If without params -> use only "normalized" column
+    if use_params:
+        prediction_df = noms[TRAINING_COLUMNS]
+    else:
+        prediction_df = noms[TRAINING_COLUMNS[0]]
+
     return model.predict(prediction_df)
 
 
@@ -123,7 +133,7 @@ def create_mapping_job(
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.MAPPING)
     job = queue.enqueue(
-        map_nomenclatures_chunk,
+        _map_nomenclatures_chunk,
         nomenclatures,
         most_similar_count,
         chroma_collection_name,
@@ -165,11 +175,12 @@ def start_mapping(
     return JobIdRead(job_id=last_job_id)
 
 
-def map_nomenclatures_chunk(
+def _map_nomenclatures_chunk(
     nomenclatures: list[MappingOneNomenclatureUpload],
     most_similar_count: int,
     chroma_collection_name: str,
     model_id: str,
+    use_params: bool,
     classifier_config: ClassifierConfig | None,
 ) -> list[MappingOneNomenclatureRead]:
     job = get_current_job()
@@ -204,7 +215,11 @@ def map_nomenclatures_chunk(
     noms = extract_features(noms)
 
     # Classification to get nomenclature group
-    noms['group'] = get_nomenclatures_groups(noms, model_id)
+    noms['group'] = get_nomenclatures_groups(
+        noms=noms,
+        model_id=model_id,
+        use_params=use_params,
+    )
 
     # Получаем метаданные всех номенклатур с характеристиками
     noms['metadata'] = get_noms_metadatas_with_features(noms)
