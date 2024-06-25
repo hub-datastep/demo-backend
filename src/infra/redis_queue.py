@@ -4,7 +4,7 @@ from redis import Redis
 from rq.job import Job
 from rq.queue import Queue
 
-from infra.env import REDIS_PASSWORD, REDIS_HOST
+from infra.env import REDIS_PASSWORD, REDIS_HOST, REDIS_PORT
 
 # 1 day
 MAX_JOB_TIMEOUT = 60 * 60 * 24
@@ -34,17 +34,27 @@ def get_queues_list():
 
 
 def get_redis_connection():
-    redis = Redis(host=REDIS_HOST, password=REDIS_PASSWORD)
+    redis = Redis(
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        password=REDIS_PASSWORD,
+    )
     return redis
 
 
 def get_redis_queue(name: str):
     redis = get_redis_connection()
-    queue = Queue(name=name, connection=redis)
+    queue = Queue(
+        name=name,
+        connection=redis,
+    )
     return queue
 
 
 def get_job(job_id: str):
     redis = get_redis_connection()
-    job = Job.fetch(job_id, connection=redis)
+    job = Job.fetch(
+        id=job_id,
+        connection=redis,
+    )
     return job

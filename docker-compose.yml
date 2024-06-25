@@ -37,6 +37,7 @@ services:
       - FASTEMBED_CACHE_PATH=${FASTEMBED_CACHE_PATH}
     volumes:
       - $PWD/src:/app/src
+      - $PWD/.env:/app/.env
       - server:${DATA_FOLDER_PATH}
 
   redis-server:
@@ -51,7 +52,7 @@ services:
   rq-worker:
     image: datastep_backend
     restart: always
-    command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:6379 mapping_nomenclatures sync_nomenclatures retrain_classifier classification documents
+    command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT} mapping_nomenclatures sync_nomenclatures retrain_classifier classification documents
     environment:
       #      - OPENAI_API_KEY=${OPENAI_API_KEY}
       #      - OPENAI_API_BASE=${OPENAI_API_BASE}
@@ -77,6 +78,7 @@ services:
       - FASTEMBED_CACHE_PATH=${FASTEMBED_CACHE_PATH}
     volumes:
       - $PWD/src:/app/src
+      - $PWD/.env:/app/.env
       - server:${DATA_FOLDER_PATH}
 
   db:
