@@ -5,6 +5,7 @@ from uuid import uuid4
 import joblib
 from fastapi import HTTPException, status
 from pandas import DataFrame, read_sql, Series
+from rq import get_current_job
 from sklearn.compose import make_column_selector, make_column_transformer
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score
@@ -32,14 +33,14 @@ _TRAINING_FILE_NAME = "training_data.csv"
 
 _MAX_CLASSIFIERS_COUNT = 3
 
-_text_features = make_column_selector(dtype_include=object)
-
 _FEATURES = list(FEATURES_REGEX_PATTERNS.keys())
 
 TRAINING_COLUMNS = [
     "normalized",
     *_FEATURES,
 ]
+
+_text_features = make_column_selector(dtype_include=object)
 
 _text_transformer = make_pipeline(
     SimpleImputer(
@@ -111,26 +112,33 @@ def _get_narrow_group_items(all_items: DataFrame, narrow_groups: DataFrame) -> D
     return narrow_group_items
 
 
-def _get_training_data(db_con_str: str, table_name: str) -> DataFrame:
+def _get_training_data(
+    db_con_str: str,
+    table_name: str,
+    with_params: bool,
+) -> DataFrame:
     print("Fetching all items...")
     all_items = _fetch_items(db_con_str, table_name)
     print(f"Count of items: {len(all_items)}")
     print(all_items)
 
-    print("Fetching narrow groups...")
-    narrow_groups = _fetch_narrow_groups(db_con_str, table_name)
-    print(f"Count of narrow groups: {len(narrow_groups)}")
-    print(narrow_groups)
+    # print("Fetching narrow groups...")
+    # narrow_groups = _fetch_narrow_groups(db_con_str, table_name)
+    # print(f"Count of narrow groups: {len(narrow_groups)}")
+    # print(narrow_groups)
+    #
+    # print("Parsing narrow group items...")
+    # narrow_group_items = _get_narrow_group_items(all_items, narrow_groups)
+    # print(f"Count of narrow group items: {len(narrow_group_items)}")
+    # print(narrow_group_items)
 
-    print("Parsing narrow group items...")
-    narrow_group_items = _get_narrow_group_items(all_items, narrow_groups)
-    print(f"Count of narrow group items: {len(narrow_group_items)}")
-    print(narrow_group_items)
+    narrow_group_items = all_items
 
-    print("Extracting items features...")
-    narrow_group_items = extract_features(narrow_group_items)
-    print("All features extracted.")
-    print(narrow_group_items)
+    if with_params:
+        print("Extracting items features...")
+        narrow_group_items = extract_features(narrow_group_items)
+        print("All features extracted.")
+        print(narrow_group_items)
 
     print("Normalizing narrow group items...")
     narrow_group_items['normalized'] = narrow_group_items['name'].progress_apply(
@@ -178,23 +186,44 @@ def _delete_classifier_version_files(model_id: str) -> None:
         os.remove(model_path)
 
 
-def _retrain_classifier(db_con_str: str, table_name: str, model_description: str) -> ClassifierVersionRead:
+def _retrain_classifier(
+    db_con_str: str,
+    table_name: str,
+    model_description: str,
+    with_params: bool,
+) -> ClassifierVersionRead:
+    job = get_current_job()
+
+    job.meta['retrain_status'] = "Getting training data"
+    job.save_meta()
+
     print("Getting training data...")
-    training_data_df = _get_training_data(db_con_str, table_name)
+    training_data_df = _get_training_data(db_con_str, table_name, with_params)
     # training_data_df = read_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
     print(f"Count of training data: {len(training_data_df)}")
 
-    final_training_data = training_data_df[TRAINING_COLUMNS]
-    targets = training_data_df['group']
+    # If without params -> use only "normalized" column
+    if with_params:
+        final_training_columns = TRAINING_COLUMNS
+
+    else:
+        final_training_columns = [TRAINING_COLUMNS[0]]
+
+    final_training_data = training_data_df[final_training_columns]
 
     print(f"Training columns count: {len(final_training_data.columns)}")
     print(f"Training columns: {list(final_training_data.columns)}")
+
+    targets = training_data_df['group']
 
     print(f"Final training data length: {len(final_training_data)}")
     print(final_training_data)
 
     print(f"Final targets length: {len(targets)}")
     print(targets)
+
+    job.meta['retrain_status'] = "Split training data"
+    job.save_meta()
 
     x_train, x_test, y_train, y_test = train_test_split(
         final_training_data,
@@ -210,19 +239,28 @@ def _retrain_classifier(db_con_str: str, table_name: str, model_description: str
         MLPClassifier(),
     )
 
+    job.meta['retrain_status'] = "Training classifier"
+    job.save_meta()
+
     print("Fitting classifier...")
     classifier.fit(x_train, y_train)
     print("Classifier is ready.")
+
+    job.meta['retrain_status'] = "Counting model accuracy"
+    job.save_meta()
 
     print("Getting model accuracy...")
     accuracy = _get_model_accuracy(
         classifier=classifier,
         x_test=x_test,
-        y_test=y_test
+        y_test=y_test,
     )
     print(f"Model accuracy: {accuracy}")
 
     version_id = str(uuid4())
+
+    job.meta['retrain_status'] = "Dumping model locally"
+    job.save_meta()
 
     print("Dumping model locally...")
     _dump_model(
@@ -237,20 +275,32 @@ def _retrain_classifier(db_con_str: str, table_name: str, model_description: str
         accuracy=accuracy,
     )
 
+    job.meta['retrain_status'] = "Saving classifier version to db"
+    job.save_meta()
+
     print("Saving classifier version to db...")
     result = _save_classifier_version_to_db(classifier_version)
     print("Classifier version saved.")
 
+    job.meta['retrain_status'] = "Done"
+    job.save_meta()
+
     return result
 
 
-def start_classifier_retraining(db_con_str: str, table_name: str, model_description: str) -> JobIdRead:
+def start_classifier_retraining(
+    db_con_str: str,
+    table_name: str,
+    model_description: str,
+    with_params: bool,
+) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.RETRAINING)
     job = queue.enqueue(
         _retrain_classifier,
         db_con_str,
         table_name,
         model_description,
+        with_params,
         result_ttl=-1,
         job_timeout=MAX_JOB_TIMEOUT,
     )
@@ -259,10 +309,13 @@ def start_classifier_retraining(db_con_str: str, table_name: str, model_descript
 
 def get_retraining_job_result(job_id: str) -> ClassifierRetrainingResult:
     job = get_job(job_id)
+    job_status = job.get_status(refresh=True)
+    job_meta = job.get_meta(refresh=True)
 
     retraining_result = ClassifierRetrainingResult(
         job_id=job_id,
-        status=job.get_status(refresh=True)
+        status=job_status,
+        retrain_status=job_meta.get("retrain_status", None),
     )
 
     job_result = job.return_value(refresh=True)

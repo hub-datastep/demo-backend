@@ -18,6 +18,7 @@ class RetrainClassifierUpload(SQLModel):
     db_con_str: str
     table_name: str
     model_description: str
+    with_params: bool = True
 
 
 class ClassifierVersionRead(SQLModel):
@@ -29,6 +30,7 @@ class ClassifierVersionRead(SQLModel):
 class ClassifierRetrainingResult(SQLModel):
     job_id: str
     status: JobStatus
+    retrain_status: str | None
     result: ClassifierVersionRead | None
 
 

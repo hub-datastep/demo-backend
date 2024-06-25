@@ -31,6 +31,7 @@ class MappingNomenclaturesUpload(SQLModel):
     most_similar_count: int = 1
     chunk_size: int
     nomenclatures: list[MappingOneNomenclatureUpload]
+    use_params: bool = True
 
 
 class MappingNomenclaturesResultRead(SQLModel):
