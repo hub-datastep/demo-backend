@@ -29,6 +29,9 @@ jobs:
             echo "Stop containers"
             docker-compose stop
 
+            echo "Clear docker caches"
+            docker system prune -f
+
             echo "Build new containers"
             docker-compose build
 
