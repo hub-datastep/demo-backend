@@ -9,9 +9,9 @@ from util.features_extraction import extract_features, get_noms_metadatas_with_f
 
 def _fetch_all_noms(db_con_str: str, table_name: str) -> DataFrame:
     st = f"""
-        SELECT * 
+        SELECT "id", "name", "group"
         FROM {table_name}
-        WHERE is_group = FALSE
+        WHERE "is_group" = FALSE
      """
 
     return read_sql(st, db_con_str)
@@ -83,8 +83,8 @@ def start_creating_and_saving_nomenclatures(
 
 def get_creating_and_saving_nomenclatures_job_result(job_id: str):
     job = get_job(job_id)
-    job_meta = job.get_meta(refresh=True)
     job_status = job.get_status(refresh=True)
+    job_meta = job.get_meta(refresh=True)
 
     result = CreateAndSaveEmbeddingsResult(
         job_id=job_id,
