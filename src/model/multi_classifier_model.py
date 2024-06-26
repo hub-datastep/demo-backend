@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.svm import LinearSVC
 from sqlalchemy import text
 from tqdm import tqdm
 
@@ -115,7 +116,7 @@ def _get_narrow_group_items(all_items: DataFrame, narrow_groups: DataFrame) -> D
 def _get_training_data(
     db_con_str: str,
     table_name: str,
-    with_params: bool,
+    use_params: bool,
 ) -> DataFrame:
     print("Fetching all items...")
     all_items = _fetch_items(db_con_str, table_name)
@@ -134,7 +135,7 @@ def _get_training_data(
 
     narrow_group_items = all_items
 
-    if with_params:
+    if use_params:
         print("Extracting items features...")
         narrow_group_items = extract_features(narrow_group_items)
         print("All features extracted.")
@@ -190,7 +191,7 @@ def _retrain_classifier(
     db_con_str: str,
     table_name: str,
     model_description: str,
-    with_params: bool,
+    use_params: bool,
 ) -> ClassifierVersionRead:
     job = get_current_job()
 
@@ -198,14 +199,13 @@ def _retrain_classifier(
     job.save_meta()
 
     print("Getting training data...")
-    training_data_df = _get_training_data(db_con_str, table_name, with_params)
+    training_data_df = _get_training_data(db_con_str, table_name, use_params)
     # training_data_df = read_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
     print(f"Count of training data: {len(training_data_df)}")
 
     # If without params -> use only "normalized" column
-    if with_params:
+    if use_params:
         final_training_columns = TRAINING_COLUMNS
-
     else:
         final_training_columns = [TRAINING_COLUMNS[0]]
 
@@ -234,9 +234,14 @@ def _retrain_classifier(
     print(f"Shapes of x_train, y_train: {x_train.shape} {y_train.shape}")
     print(f"Shapes of x_test, y_test: {x_test.shape} {y_test.shape}")
 
+    if use_params:
+        model = MLPClassifier()
+    else:
+        model = LinearSVC()
+
     classifier = make_pipeline(
         _preprocessor,
-        MLPClassifier(),
+        model,
     )
 
     job.meta['retrain_status'] = "Training classifier"
@@ -292,7 +297,7 @@ def start_classifier_retraining(
     db_con_str: str,
     table_name: str,
     model_description: str,
-    with_params: bool,
+    use_params: bool,
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.RETRAINING)
     job = queue.enqueue(
@@ -300,7 +305,7 @@ def start_classifier_retraining(
         db_con_str,
         table_name,
         model_description,
-        with_params,
+        use_params,
         result_ttl=-1,
         job_timeout=MAX_JOB_TIMEOUT,
     )

@@ -43,9 +43,11 @@ def get_nomenclatures_groups(
 
     # If without params -> use only "normalized" column
     if use_params:
-        prediction_df = noms[TRAINING_COLUMNS]
+        final_training_columns = TRAINING_COLUMNS
     else:
-        prediction_df = noms[TRAINING_COLUMNS[0]]
+        final_training_columns = [TRAINING_COLUMNS[0]]
+
+    prediction_df = noms[final_training_columns]
 
     return model.predict(prediction_df)
 
@@ -57,11 +59,12 @@ def map_on_nom(
     most_similar_count: int,
     metadatas_list: list[dict],
     is_hard_params: bool,
+    use_params: bool,
 ) -> list[MappingOneTargetRead] | None:
     # Just sure that group is str
     group = str(group)
 
-    if len(metadatas_list) == 0:
+    if len(metadatas_list) == 0 or not use_params:
         where_metadatas = {"group": group}
     else:
         metadatas_list_with_group = [{"group": group}]
@@ -140,12 +143,12 @@ def create_mapping_job(
         chroma_collection_name,
         model_id,
         use_params,
+        classifier_config,
         meta={
             "previous_nomenclature_id": previous_job_id
         },
         result_ttl=-1,
         job_timeout=MAX_JOB_TIMEOUT,
-        classifier_config=classifier_config,
     )
     return JobIdRead(job_id=job.id)
 
@@ -259,6 +262,7 @@ def _map_nomenclatures_chunk(
                 most_similar_count=most_similar_count,
                 metadatas_list=metadatas_list,
                 is_hard_params=True,
+                use_params=use_params,
             )
             nom['mappings'] = mappings
 
@@ -271,8 +275,10 @@ def _map_nomenclatures_chunk(
                     most_similar_count=SIMILAR_NOMS_COUNT,
                     metadatas_list=metadatas_list,
                     is_hard_params=False,
+                    use_params=use_params,
                 )
                 nom['similar_mappings'] = similar_mappings
+
         noms.loc[i] = nom
         job.meta['ready_count'] += 1
         job.save_meta()
