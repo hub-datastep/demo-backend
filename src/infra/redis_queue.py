@@ -1,6 +1,8 @@
 from enum import Enum
 
+from fastapi import HTTPException, status
 from redis import Redis
+from rq.exceptions import NoSuchJobError
 from rq.job import Job
 from rq.queue import Queue
 
@@ -53,8 +55,14 @@ def get_redis_queue(name: str):
 
 def get_job(job_id: str):
     redis = get_redis_connection()
-    job = Job.fetch(
-        id=job_id,
-        connection=redis,
-    )
-    return job
+    try:
+        job = Job.fetch(
+            id=job_id,
+            connection=redis,
+        )
+        return job
+    except NoSuchJobError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job with ID {job_id} not found",
+        )
