@@ -23,8 +23,11 @@ nomenclature_pattern = r"\bтовары\b|\bнаименование\b|\bпоз�
 nomenclature_pattern_cp = r"\bнаименование товара\b|\bописание выполненных работ\b|\bоказанных услуг\b|\bимущественного права\b"
 
 
-def _save_document_to_vectorstores(storage_filename: str):
-    datastep_faiss.save_document(storage_filename)
+def _save_document_to_vectorstores(storage_filename: str, is_knowledge_base: bool):
+    if is_knowledge_base:
+        datastep_faiss.save_document_for_knowledge_base(storage_filename)
+    else:
+        datastep_faiss.save_document(storage_filename)
     datastep_multivector.save_document(storage_filename)
 
 
@@ -90,8 +93,13 @@ def get_file_description(file_object: UploadFile) -> str:
     return description
 
 
-# Сложный момент 2: не понимала куда сохранять описания, так как не знала различия ме
-def save_file(session: Session, file_object: UploadFile, tenant_id: int, description: str) -> File:
+def save_file(
+    session: Session,
+    file_object: UploadFile,
+    tenant_id: int,
+    description: str,
+    is_knowledge_base: bool
+) -> File:
     storage_filename = get_unique_filename(sanitize_filename(file_object.filename))
 
     file_storage_path = get_file_storage_path(storage_filename)
@@ -105,7 +113,7 @@ def save_file(session: Session, file_object: UploadFile, tenant_id: int, descrip
     file = file_repository.save_file(session, file_create)
 
     save_file_locally(file_object.file, storage_filename)
-    _save_document_to_vectorstores(storage_filename)
+    _save_document_to_vectorstores(storage_filename, is_knowledge_base)
     return file
 
 
