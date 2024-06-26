@@ -6,14 +6,13 @@ from chromadb import QueryResult
 from chromadb.api.models.Collection import Collection
 from fastembed.embedding import FlagEmbedding
 from pandas import DataFrame
-from redis import Redis
 from rq import get_current_job
-from rq.job import Job, JobStatus
+from rq.job import JobStatus
 from tqdm import tqdm
 
 from infra.chroma_store import connect_to_chroma_collection
-from infra.env import REDIS_HOST, REDIS_PASSWORD, DATA_FOLDER_PATH
-from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName
+from infra.env import DATA_FOLDER_PATH
+from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName, get_job
 from model.multi_classifier_model import TRAINING_COLUMNS
 from scheme.classifier_config_scheme import ClassifierConfig
 from scheme.nomenclature_scheme import MappingOneNomenclatureUpload, \
@@ -295,12 +294,11 @@ def _map_nomenclatures_chunk(
 
 
 def get_jobs_from_rq(nomenclature_id: str) -> list[MappingNomenclaturesResultRead]:
-    redis = Redis(host=REDIS_HOST, password=REDIS_PASSWORD)
     jobs_list: list[MappingNomenclaturesResultRead] = []
 
     prev_job_id = nomenclature_id
     while prev_job_id is not None:
-        job = Job.fetch(prev_job_id, connection=redis)
+        job = get_job(prev_job_id)
         job_meta = job.get_meta(refresh=True)
         job_status = job.get_status(refresh=True)
         job_result = MappingNomenclaturesResultRead(
