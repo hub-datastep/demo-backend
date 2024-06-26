@@ -129,6 +129,7 @@ def create_mapping_job(
     most_similar_count: int,
     chroma_collection_name: str,
     model_id: str,
+    use_params: bool,
     classifier_config: ClassifierConfig | None,
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.MAPPING)
@@ -138,6 +139,7 @@ def create_mapping_job(
         most_similar_count,
         chroma_collection_name,
         model_id,
+        use_params,
         meta={
             "previous_nomenclature_id": previous_job_id
         },
@@ -154,6 +156,7 @@ def start_mapping(
     chroma_collection_name: str,
     chunk_size: int,
     model_id: str,
+    use_params: bool,
     classifier_config: ClassifierConfig | None,
 ) -> JobIdRead:
     segments = split_nomenclatures_by_chunks(
@@ -168,6 +171,7 @@ def start_mapping(
             most_similar_count=most_similar_count,
             chroma_collection_name=chroma_collection_name,
             model_id=model_id,
+            use_params=use_params,
             classifier_config=classifier_config,
         )
         last_job_id = job.job_id
