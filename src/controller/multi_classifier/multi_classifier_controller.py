@@ -33,7 +33,7 @@ def retrain_multi_classifier(
         db_con_str=body.db_con_str,
         table_name=body.table_name,
         model_description=body.model_description,
-        with_params=body.with_params,
+        use_params=body.use_params,
     )
 
 

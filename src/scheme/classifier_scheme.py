@@ -18,7 +18,7 @@ class RetrainClassifierUpload(SQLModel):
     db_con_str: str
     table_name: str
     model_description: str
-    with_params: bool = True
+    use_params: bool = True
 
 
 class ClassifierVersionRead(SQLModel):
