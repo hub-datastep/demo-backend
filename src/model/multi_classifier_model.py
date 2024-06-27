@@ -213,12 +213,9 @@ def _retrain_classifier(
     if use_params:
         final_training_columns = TRAINING_COLUMNS
     else:
-        final_training_columns = [TRAINING_COLUMNS[0]]
+        final_training_columns = TRAINING_COLUMNS[0]
 
     final_training_data = training_data_df[final_training_columns]
-
-    print(f"Training columns count: {len(final_training_data.columns)}")
-    print(f"Training columns: {list(final_training_data.columns)}")
 
     targets = training_data_df['group']
 
