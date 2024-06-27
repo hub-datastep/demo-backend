@@ -17,6 +17,7 @@ from controller.multi_classifier import multi_classifier_controller, classifier_
 from controller.nomenclature import nomenclature_controller
 from controller.prediction import prediction_controller
 from controller.user import user_controller, auth_controller, tenant_controller, mode_controller, prompt_controller
+from model.ner_model import load_model  # Импортируем функцию загрузки модели
 
 app = FastAPI()
 
@@ -70,8 +71,8 @@ app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"
 
 
 @app.on_event("startup")
-def on_startup():
-    pass
+async def on_startup():
+    await load_model()  # Асинхронно загружаем модель при старте приложения
 
 
 if __name__ == "__main__":

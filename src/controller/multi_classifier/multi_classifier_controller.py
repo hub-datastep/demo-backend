@@ -1,12 +1,21 @@
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi_versioning import version
+from pydantic import BaseModel
 
 from model import multi_classifier_model
 from model.auth_model import get_current_user
+from model.ner_model import get_ner_brand
 from scheme.classifier_scheme import RetrainClassifierUpload, ClassifierRetrainingResult, ClassifierVersionRead, \
     ClassificationResult
 from scheme.user_scheme import UserRead
+from typing import List, Tuple
+
+# Определение модели данных для результата NER
+class NEREntity(BaseModel):
+    text: str
+    label: str
+
 
 router = APIRouter()
 
@@ -92,3 +101,15 @@ def get_classification_result(
     Получает результат классификации.
     """
     return multi_classifier_model.get_classification_job_result(job_id)
+
+@router.get("/ner")
+@version(1)
+def retrain_multi_classifier_result(
+    current_user: UserRead = Depends(get_current_user),
+) -> List[NEREntity]:
+    """
+    Получает результат ner.
+    """
+    entities = get_ner_brand('Составы-быстротвердеющий-DISPOMIX-PQ Procrete TR600')
+    result = [NEREntity(text=ent[0], label=ent[1]) for ent in entities]
+    return result
