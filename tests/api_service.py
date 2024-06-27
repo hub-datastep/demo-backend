@@ -9,6 +9,7 @@ load_dotenv()
 TESTS_API_URL = os.getenv('TESTS_API_URL')
 TEST_MAPPING_MODEL_ID = os.getenv('TEST_MAPPING_MODEL_ID')
 TEST_MAPPING_CHROMA_COLLECTION = os.getenv('TEST_MAPPING_CHROMA_COLLECTION')
+TEST_MAPPING_USE_PARAMS = bool(int(os.getenv('TEST_MAPPING_USE_PARAMS')))
 
 # URL для авторизации и API
 AUTH_URL = f"{TESTS_API_URL}/auth/sign_in"
@@ -29,6 +30,7 @@ START_NOMENCLATURE_MAPPING_PAYLOAD_CONFIG = {
     "model_id": TEST_MAPPING_MODEL_ID,
     "most_similar_count": 1,
     "chunk_size": 100,
+    "use_params": TEST_MAPPING_USE_PARAMS,
 }
 
 
