@@ -44,7 +44,7 @@ def get_nomenclatures_groups(
     if use_params:
         final_training_columns = TRAINING_COLUMNS
     else:
-        final_training_columns = [TRAINING_COLUMNS[0]]
+        final_training_columns = TRAINING_COLUMNS[0]
 
     prediction_df = noms[final_training_columns]
 
