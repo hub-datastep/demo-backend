@@ -25,7 +25,7 @@ def search_docs(storage_filename: str, query: str) -> tuple[str, int]:
     )
     docs: list[Document] = faiss_index.similarity_search(query, k=7)
     doc_content = "".join([doc.page_content for doc in docs])
-    print("doc-content: " + doc_content)
+    # print("doc-content: " + doc_content)
     page: int = docs[0].metadata['page']
     # return docs[0]
     return doc_content, page
@@ -43,7 +43,7 @@ def search_for_knowledge_base(storage_filename: str, query: str) -> str:
     )
     docs: list[Document] = faiss_index.similarity_search(query, k=7)
     doc_content = "".join([doc.page_content for doc in docs])
-    print("doc-content: " + doc_content)
+    # print("doc-content: " + doc_content)
     # return docs[0]
     return doc_content
 
