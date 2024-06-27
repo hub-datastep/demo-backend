@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from pandas import DataFrame, read_sql, Series
 from rq import get_current_job
 from sklearn.compose import make_column_selector, make_column_transformer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
@@ -41,8 +42,6 @@ TRAINING_COLUMNS = [
     *_FEATURES,
 ]
 
-_text_features = make_column_selector(dtype_include=object)
-
 _text_transformer = make_pipeline(
     SimpleImputer(
         strategy="constant",
@@ -53,8 +52,15 @@ _text_transformer = make_pipeline(
     ),
 )
 
-_preprocessor = make_column_transformer(
+_text_features = make_column_selector(dtype_include=object)
+
+_preprocessor_with_params = make_column_transformer(
     (_text_transformer, _text_features),
+)
+
+_preprocessor_without_params = make_pipeline(
+    CountVectorizer(),
+    TfidfTransformer()
 )
 
 
@@ -236,11 +242,13 @@ def _retrain_classifier(
 
     if use_params:
         model = MLPClassifier()
+        preprocessor = _preprocessor_with_params
     else:
         model = LinearSVC()
+        preprocessor = _preprocessor_without_params
 
     classifier = make_pipeline(
-        _preprocessor,
+        preprocessor,
         model,
     )
 
