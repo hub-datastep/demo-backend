@@ -13,8 +13,8 @@ Document descriptions:
 Question:
 {query}
 
-Provide the name of the document that is most relevant to answer the question.
-Your answer should be in the format: "<filename>"
+Provide the name of the document that is most relevant to answer the question. If there is no relevant document, provide the word "None".
+Your answer should be in the format: "<filename>" or "None"
 You must answer in Russian.
 """
 

@@ -30,9 +30,4 @@ class DocumentPredictionRead(PredictionReadBase):
 
 
 class KnowledgeBasePredictionRead(PredictionReadBase):
-    file_path: str
-
-
-class DocumentEmptyPredictionRead(PredictionReadBase):
-    page: None
-    file_path: None
+    file_path: str | None = None
