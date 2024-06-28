@@ -15,9 +15,11 @@ from controller.chroma_collection import chroma_collection_controller
 from controller.file import file_controller
 from controller.task import task_controller
 from controller.multi_classifier import multi_classifier_controller, classifier_config_controller
+from controller.ner_brand_model import ner_brand_model_controller
 from controller.nomenclature import nomenclature_controller
 from controller.prediction import prediction_controller
 from controller.user import user_controller, auth_controller, tenant_controller, mode_controller, prompt_controller
+from model.ner_brand_model import load_ner_model  # Импортируем функцию загрузки модели
 
 app = FastAPI()
 
@@ -38,6 +40,7 @@ app.include_router(chroma_collection_controller.router, tags=["chroma_collection
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
 app.include_router(multi_classifier_controller.router, tags=["multi_classifier"], prefix="/multi_classifier")
 app.include_router(task_controller.router, tags=["task"], prefix="/task")
+app.include_router(ner_brand_model_controller.router, tags=["ner_brand_model"], prefix="/ner_brand_model")
 
 
 @app.middleware("http")
@@ -71,8 +74,8 @@ app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"
 
 
 @app.on_event("startup")
-def on_startup():
-    pass
+async def on_startup():
+    await load_ner_model()  # Асинхронно загружаем модель при старте приложения
 
 
 if __name__ == "__main__":
