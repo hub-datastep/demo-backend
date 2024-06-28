@@ -19,3 +19,6 @@ data/fastembed/.locks
 data/fastembed/models--qdrant--multilingual-e5-large-onnx
 
 data/datastep-excel-for-classifier-66a610dc9ff6.json
+
+# ML model files
+data/ner_model
