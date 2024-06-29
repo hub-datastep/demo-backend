@@ -3,21 +3,19 @@ from fastapi import Depends
 from fastapi_versioning import version
 
 from model.auth.auth_model import get_current_user
-from model.ner.brand_model import ner_model_instance
+from model.ner.brand_model import brand_ner_model
 from scheme.user.user_scheme import UserRead
 
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", response_model=list[str])
 @version(1)
 def get_ner_brand_results(
-    *,
     text: str,
     current_user: UserRead = Depends(get_current_user),
 ) -> list[str]:
     """
-    Получает результат ner. На входе название номенклатуры, на выходе название компании производителя
+    Получает результат NER. На входе название номенклатуры, на выходе название компании производителя.
     """
-    result = ner_model_instance.get_ner_brand(text)
-    return result
+    return brand_ner_model.get_ner_brand(text)

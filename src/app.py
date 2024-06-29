@@ -16,7 +16,7 @@ from controller.chroma_collection import chroma_collection_controller
 from controller.classifier import classifier_config_controller, classifier_controller
 from controller.file import file_controller
 from controller.mode import mode_controller
-from controller.ner_brand_model import ner_brand_model_controller
+from controller.ner import brand_model_controller
 from controller.nomenclature import nomenclature_controller
 from controller.prediction import prediction_controller
 from controller.prompt import prompt_controller
@@ -44,7 +44,7 @@ app.include_router(chroma_collection_controller.router, tags=["chroma_collection
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
 app.include_router(classifier_controller.router, tags=["classifier"], prefix="/classifier")
 app.include_router(task_controller.router, tags=["task"], prefix="/task")
-app.include_router(ner_brand_model_controller.router, tags=["ner_brand_model"], prefix="/ner_brand_model")
+app.include_router(brand_model_controller.router, tags=["ner_brand"], prefix="/ner_brand")
 
 
 @app.middleware("http")
