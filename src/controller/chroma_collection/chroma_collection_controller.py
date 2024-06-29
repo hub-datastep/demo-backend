@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 
 from infra import chroma_store
-from model.auth_model import get_current_user
-from scheme.user_scheme import UserRead
+from model.auth.auth_model import get_current_user
+from scheme.user.user_scheme import UserRead
 
 router = APIRouter()
 

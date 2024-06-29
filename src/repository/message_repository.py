@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 
-from scheme.message_scheme import MessageCreate, Message
+from scheme.chat.message_scheme import MessageCreate, Message
 
 
 def create_message(session: Session, message: MessageCreate) -> Message:

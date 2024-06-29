@@ -22,21 +22,6 @@ config.set_main_option('sqlalchemy.url', os.getenv("DB_CONNECTION_STRING"))
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
-from scheme.chat_scheme import Chat
-from scheme.database_prediction_config_scheme import DatabasePredictionConfig
-from scheme.file_scheme import File
-from scheme.mark_scheme import Mark
-from scheme.message_scheme import Message
-from scheme.mode_scheme import Mode
-from scheme.mode_tenant_scheme import ModeTenantLink
-from scheme.prompt_scheme import Prompt
-from scheme.review_scheme import Review
-from scheme.tenant_scheme import Tenant
-from scheme.token_scheme import Token
-from scheme.user_scheme import User
-from scheme.user_tenant_scheme import UserTenantLink
-from scheme.classifier_scheme import ClassifierVersion
-from scheme.classifier_config_scheme import ClassifierConfig
 # target_metadata = mymodel.Base.metadata
 target_metadata = SQLModel.metadata
 

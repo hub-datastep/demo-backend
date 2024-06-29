@@ -50,7 +50,7 @@ services:
       - redis-server:${DATA_FOLDER_PATH}
 
   rq-worker:
-    image: datastep_backend
+    image: datastep-backend
     restart: always
     command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT} mapping_nomenclatures sync_nomenclatures retrain_classifier classification documents
     environment:

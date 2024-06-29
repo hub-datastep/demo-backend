@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
-from scheme.prompt_scheme import PromptCreate, Prompt, PromptUpdate
-from scheme.tenant_scheme import Tenant
+from scheme.prompt.prompt_scheme import PromptCreate, Prompt, PromptUpdate
+from scheme.tenant.tenant_scheme import Tenant
 
 
 def get_active_tenant_prompt(session: Session, tenant_id: int) -> Prompt | None:

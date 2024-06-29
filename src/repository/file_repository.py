@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 
-from scheme.file_scheme import File, FileCreate
+from scheme.file.file_scheme import File, FileCreate
 
 
 def get_all_filenames_by_tenant_id(session: Session, tenant_id: int) -> list[File]:
