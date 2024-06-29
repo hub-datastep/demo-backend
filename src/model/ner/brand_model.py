@@ -1,18 +1,14 @@
 import asyncio
-import os
 
 import spacy
 
 from infra.env import DATA_FOLDER_PATH
 
-# Путь к модели spaCy
-brand_model_path = os.path.join(DATA_FOLDER_PATH, 'ner_model')
 
-
-# создаем класс чтобы инкапсулировать self.nlp = None
-# При функциональном подходе приходится создавать из npl глобальнгую переменную
-# а это может повлечь ошибочки при мультипоточном исппользовании
-# приходится так делать, тчобы поддерживать асинхронную загрузку модели при старте сервера
+# Создаем класс, чтобы инкапсулировать self.nlp = None
+# При функциональном подходе приходится создавать из nlp глобальную переменную,
+# а это может повлечь ошибочки при мультипоточном использовании,
+# приходится так делать, чтобы поддерживать асинхронную загрузку модели при старте сервера
 class NERModel:
     def __init__(self, model_path):
         self.model_path = model_path
@@ -37,10 +33,12 @@ class NERModel:
         return brands
 
 
+# Путь к модели spaCy
+brand_model_path = f"{DATA_FOLDER_PATH}/ner_model"
 # Создание экземпляра модели
-ner_model_instance = NERModel(brand_model_path)
+brand_ner_model = NERModel(brand_model_path)
 
 
 # Асинхронная функция для загрузки модели
 async def load_ner_model():
-    await ner_model_instance.load_model()
+    await brand_ner_model.load_model()
