@@ -6,7 +6,7 @@ from infra.database import get_session
 from model.file import file_model
 from model.auth.auth_model import get_current_user
 from model.file.file_model import extract_data_from_invoice
-from repository.file_repository import get_all_filenames_by_tenant_id
+from repository.file.file_repository import get_all_filenames_by_tenant_id
 from scheme.file.file_scheme import FileRead, DataExtract, File
 from scheme.user.user_scheme import UserRead
 

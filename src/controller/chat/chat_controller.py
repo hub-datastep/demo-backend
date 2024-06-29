@@ -5,7 +5,7 @@ from sqlmodel import Session
 from infra.database import get_session
 from model.chat import chat_model
 from model.auth.auth_model import get_current_user
-from repository import chat_repository
+from repository.chat import chat_repository
 from scheme.chat.chat_scheme import ChatRead, ChatCreate
 from scheme.user.user_scheme import UserRead
 

@@ -6,7 +6,7 @@ from infra.database import get_session
 from model.prediction import datastep_pdf_model
 from model.auth.auth_model import get_current_user
 from model.prediction.datastep_model import datastep_get_prediction
-from repository import tenant_repository
+from repository.tenant import tenant_repository
 from scheme.prediction.prediction_scheme import (
     DatabasePredictionQuery, DatabasePredictionRead,
     DocumentPredictionRead, DocumentPredictionQuery, PredictionQueryBase, KnowledgeBasePredictionRead

@@ -2,14 +2,13 @@ from sqlmodel import Session
 
 from datastep.components import datastep_faiss
 from datastep.components.datastep_faiss import search_relevant_description
-from repository import file_repository
-from repository.file_repository import get_all_filenames_by_tenant_id
+from repository.file.file_repository import get_file_by_id, get_all_filenames_by_tenant_id
 from scheme.prediction.prediction_scheme import DocumentPredictionRead, KnowledgeBasePredictionRead
 from util.files_paths import get_file_storage_path
 
 
 def get_prediction(session: Session, query: str, file_id: int):
-    file = file_repository.get_file_by_id(session, file_id)
+    file = get_file_by_id(session, file_id)
 
     response, page = datastep_faiss.doc_query(file.storage_filename, query)
     # if "нет" in response.lower():

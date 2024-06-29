@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlmodel import Session
 
-from repository import classifier_config_repository
+from repository.classifier import classifier_config_repository
 from scheme.classifier.classifier_config_scheme import ClassifierConfigBase, ClassifierConfig
 
 

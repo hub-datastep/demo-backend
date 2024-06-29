@@ -4,7 +4,7 @@ from sqlmodel import Session
 
 from infra.database import get_session
 from model.auth.auth_model import get_current_user
-from repository import user_repository
+from repository.user import user_repository
 from scheme.user.user_scheme import UserCreate, UserRead, User
 
 router = APIRouter()

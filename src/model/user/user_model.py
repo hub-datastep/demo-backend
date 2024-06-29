@@ -1,7 +1,8 @@
 from fastapi import HTTPException
 from sqlmodel import Session
 
-from repository import tenant_repository, user_repository
+from repository.tenant import tenant_repository
+from repository.user import user_repository
 from scheme.user.user_scheme import User, UserCreate
 from util.hashing import pwd_context
 

@@ -20,7 +20,7 @@ from tqdm import tqdm
 
 from infra.env import DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueName
-from repository.classifier_version_repository import get_classifier_versions, delete_classifier_version_in_db, \
+from repository.classifier.classifier_version_repository import get_classifier_versions, delete_classifier_version_in_db, \
     get_classifier_version_by_model_id, create_classifier_version
 from scheme.classifier.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult, \
     ClassificationResult, ClassificationResultItem

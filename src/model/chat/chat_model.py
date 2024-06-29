@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlmodel import Session
 
-from repository import chat_repository
+from repository.chat import chat_repository
 from scheme.chat.chat_scheme import Chat
 
 

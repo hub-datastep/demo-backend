@@ -4,7 +4,7 @@ from sqlmodel import Session
 
 from infra.database import get_session
 from model.auth.auth_model import get_current_user
-from repository import tenant_repository
+from repository.tenant import tenant_repository
 from scheme.tenant.tenant_scheme import TenantRead, TenantCreate
 from scheme.user.user_scheme import UserRead
 
