@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 
-from model import nomenclature_model, synchronize_nomenclatures_model, noms2embeddings_model
-from model.auth_model import get_current_user
-from scheme.nomenclature_scheme import JobIdRead, MappingNomenclaturesUpload, MappingNomenclaturesResultRead, \
+from model.nomenclature import nomenclature_model, noms2embeddings_model, synchronize_nomenclatures_model
+from model.auth.auth_model import get_current_user
+from scheme.nomenclature.nomenclature_scheme import JobIdRead, MappingNomenclaturesUpload, MappingNomenclaturesResultRead, \
     SyncNomenclaturesUpload, SyncNomenclaturesResultRead, CreateAndSaveEmbeddingsUpload, CreateAndSaveEmbeddingsResult
-from scheme.user_scheme import UserRead
+from scheme.user.user_scheme import UserRead
 
 router = APIRouter()
 

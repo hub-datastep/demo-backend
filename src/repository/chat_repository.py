@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 
-from scheme.chat_scheme import ChatCreate, Chat
+from scheme.chat.chat_scheme import ChatCreate, Chat
 
 
 def get_chat_by_user_id(session: Session, user_id: int, mode_id: int) -> Chat | None:

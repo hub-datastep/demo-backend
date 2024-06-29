@@ -1,5 +1,6 @@
 from sqlmodel import Session
-from scheme.mode_scheme import Mode, ModeCreate
+
+from scheme.mode.mode_scheme import Mode, ModeCreate
 
 
 def create_mode(session: Session, mode: ModeCreate) -> Mode:

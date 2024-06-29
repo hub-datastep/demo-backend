@@ -10,16 +10,20 @@ from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
+from controller.auth import auth_controller
 from controller.chat import message_controller, chat_controller
 from controller.chroma_collection import chroma_collection_controller
+from controller.classifier import classifier_config_controller, classifier_controller
 from controller.file import file_controller
-from controller.task import task_controller
-from controller.multi_classifier import multi_classifier_controller, classifier_config_controller
+from controller.mode import mode_controller
 from controller.ner_brand_model import ner_brand_model_controller
 from controller.nomenclature import nomenclature_controller
 from controller.prediction import prediction_controller
-from controller.user import user_controller, auth_controller, tenant_controller, mode_controller, prompt_controller
-from model.ner_brand_model import load_ner_model  # Импортируем функцию загрузки модели
+from controller.prompt import prompt_controller
+from controller.task import task_controller
+from controller.tenant import tenant_controller
+from controller.user import user_controller
+from model.ner.brand_model import load_ner_model
 
 app = FastAPI()
 
@@ -38,7 +42,7 @@ app.include_router(classifier_config_controller.router, tags=["classifier_config
 app.include_router(nomenclature_controller.router, tags=["nomenclature"], prefix="/nomenclature")
 app.include_router(chroma_collection_controller.router, tags=["chroma_collection"], prefix="/collection")
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
-app.include_router(multi_classifier_controller.router, tags=["multi_classifier"], prefix="/multi_classifier")
+app.include_router(classifier_controller.router, tags=["classifier"], prefix="/classifier")
 app.include_router(task_controller.router, tags=["task"], prefix="/task")
 app.include_router(ner_brand_model_controller.router, tags=["ner_brand_model"], prefix="/ner_brand_model")
 
@@ -75,7 +79,8 @@ app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"
 
 @app.on_event("startup")
 async def on_startup():
-    await load_ner_model()  # Асинхронно загружаем модель при старте приложения
+    # Асинхронно загружаем модель при старте приложения
+    await load_ner_model()
 
 
 if __name__ == "__main__":

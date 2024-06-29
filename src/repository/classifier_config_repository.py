@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 
-from scheme.classifier_config_scheme import ClassifierConfig
+from scheme.classifier.classifier_config_scheme import ClassifierConfig
 
 
 def get_classifier_config_by_user_id(session: Session, user_id: int) -> ClassifierConfig | None:

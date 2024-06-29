@@ -1,6 +1,6 @@
 from sqlmodel import Session, select
 
-from scheme.mark_scheme import MarkCreate, Mark
+from scheme.chat.mark_scheme import MarkCreate, Mark
 
 
 def create_or_update_mark(session: Session, mark: MarkCreate) -> Mark:

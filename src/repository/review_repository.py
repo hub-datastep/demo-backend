@@ -1,6 +1,6 @@
 from sqlmodel import Session
 
-from scheme.review_scheme import Review, ReviewCreate
+from scheme.chat.review_scheme import Review, ReviewCreate
 
 
 def create_review(session: Session, review: ReviewCreate) -> Review:

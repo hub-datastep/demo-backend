@@ -1,11 +1,10 @@
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi_versioning import version
-from pydantic import BaseModel
 
-from model.auth_model import get_current_user
-from model.ner_brand_model import ner_model_instance
-from scheme.user_scheme import UserRead
+from model.auth.auth_model import get_current_user
+from model.ner.brand_model import ner_model_instance
+from scheme.user.user_scheme import UserRead
 
 router = APIRouter()
 

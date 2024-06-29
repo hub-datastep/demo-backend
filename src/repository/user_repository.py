@@ -3,8 +3,8 @@ from typing import Type
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
-from scheme.tenant_scheme import Tenant
-from scheme.user_scheme import UserCreate, User
+from scheme.tenant.tenant_scheme import Tenant
+from scheme.user.user_scheme import UserCreate, User
 from util.hashing import get_password_hash
 
 

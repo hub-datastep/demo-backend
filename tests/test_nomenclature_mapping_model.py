@@ -6,8 +6,8 @@ from fastapi.testclient import TestClient
 from sshtunnel import SSHTunnelForwarder
 
 from app import app
-from model import nomenclature_model
-from scheme.nomenclature_scheme import MappingOneNomenclatureUpload
+from model.nomenclature import nomenclature_model
+from scheme.nomenclature.nomenclature_scheme import MappingOneNomenclatureUpload
 
 
 def set_vpn_tunnel_and_get_local_port(
