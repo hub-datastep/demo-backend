@@ -7,7 +7,7 @@ from jose import JWTError, jwt
 from sqlmodel import Session
 
 from infra.database import get_session
-from repository import user_repository
+from repository.user import user_repository
 from scheme.auth.token_scheme import TokenData, Token
 from scheme.user.user_scheme import User
 from util.hashing import pwd_context

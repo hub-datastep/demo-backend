@@ -4,7 +4,7 @@ from sqlmodel import Session
 
 from infra.database import get_session
 from model.auth.auth_model import get_current_user
-from repository import review_repository
+from repository.chat import review_repository
 from scheme.chat.review_scheme import ReviewCreate, ReviewRead
 from scheme.user.user_scheme import UserRead
 

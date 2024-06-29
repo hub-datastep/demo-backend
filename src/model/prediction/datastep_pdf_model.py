@@ -2,8 +2,8 @@ from sqlmodel import Session
 
 from datastep.components import datastep_faiss
 from datastep.components.datastep_faiss import search_relevant_description
-from repository import file_repository
-from repository.file_repository import get_all_filenames_by_tenant_id
+from repository.file import file_repository
+from repository.file.file_repository import get_all_filenames_by_tenant_id
 from scheme.prediction.prediction_scheme import DocumentPredictionRead, DocumentEmptyPredictionRead, KnowledgeBasePredictionRead
 from util.files_paths import get_file_storage_path
 

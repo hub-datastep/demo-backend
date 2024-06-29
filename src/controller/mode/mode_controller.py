@@ -4,7 +4,7 @@ from sqlmodel import Session
 
 from infra.database import get_session
 from model.auth.auth_model import get_current_user
-from repository import mode_repository
+from repository.mode import mode_repository
 from scheme.mode.mode_scheme import ModeRead, ModeCreate
 from scheme.user.user_scheme import UserRead
 

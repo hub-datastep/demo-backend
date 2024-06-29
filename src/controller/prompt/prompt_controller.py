@@ -4,7 +4,7 @@ from sqlmodel import Session
 
 from infra.database import get_session
 from model.auth.auth_model import get_current_user
-from repository import prompt_repository
+from repository.prompt import prompt_repository
 from scheme.prompt.prompt_scheme import PromptRead, PromptCreate, PromptUpdate
 from scheme.user.user_scheme import UserRead
 

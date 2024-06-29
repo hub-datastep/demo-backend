@@ -4,7 +4,7 @@ from sqlmodel import Session
 
 from infra.database import get_session
 from model.auth.auth_model import get_current_user
-from repository import mark_repository
+from repository.chat import mark_repository
 from scheme.chat.mark_scheme import MarkRead, MarkCreate
 from scheme.user.user_scheme import UserRead
 
