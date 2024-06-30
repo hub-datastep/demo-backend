@@ -3,7 +3,9 @@ from fastapi import Depends
 from fastapi_versioning import version
 
 from model.auth.auth_model import get_current_user
-from scheme.classifier.classifier_scheme import RetrainClassifierUpload, ClassifierRetrainingResult, ClassifierVersionRead, \
+from model.classifier import classifier_model, classification_model
+from scheme.classifier.classifier_scheme import RetrainClassifierUpload, ClassifierRetrainingResult, \
+    ClassifierVersionRead, \
     ClassificationResult
 from scheme.user.user_scheme import UserRead
 
@@ -70,7 +72,7 @@ def start_classification(
     """
     Классифицирует переданные элементы (ищет класс/группу каждого элемента в списке).
     """
-    return classifier_model.start_classification(
+    return classification_model.start_classification(
         items=items,
         model_id=model_id,
     )
@@ -85,4 +87,4 @@ def get_classification_result(
     """
     Получает результат классификации.
     """
-    return classifier_model.get_classification_job_result(job_id)
+    return classification_model.get_classification_job_result(job_id)

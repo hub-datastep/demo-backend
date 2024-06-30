@@ -20,10 +20,10 @@ from tqdm import tqdm
 
 from infra.env import DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueName
-from repository.classifier.classifier_version_repository import get_classifier_versions, delete_classifier_version_in_db, \
+from repository.classifier.classifier_version_repository import get_classifier_versions, \
+    delete_classifier_version_in_db, \
     get_classifier_version_by_model_id, create_classifier_version
-from scheme.classifier.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult, \
-    ClassificationResult, ClassificationResultItem
+from scheme.classifier.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult
 from scheme.nomenclature.nomenclature_scheme import JobIdRead
 from util.features_extraction import FEATURES_REGEX_PATTERNS, extract_features
 from util.normalize_name import normalize_name
@@ -356,44 +356,3 @@ def delete_classifier_version(model_id: str):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Classifier version with ID {model_id} not found."
         )
-
-
-def get_groups_by_items(items: list[str], model_id: str) -> list[ClassificationResultItem]:
-    model = joblib.load(f"{DATA_FOLDER_PATH}/model_{model_id}.pkl")
-    result: list[ClassificationResultItem] = []
-
-    normalized_data = DataFrame({
-        "names": [normalize_name(item) for item in items]
-    })
-    groups_ids = model.predict(normalized_data['names'])
-    for item, group_id in zip(items, groups_ids):
-        result.append(ClassificationResultItem(item=item, group_id=group_id))
-
-    return result
-
-
-def start_classification(items: list[str], model_id: str) -> JobIdRead:
-    queue = get_redis_queue(name=QueueName.CLASSIFICATION)
-    job = queue.enqueue(
-        get_groups_by_items,
-        items,
-        model_id,
-        result_ttl=-1,
-        job_timeout=MAX_JOB_TIMEOUT,
-    )
-    return JobIdRead(job_id=job.id)
-
-
-def get_classification_job_result(job_id: str) -> ClassificationResult:
-    job = get_job(job_id)
-
-    classification_result = ClassificationResult(
-        job_id=job_id,
-        status=job.get_status(refresh=True)
-    )
-
-    job_result = job.return_value(refresh=True)
-    if job_result is not None:
-        classification_result.result = job_result
-
-    return classification_result
