@@ -13,7 +13,7 @@ TEST_MAPPING_USE_PARAMS = bool(int(os.getenv('TEST_MAPPING_USE_PARAMS')))
 
 # URL для авторизации и API
 AUTH_URL = f"{TESTS_API_URL}/auth/sign_in"
-API_URL = f"{TESTS_API_URL}/nomenclature/mapping"
+API_URL = f"{TESTS_API_URL}/mapping"
 
 # Данные для авторизации
 AUTH_PAYLOAD = {
@@ -53,7 +53,7 @@ def start_nomenclature_mapping(test_cases, token):
         "nomenclatures": [
             {
                 "row_number": idx,
-                "nomenclature": case['Номенклатура поставщика']
+                "mapping": case['Номенклатура поставщика']
             } for idx, case in enumerate(test_cases)
         ]
     }

@@ -3,15 +3,15 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
-from model import datastep_pdf_model
-from model.auth_model import get_current_user
-from model.datastep_model import datastep_get_prediction
-from repository import tenant_repository
-from scheme.prediction_scheme import (
+from model.prediction import datastep_pdf_model
+from model.auth.auth_model import get_current_user
+from model.prediction.datastep_model import datastep_get_prediction
+from repository.tenant import tenant_repository
+from scheme.prediction.prediction_scheme import (
     DatabasePredictionQuery, DatabasePredictionRead,
     DocumentPredictionRead, DocumentPredictionQuery, PredictionQueryBase, KnowledgeBasePredictionRead
 )
-from scheme.user_scheme import UserRead
+from scheme.user.user_scheme import UserRead
 
 router = APIRouter()
 
