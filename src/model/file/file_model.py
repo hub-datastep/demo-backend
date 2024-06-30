@@ -16,7 +16,7 @@ from exception.file_not_found_exception import FileNotFoundException
 from infra.redis_queue import get_redis_queue, QueueName, MAX_JOB_TIMEOUT
 from repository.file import file_repository
 from scheme.file.file_scheme import File, DataExtract, FileCreate
-from scheme.nomenclature.nomenclature_scheme import JobIdRead
+from scheme.task.task_scheme import JobIdRead
 from util.files_paths import get_file_folder_path, get_file_storage_path
 
 nomenclature_pattern = r"\bтовары\b|\bнаименование\b|\bпозиция\b|\bноменклатура\b|\bработы\b|\bуслуги\b|\bпредмет счета\b"

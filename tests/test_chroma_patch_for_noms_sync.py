@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from model.nomenclature.synchronize_nomenclatures_model import get_chroma_patch_for_sync
-from scheme.nomenclature.nomenclature_scheme import MsuDatabaseOneNomenclatureRead, SyncOneNomenclatureDataRead, \
+from scheme.mapping.mapping_scheme import MsuDatabaseOneNomenclatureRead, SyncOneNomenclatureDataRead, \
     SyncNomenclaturesChromaPatch
 
 """

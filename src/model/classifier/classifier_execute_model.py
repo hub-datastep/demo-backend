@@ -3,8 +3,8 @@ from pandas import DataFrame
 
 from infra.redis_queue import get_redis_queue, QueueName, MAX_JOB_TIMEOUT, get_job
 from model.classifier.classifier_version_model import get_model_path
-from scheme.classifier.classifier_scheme import ClassificationResultItem, ClassificationResult
-from scheme.nomenclature.nomenclature_scheme import JobIdRead
+from scheme.classifier.classifier_version_scheme import ClassificationResultItem, ClassificationResult
+from scheme.task.task_scheme import JobIdRead
 from util.normalize_name import normalize_name
 
 

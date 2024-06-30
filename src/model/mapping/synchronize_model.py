@@ -9,8 +9,9 @@ from infra.chroma_store import is_in_vectorstore, \
     connect_to_chroma_collection, update_collection_with_patch
 from infra.database import create_session_by_db_con_str
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueName
-from scheme.nomenclature.nomenclature_scheme import SyncNomenclaturesChromaPatch, MsuDatabaseOneNomenclatureRead, JobIdRead, \
+from scheme.mapping.synchronize_scheme import SyncNomenclaturesChromaPatch, MsuDatabaseOneNomenclatureRead, \
     SyncOneNomenclatureDataRead, SyncNomenclaturesResultRead
+from scheme.task.task_scheme import JobIdRead
 
 
 def fetch_nomenclatures(session: Session, sync_period: int) -> list[MsuDatabaseOneNomenclatureRead]:

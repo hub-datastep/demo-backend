@@ -3,8 +3,8 @@ from fastapi_versioning import version
 
 from model.auth.auth_model import get_current_user
 from model.embedding import noms2embeddings_model
-from scheme.nomenclature.nomenclature_scheme import JobIdRead, CreateAndSaveEmbeddingsUpload, \
-    CreateAndSaveEmbeddingsResult
+from scheme.embedding.embedding_scheme import CreateAndSaveEmbeddingsUpload, CreateAndSaveEmbeddingsResult
+from scheme.task.task_scheme import JobIdRead
 from scheme.user.user_scheme import UserRead
 
 router = APIRouter()

@@ -18,8 +18,9 @@ from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueNa
 from model.classifier.classifier_dataset_model import get_training_data
 from model.classifier.classifier_version_model import get_model_path
 from repository.classifier.classifier_version_repository import create_classifier_version
-from scheme.classifier.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult
-from scheme.nomenclature.nomenclature_scheme import JobIdRead
+from scheme.classifier.classifier_version_scheme import ClassifierVersion, ClassifierVersionRead, \
+    ClassifierRetrainingResult
+from scheme.task.task_scheme import JobIdRead
 from util.features_extraction import FEATURES_REGEX_PATTERNS
 
 tqdm.pandas()

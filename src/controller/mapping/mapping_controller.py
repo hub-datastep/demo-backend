@@ -3,8 +3,8 @@ from fastapi_versioning import version
 
 from model.auth.auth_model import get_current_user
 from model.mapping import mapping_model
-from scheme.nomenclature.nomenclature_scheme import JobIdRead, MappingNomenclaturesUpload, \
-    MappingNomenclaturesResultRead
+from scheme.mapping.mapping_scheme import MappingNomenclaturesUpload, MappingNomenclaturesResultRead
+from scheme.task.task_scheme import JobIdRead
 from scheme.user.user_scheme import UserRead
 
 router = APIRouter()

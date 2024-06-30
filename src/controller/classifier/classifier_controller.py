@@ -4,7 +4,7 @@ from fastapi_versioning import version
 
 from model.auth.auth_model import get_current_user
 from model.classifier import classifier_retrain_model, classifier_execute_model, classifier_version_model
-from scheme.classifier.classifier_scheme import RetrainClassifierUpload, ClassifierRetrainingResult, \
+from scheme.classifier.classifier_version_scheme import RetrainClassifierUpload, ClassifierRetrainingResult, \
     ClassifierVersionRead, \
     ClassificationResult
 from scheme.user.user_scheme import UserRead

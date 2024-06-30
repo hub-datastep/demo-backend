@@ -3,57 +3,7 @@ from typing import Literal
 
 from rq.job import JobStatus
 from sqlmodel import SQLModel, Field
-
-
-class MappingOneNomenclatureUpload(SQLModel):
-    row_number: int
-    nomenclature: str
-
-
-class MappingOneTargetRead(SQLModel):
-    nomenclature_guid: str
-    nomenclature: str
-    similarity_score: float
-
-
-class MappingOneNomenclatureRead(SQLModel):
-    row_number: int
-    nomenclature: str | None
-    group: str
-    nomenclature_params: list[dict]
-    mappings: list[MappingOneTargetRead] | None
-    similar_mappings: list[MappingOneTargetRead] | None
-
-
-class MappingNomenclaturesUpload(SQLModel):
-    chroma_collection_name: str
-    model_id: str
-    most_similar_count: int = 1
-    chunk_size: int
-    nomenclatures: list[MappingOneNomenclatureUpload]
-    use_params: bool = True
-
-
-class MappingNomenclaturesResultRead(SQLModel):
-    job_id: str
-    ready_count: int | None
-    total_count: int | None
-    general_status: str
-    nomenclatures: list[MappingOneNomenclatureRead] | None
-
-
-class CreateAndSaveEmbeddingsUpload(SQLModel):
-    db_con_str: str
-    table_name: str
-    collection_name: str
-    chunk_size: int | None = 500
-
-
-class CreateAndSaveEmbeddingsResult(SQLModel):
-    job_id: str
-    status: JobStatus
-    ready_count: int | None
-    total_count: int | None
+from typing_extensions import deprecated
 
 
 class SyncOneNomenclatureDataRead(SQLModel):
@@ -84,6 +34,7 @@ class SyncNomenclaturesResultRead(SQLModel):
     total_count: int | None
 
 
+@deprecated
 class MsuDatabaseOneNomenclatureRead(SQLModel, table=True):
     __tablename__ = "СправочникНоменклатура"
     __table_args__ = {
@@ -98,13 +49,3 @@ class MsuDatabaseOneNomenclatureRead(SQLModel, table=True):
     edited_at: datetime = Field(sa_column_kwargs={"name": "МСУ_ДатаИзменения"})
     root_group_name: str | None = Field(sa_column_kwargs={"_omit_from_statements": True})
     is_in_vectorstore: bool | None = Field(sa_column_kwargs={"_omit_from_statements": True})
-
-
-class JobIdRead(SQLModel):
-    job_id: str
-
-
-class SyncNomenclaturesByViewsUpload(SQLModel):
-    db_con_str: str
-    table_name: str
-    chroma_collection_name: str

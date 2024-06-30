@@ -6,3 +6,7 @@ class RQJob(SQLModel):
     job_id: str
     status: JobStatus
     queue: str
+
+
+class JobIdRead(SQLModel):
+    job_id: str

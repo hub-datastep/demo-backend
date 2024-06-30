@@ -1,7 +1,7 @@
 from sqlmodel import Session, select, not_
 
 from infra.database import engine
-from scheme.classifier.classifier_scheme import ClassifierVersion
+from scheme.classifier.classifier_version_scheme import ClassifierVersion
 
 
 def get_classifier_versions():

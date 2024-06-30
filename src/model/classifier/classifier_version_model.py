@@ -7,7 +7,7 @@ from infra.env import DATA_FOLDER_PATH
 from repository.classifier.classifier_version_repository import get_classifier_versions, \
     delete_classifier_version_in_db, \
     get_classifier_version_by_model_id
-from scheme.classifier.classifier_scheme import ClassifierVersionRead
+from scheme.classifier.classifier_version_scheme import ClassifierVersionRead
 
 
 def get_classifiers_list() -> list[ClassifierVersionRead]:

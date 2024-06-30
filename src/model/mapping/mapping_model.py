@@ -15,8 +15,9 @@ from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName, get_j
 from model.classifier.classifier_retrain_model import TRAINING_COLUMNS
 from model.classifier.classifier_version_model import get_model_path
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
-from scheme.nomenclature.nomenclature_scheme import MappingOneNomenclatureUpload, \
-    MappingNomenclaturesResultRead, JobIdRead, MappingOneTargetRead, MappingOneNomenclatureRead
+from scheme.mapping.mapping_scheme import MappingOneNomenclatureUpload, \
+    MappingNomenclaturesResultRead, MappingOneTargetRead, MappingOneNomenclatureRead
+from scheme.task.task_scheme import JobIdRead
 from util.extract_keyword import extract_keyword
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
 from util.normalize_name import normalize_name

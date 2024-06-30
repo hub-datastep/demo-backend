@@ -23,6 +23,7 @@ config.set_main_option('sqlalchemy.url', os.getenv("DB_CONNECTION_STRING"))
 # for 'autogenerate' support
 # from myapp import mymodel
 
+# noinspection PyTypeChecker
 from scheme.chat.chat_scheme import Chat
 from scheme.prediction.database_prediction_config_scheme import DatabasePredictionConfig
 from scheme.file.file_scheme import File

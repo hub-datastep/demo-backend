@@ -3,7 +3,8 @@ from rq import get_current_job
 
 from infra.chroma_store import connect_to_chroma_collection, create_embeddings_by_chunks
 from infra.redis_queue import get_redis_queue, QueueName, MAX_JOB_TIMEOUT, get_job
-from scheme.nomenclature.nomenclature_scheme import JobIdRead, CreateAndSaveEmbeddingsResult
+from scheme.embedding.embedding_scheme import CreateAndSaveEmbeddingsResult
+from scheme.task.task_scheme import JobIdRead
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
 
 
