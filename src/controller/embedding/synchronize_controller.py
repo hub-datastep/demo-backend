@@ -18,7 +18,7 @@ def synchronize_nomenclatures(
     """
     Синхронизирует номенклатуры в БД и векторсторе за указанный период.
     """
-    return synchronize_nomenclatures_model.start_synchronizing_nomenclatures(
+    return synchronize_model.start_synchronizing_nomenclatures(
         nom_db_con_str=body.nom_db_con_str,
         chroma_collection_name=body.chroma_collection_name,
         sync_period=body.sync_period,
@@ -34,4 +34,4 @@ def synchronize_nomenclatures_result(
     """
     Получает результат синхронизации номенклатур в БД и векторсторе.
     """
-    return synchronize_nomenclatures_model.get_sync_nomenclatures_job_result(job_id)
+    return synchronize_model.get_sync_nomenclatures_job_result(job_id)

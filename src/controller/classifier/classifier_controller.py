@@ -3,7 +3,7 @@ from fastapi import Depends
 from fastapi_versioning import version
 
 from model.auth.auth_model import get_current_user
-from model.classifier import classifier_model, classification_model
+from model.classifier import classifier_retrain_model, classifier_execute_model, classifier_version_model
 from scheme.classifier.classifier_scheme import RetrainClassifierUpload, ClassifierRetrainingResult, \
     ClassifierVersionRead, \
     ClassificationResult
@@ -18,7 +18,7 @@ def get_classifier_versions(current_user: UserRead = Depends(get_current_user)) 
     """
     Получает все версии обученных классификаторов.
     """
-    return classifier_model.get_classifiers_list()
+    return classifier_version_model.get_classifiers_list()
 
 
 @router.post("/retrain")
@@ -30,7 +30,7 @@ def retrain_classifier(
     """
     Переобучает мульти-классификатор.
     """
-    return classifier_model.start_classifier_retraining(
+    return classifier_retrain_model.start_classifier_retraining(
         db_con_str=body.db_con_str,
         table_name=body.table_name,
         model_description=body.model_description,
@@ -47,7 +47,7 @@ def retrain_classifier_result(
     """
     Получает результат переобучения мульти-классификатора.
     """
-    return classifier_model.get_retraining_job_result(job_id)
+    return classifier_retrain_model.get_retraining_job_result(job_id)
 
 
 @router.delete("/{model_id}")
@@ -59,7 +59,7 @@ def delete_classifier_by_id(
     """
     Удаляет версию классификатора с указанным идентификатором.
     """
-    return classifier_model.delete_classifier_version(model_id)
+    return classifier_version_model.delete_classifier_version(model_id)
 
 
 @router.post("/classification")
@@ -72,7 +72,7 @@ def start_classification(
     """
     Классифицирует переданные элементы (ищет класс/группу каждого элемента в списке).
     """
-    return classification_model.start_classification(
+    return classifier_execute_model.start_classification(
         items=items,
         model_id=model_id,
     )
@@ -87,4 +87,4 @@ def get_classification_result(
     """
     Получает результат классификации.
     """
-    return classification_model.get_classification_job_result(job_id)
+    return classifier_execute_model.get_classification_job_result(job_id)

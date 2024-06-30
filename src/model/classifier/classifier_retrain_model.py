@@ -1,10 +1,7 @@
-import os
-from pathlib import Path
 from uuid import uuid4
 
 import joblib
-from fastapi import HTTPException, status
-from pandas import DataFrame, read_sql, Series
+from pandas import DataFrame, Series
 from rq import get_current_job
 from sklearn.compose import make_column_selector, make_column_transformer
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
@@ -15,18 +12,15 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.svm import LinearSVC
-from sqlalchemy import text
 from tqdm import tqdm
 
-from infra.env import DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, get_job, QueueName
-from repository.classifier.classifier_version_repository import get_classifier_versions, \
-    delete_classifier_version_in_db, \
-    get_classifier_version_by_model_id, create_classifier_version
+from model.classifier.classifier_dataset_model import get_training_data
+from model.classifier.classifier_version_model import get_model_path
+from repository.classifier.classifier_version_repository import create_classifier_version
 from scheme.classifier.classifier_scheme import ClassifierVersion, ClassifierVersionRead, ClassifierRetrainingResult
 from scheme.nomenclature.nomenclature_scheme import JobIdRead
-from util.features_extraction import FEATURES_REGEX_PATTERNS, extract_features
-from util.normalize_name import normalize_name
+from util.features_extraction import FEATURES_REGEX_PATTERNS
 
 tqdm.pandas()
 
@@ -64,111 +58,16 @@ _preprocessor_without_params = make_pipeline(
 )
 
 
-def _fetch_items(db_con_str: str, table_name: str) -> DataFrame:
-    st = text(f"""
-        SELECT "name", "group"
-        FROM {table_name}
-        WHERE "is_group" = FALSE
-    """)
-
-    return read_sql(st, db_con_str)
-
-
-def _fetch_groups(db_con_str: str, table_name: str) -> DataFrame:
-    st = text(f"""
-        SELECT DISTINCT "name"
-        FROM {table_name}
-        WHERE "is_group" = TRUE
-    """)
-
-    return read_sql(st, db_con_str)
-
-
-def _has_child(db_con_str: str, table_name: str, group: str) -> bool:
-    st = text(f"""
-        SELECT *
-        FROM {table_name}
-        WHERE "group" = '{group}'
-        AND "is_group" = TRUE
-    """)
-    children = read_sql(st, db_con_str)
-
-    return not children.empty
-
-
-def _fetch_narrow_groups(db_con_str: str, table_name: str) -> DataFrame:
-    print("Fetching groups...")
-    groups = _fetch_groups(db_con_str, table_name)
-    print(f"Count of groups: {len(groups)}")
-    print(groups)
-
-    print(f"Checking if groups have children...")
-    narrow_groups = []
-    for _, group in groups.iterrows():
-        if not _has_child(db_con_str, table_name, group['name']):
-            narrow_groups.append(group)
-
-    narrow_groups = DataFrame(narrow_groups)
-    return narrow_groups
-
-
-def _get_narrow_group_items(all_items: DataFrame, narrow_groups: DataFrame) -> DataFrame:
-    # Return noms which "group" in "id" of groups with no child
-    narrow_group_items = all_items[all_items['group'].isin(narrow_groups['name'])]
-
-    return narrow_group_items
-
-
-def _get_training_data(
-    db_con_str: str,
-    table_name: str,
-    use_params: bool,
-) -> DataFrame:
-    print("Fetching all items...")
-    all_items = _fetch_items(db_con_str, table_name)
-    print(f"Count of items: {len(all_items)}")
-    print(all_items)
-
-    # print("Fetching narrow groups...")
-    # narrow_groups = _fetch_narrow_groups(db_con_str, table_name)
-    # print(f"Count of narrow groups: {len(narrow_groups)}")
-    # print(narrow_groups)
-    #
-    # print("Parsing narrow group items...")
-    # narrow_group_items = _get_narrow_group_items(all_items, narrow_groups)
-    # print(f"Count of narrow group items: {len(narrow_group_items)}")
-    # print(narrow_group_items)
-
-    narrow_group_items = all_items
-
-    if use_params:
-        print("Extracting items features...")
-        narrow_group_items = extract_features(narrow_group_items)
-        print("All features extracted.")
-        print(narrow_group_items)
-
-    print("Normalizing narrow group items...")
-    narrow_group_items['normalized'] = narrow_group_items['name'].progress_apply(
-        lambda x: normalize_name(x)
-    )
-    print(f"Count of normalized narrow group items: {len(narrow_group_items['normalized'])}")
-    print(narrow_group_items['normalized'])
-
-    # narrow_group_items.to_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
-    return narrow_group_items
-
-
 def _get_model_accuracy(classifier: Pipeline, x_test: DataFrame, y_test: Series) -> float:
     y_pred = classifier.predict(x_test)
     accuracy = accuracy_score(y_test, y_pred)
     return accuracy
 
 
-def _dump_model(version_id: str, classifier) -> None:
-    classifier_file_name = f"model_{version_id}.pkl"
-    classifier_path = f"{DATA_FOLDER_PATH}/{classifier_file_name}"
+def _dump_model(model_id: str, classifier) -> None:
+    model_path = get_model_path(model_id)
 
-    joblib.dump(classifier, classifier_path)
+    joblib.dump(classifier, model_path)
 
 
 def _save_classifier_version_to_db(classifier_version: ClassifierVersion) -> ClassifierVersionRead:
@@ -179,18 +78,6 @@ def _save_classifier_version_to_db(classifier_version: ClassifierVersion) -> Cla
         created_at=classifier_version_db.created_at,
     )
     return saved_version
-
-
-def _get_model_path(model_id: str) -> Path:
-    model_path = Path(f"{DATA_FOLDER_PATH}/model_{model_id}.pkl")
-    return model_path
-
-
-def _delete_classifier_version_files(model_id: str) -> None:
-    model_path = _get_model_path(model_id)
-    # Remove model file if exists
-    if model_path.exists():
-        os.remove(model_path)
 
 
 def _retrain_classifier(
@@ -205,7 +92,7 @@ def _retrain_classifier(
     job.save_meta()
 
     print("Getting training data...")
-    training_data_df = _get_training_data(db_con_str, table_name, use_params)
+    training_data_df = get_training_data(db_con_str, table_name, use_params)
     # training_data_df = read_csv(_TRAINING_FILE_NAME, sep=_FILE_SEPARATOR)
     print(f"Count of training data: {len(training_data_df)}")
 
@@ -267,20 +154,20 @@ def _retrain_classifier(
     )
     print(f"Model accuracy: {accuracy}")
 
-    version_id = str(uuid4())
+    model_id = str(uuid4())
 
     job.meta['retrain_status'] = "Dumping model locally"
     job.save_meta()
 
     print("Dumping model locally...")
     _dump_model(
-        version_id=version_id,
+        model_id=model_id,
         classifier=classifier,
     )
     print("Model dumped.")
 
     classifier_version = ClassifierVersion(
-        id=version_id,
+        id=model_id,
         description=model_description,
         accuracy=accuracy,
     )
@@ -333,26 +220,3 @@ def get_retraining_job_result(job_id: str) -> ClassifierRetrainingResult:
         retraining_result.result = job_result
 
     return retraining_result
-
-
-def get_classifiers_list() -> list[ClassifierVersionRead]:
-    classifiers_db_list = get_classifier_versions()
-    classifier_versions_list = [ClassifierVersionRead(
-        model_id=classifier.id,
-        description=classifier.description,
-        created_at=classifier.created_at,
-    ) for classifier in classifiers_db_list]
-    return classifier_versions_list
-
-
-def delete_classifier_version(model_id: str):
-    classifier_version = get_classifier_version_by_model_id(model_id)
-
-    if classifier_version:
-        _delete_classifier_version_files(model_id)
-        delete_classifier_version_in_db(classifier_version)
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Classifier version with ID {model_id} not found."
-        )

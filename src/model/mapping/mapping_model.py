@@ -11,9 +11,9 @@ from rq.job import JobStatus
 from tqdm import tqdm
 
 from infra.chroma_store import connect_to_chroma_collection
-from infra.env import DATA_FOLDER_PATH
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName, get_job
-from model.classifier.classifier_model import TRAINING_COLUMNS
+from model.classifier.classifier_retrain_model import TRAINING_COLUMNS
+from model.classifier.classifier_version_model import get_model_path
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
 from scheme.nomenclature.nomenclature_scheme import MappingOneNomenclatureUpload, \
     MappingNomenclaturesResultRead, JobIdRead, MappingOneTargetRead, MappingOneNomenclatureRead
@@ -33,7 +33,7 @@ def get_nomenclatures_groups(
     model_id: str,
     use_params: bool,
 ) -> list[int]:
-    model_path = f"{DATA_FOLDER_PATH}/model_{model_id}.pkl"
+    model_path = get_model_path(model_id)
 
     if not Path(model_path).exists():
         raise Exception(f"Model with ID {model_id} not found locally.")
