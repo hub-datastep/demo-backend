@@ -14,10 +14,11 @@ from controller.auth import auth_controller
 from controller.chat import message_controller, chat_controller
 from controller.chroma_collection import chroma_collection_controller
 from controller.classifier import classifier_config_controller, classifier_controller
+from controller.embedding import embedding_controller
 from controller.file import file_controller
+from controller.mapping import mapping_controller
 from controller.mode import mode_controller
 from controller.ner import brand_model_controller
-from controller.nomenclature import nomenclature_controller
 from controller.prediction import prediction_controller
 from controller.prompt import prompt_controller
 from controller.task import task_controller
@@ -27,6 +28,7 @@ from model.ner.brand_model import load_ner_model
 
 app = FastAPI()
 
+# Main
 app.include_router(auth_controller.router, tags=["auth"], prefix="/auth")
 app.include_router(user_controller.router, tags=["user"], prefix="/user")
 app.include_router(tenant_controller.router, tags=["tenant"], prefix="/tenant")
@@ -36,14 +38,22 @@ app.include_router(chat_controller.router, tags=["chat"], prefix="/chat")
 app.include_router(message_controller.router, tags=["message"], prefix="/message")
 # app.include_router(mark_controller.router, tags=["mark"], prefix="/mark")
 # app.include_router(review_controller.router, tags=["review"], prefix="/review")
+
+# Assistants
 app.include_router(prediction_controller.router, tags=["prediction"])
-app.include_router(classifier_config_controller.router, tags=["classifier_config"], prefix="/classifier_config")
-app.include_router(nomenclature_controller.router, tags=["nomenclature"], prefix="/nomenclature")
-app.include_router(chroma_collection_controller.router, tags=["chroma_collection"], prefix="/collection")
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
+
+# Nomenclature
+app.include_router(classifier_config_controller.router, tags=["classifier_config"], prefix="/classifier_config")
+app.include_router(mapping_controller.router, tags=["mapping"], prefix="/mapping")
+app.include_router(embedding_controller.router, tags=["embedding"], prefix="/embedding")
+# app.include_router(synchronize_controller.router, tags=["synchronize"], prefix="/synchronize")
+app.include_router(chroma_collection_controller.router, tags=["chroma_collection"], prefix="/collection")
 app.include_router(classifier_controller.router, tags=["classifier"], prefix="/classifier")
-app.include_router(task_controller.router, tags=["task"], prefix="/task")
 app.include_router(brand_model_controller.router, tags=["ner_brand"], prefix="/ner_brand")
+
+# Other
+app.include_router(task_controller.router, tags=["task"], prefix="/task")
 
 
 @app.middleware("http")

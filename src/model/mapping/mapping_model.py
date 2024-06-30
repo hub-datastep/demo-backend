@@ -4,7 +4,7 @@ import joblib
 import numpy as np
 from chromadb import QueryResult
 from chromadb.api.models.Collection import Collection
-from fastembed.embedding import FlagEmbedding
+from fastembed import TextEmbedding
 from pandas import DataFrame
 from rq import get_current_job
 from rq.job import JobStatus
@@ -104,11 +104,11 @@ def map_on_nom(
 
 def convert_nomenclatures_to_df(nomenclatures: list[MappingOneNomenclatureUpload]) -> DataFrame:
     nomenclatures_as_json = [nom.dict().values() for nom in nomenclatures]
-    return DataFrame(nomenclatures_as_json, columns=['row_number', 'nomenclature'])
+    return DataFrame(nomenclatures_as_json, columns=['row_number', 'mapping'])
 
 
 def get_nomenclatures_embeddings(strings: list[str]) -> list[np.ndarray]:
-    embedding_model = FlagEmbedding(
+    embedding_model = TextEmbedding(
         model_name="intfloat/multilingual-e5-large"
     )
     strings = [f"query: {s}" for s in strings]
@@ -199,7 +199,7 @@ def _map_nomenclatures_chunk(
     job.save_meta()
 
     # Normalize nomenclatures names
-    noms['normalized'] = noms['nomenclature'].progress_apply(
+    noms['normalized'] = noms['mapping'].progress_apply(
         lambda nom_name: normalize_name(nom_name)
     )
 
@@ -212,15 +212,15 @@ def _map_nomenclatures_chunk(
     else:
         noms['keyword'] = None
 
-    # Create embeddings for every nomenclature
-    noms['embeddings'] = get_nomenclatures_embeddings(noms['nomenclature'].to_list())
+    # Create embeddings for every mapping
+    noms['embeddings'] = get_nomenclatures_embeddings(noms['mapping'].to_list())
 
     # Copy noms to name column for extracting features
-    noms['name'] = noms['nomenclature']
+    noms['name'] = noms['mapping']
     # Извлечение характеристик и добавление их в метаданные
     noms = extract_features(noms)
 
-    # Classification to get nomenclature group
+    # Classification to get mapping group
     noms['group'] = get_nomenclatures_groups(
         noms=noms,
         model_id=model_id,
@@ -236,10 +236,10 @@ def _map_nomenclatures_chunk(
     noms['similar_mappings'] = None
     noms['nomenclature_params'] = None
     for i, nom in noms.iterrows():
-        # Create nomenclature metadatas list for query
+        # Create mapping metadatas list for query
         metadatas_list = []
         for key, val in nom['metadata'].items():
-            # Check if nomenclature param is not empty
+            # Check if mapping param is not empty
             if val != "":
                 metadatas_list.append({str(key): val})
 
@@ -253,7 +253,7 @@ def _map_nomenclatures_chunk(
                 similarity_score=-1,
             )]
         else:
-            # Map nomenclature with equal group and params
+            # Map mapping with equal group and params
             mappings = map_on_nom(
                 collection=collection,
                 nom_embeddings=nom['embeddings'],
