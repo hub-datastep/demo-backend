@@ -34,7 +34,7 @@ class SyncNomenclaturesResultRead(SQLModel):
     total_count: int | None
 
 
-@deprecated
+@deprecated("Old scheme only for MSU")
 class MsuDatabaseOneNomenclatureRead(SQLModel, table=True):
     __tablename__ = "СправочникНоменклатура"
     __table_args__ = {

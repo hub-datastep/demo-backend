@@ -105,7 +105,7 @@ def map_on_nom(
 
 def convert_nomenclatures_to_df(nomenclatures: list[MappingOneNomenclatureUpload]) -> DataFrame:
     nomenclatures_as_json = [nom.dict().values() for nom in nomenclatures]
-    return DataFrame(nomenclatures_as_json, columns=['row_number', 'mapping'])
+    return DataFrame(nomenclatures_as_json, columns=['row_number', 'nomenclature'])
 
 
 def get_nomenclatures_embeddings(strings: list[str]) -> list[np.ndarray]:
@@ -200,7 +200,7 @@ def _map_nomenclatures_chunk(
     job.save_meta()
 
     # Normalize nomenclatures names
-    noms['normalized'] = noms['mapping'].progress_apply(
+    noms['normalized'] = noms['nomenclature'].progress_apply(
         lambda nom_name: normalize_name(nom_name)
     )
 
@@ -214,10 +214,10 @@ def _map_nomenclatures_chunk(
         noms['keyword'] = None
 
     # Create embeddings for every mapping
-    noms['embeddings'] = get_nomenclatures_embeddings(noms['mapping'].to_list())
+    noms['embeddings'] = get_nomenclatures_embeddings(noms['nomenclature'].to_list())
 
     # Copy noms to name column for extracting features
-    noms['name'] = noms['mapping']
+    noms['name'] = noms['nomenclature']
     # Извлечение характеристик и добавление их в метаданные
     noms = extract_features(noms)
 
