@@ -22,12 +22,12 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           script_stop: true
           script: |
-            cd ~/datastep-demo/demo-backend/
+            cd ~/datastep/demo-backend/
             git checkout main
             git pull
 
             echo "Stop containers"
-            docker-compose down backend
+            docker-compose stop
 
             echo "Clear docker caches"
             docker system prune -f
