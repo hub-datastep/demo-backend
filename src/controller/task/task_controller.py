@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 
 from infra.redis_queue import QueuesEnum
-from model import task_model
-from model.auth_model import get_current_user
-from scheme.task_scheme import RQJob
-from scheme.user_scheme import UserRead
+from model.task import task_model
+from model.auth.auth_model import get_current_user
+from scheme.task.task_scheme import RQJob
+from scheme.user.user_scheme import UserRead
 
 router = APIRouter()
 

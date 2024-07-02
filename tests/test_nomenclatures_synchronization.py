@@ -8,8 +8,8 @@ from chromadb import HttpClient
 from sqlmodel import Session, create_engine, select
 
 from infra.chroma_store import connect_to_chroma_collection, drop_collection, create_collection
-from model.synchronize_nomenclatures_model import synchronize_nomenclatures
-from scheme.nomenclature_scheme import MsuDatabaseOneNomenclatureRead
+from model.nomenclature.synchronize_nomenclatures_model import synchronize_nomenclatures
+from scheme.mapping.mapping_scheme import MsuDatabaseOneNomenclatureRead
 
 all_noms_guids = [uuid4() for _ in range(10)]
 

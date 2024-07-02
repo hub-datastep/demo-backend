@@ -3,11 +3,11 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
-from model import chat_model
-from model.auth_model import get_current_user
-from repository import chat_repository
-from scheme.chat_scheme import ChatRead, ChatCreate
-from scheme.user_scheme import UserRead
+from model.chat import chat_model
+from model.auth.auth_model import get_current_user
+from repository.chat import chat_repository
+from scheme.chat.chat_scheme import ChatRead, ChatCreate
+from scheme.user.user_scheme import UserRead
 
 router = APIRouter()
 

@@ -6,8 +6,8 @@ from fastapi.testclient import TestClient
 from sshtunnel import SSHTunnelForwarder
 
 from app import app
-from model import nomenclature_model
-from scheme.nomenclature_scheme import MappingOneNomenclatureUpload
+from model.nomenclature import nomenclature_model
+from scheme.mapping.mapping_scheme import MappingOneNomenclatureUpload
 
 
 def set_vpn_tunnel_and_get_local_port(
@@ -73,7 +73,7 @@ def test_mapping_model(_set_chroma_vpn_port, _test_client):
     result_as_json = nomenclature_model.process(
         nomenclatures=test_nomenclatures,
         most_similar_count=most_similar_count,
-        chroma_collection_name="nomenclature",
+        chroma_collection_name="mapping",
         model_id="141223",
         use_jobs=False
     )

@@ -8,7 +8,7 @@ from rq.job import Job, get_current_job
 from tqdm import tqdm
 
 from infra.env import CHROMA_HOST, CHROMA_PORT
-from scheme.nomenclature_scheme import SyncNomenclaturesChromaPatch
+from scheme.mapping.synchronize_scheme import SyncNomenclaturesChromaPatch
 
 
 class FastembedChromaFunction(EmbeddingFunction):
