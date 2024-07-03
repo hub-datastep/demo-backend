@@ -20,17 +20,20 @@ def get_classifiers_list() -> list[ClassifierVersionRead]:
     return classifier_versions_list
 
 
-def get_model_path(model_id: str) -> str:
+def get_model_path(model_id: str, check_path: bool = True) -> str:
     model_path = f"{DATA_FOLDER_PATH}/model_{model_id}.pkl"
 
-    if not Path(model_path).exists():
+    if check_path and not Path(model_path).exists():
         raise Exception(f"Model with ID {model_id} not found locally.")
-    
+
     return model_path
 
 
 def _delete_classifier_version_files(model_id: str) -> None:
-    model_path = get_model_path(model_id)
+    model_path = get_model_path(
+        model_id=model_id,
+        check_path=False,
+    )
     # Remove model file if exists
     if Path(model_path).exists():
         os.remove(model_path)

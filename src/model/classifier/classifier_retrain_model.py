@@ -66,8 +66,10 @@ def _get_model_accuracy(classifier: Pipeline, x_test: DataFrame, y_test: Series)
 
 
 def _dump_model(model_id: str, classifier) -> None:
-    model_path = get_model_path(model_id)
-
+    model_path = get_model_path(
+        model_id=model_id,
+        check_path=False,
+    )
     joblib.dump(classifier, model_path)
 
 
