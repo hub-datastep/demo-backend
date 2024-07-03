@@ -35,10 +35,6 @@ def get_nomenclatures_groups(
     use_params: bool,
 ) -> list[int]:
     model_path = get_model_path(model_id)
-
-    if not Path(model_path).exists():
-        raise Exception(f"Model with ID {model_id} not found locally.")
-
     model = joblib.load(model_path)
 
     # If without params -> use only "normalized" column
