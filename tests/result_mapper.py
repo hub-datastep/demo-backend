@@ -23,18 +23,20 @@ def process_results(test_cases, api_results):
         # Определение корректности
         correct_group = expected_group == actual_group
         correct_nomenclature = expected_nomenclature == actual_nomenclature
-        is_correct = "Корректно" if correct_group and correct_nomenclature else "Не корректно"
+        is_correct_group = "Корректно" if correct_group else "Не корректно"
+        is_correct_nom = "Корректно" if correct_nomenclature else "Не корректно"
 
         processed_result = {
-            'Тест-Кейс ID': test_case['Тест-Кейс ID'],
-            'Шаг алгоритма': '',
-            'Тип ошибки': '',
-            'Корректно?': is_correct,
-            'Номенклатура': test_case['Номенклатура поставщика'],
-            'Ожидание группа': expected_group,
-            'Реальность группа': actual_group,
-            'Ожидание номенклатура': expected_nomenclature,
-            'Реальность номенклатура': actual_nomenclature
+            "Тест-Кейс ID": test_case['Тест-Кейс ID'],
+            "Шаг алгоритма": test_case['Шаг алгоритма'],
+            "Тип ошибки": test_case['Тип ошибки'],
+            "Корректно группа?": is_correct_group,
+            "Корректно номенклатура?": is_correct_nom,
+            "Номенклатура": test_case['Номенклатура поставщика'],
+            "Ожидание группа": expected_group,
+            "Реальность группа": actual_group,
+            "Ожидание номенклатура": expected_nomenclature,
+            "Реальность номенклатура": actual_nomenclature
         }
 
         processed_results.append(processed_result)

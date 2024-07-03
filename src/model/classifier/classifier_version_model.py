@@ -22,6 +22,10 @@ def get_classifiers_list() -> list[ClassifierVersionRead]:
 
 def get_model_path(model_id: str) -> str:
     model_path = f"{DATA_FOLDER_PATH}/model_{model_id}.pkl"
+
+    if not Path(model_path).exists():
+        raise Exception(f"Model with ID {model_id} not found locally.")
+    
     return model_path
 
 

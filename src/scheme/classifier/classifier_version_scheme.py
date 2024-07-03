@@ -36,7 +36,7 @@ class ClassifierRetrainingResult(SQLModel):
 
 class ClassificationResultItem(SQLModel):
     item: str
-    group_id: str
+    group: str
 
 
 class ClassificationResult(SQLModel):
