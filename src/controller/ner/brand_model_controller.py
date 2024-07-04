@@ -14,8 +14,19 @@ router = APIRouter()
 def get_ner_brand_results(
     text: str,
     current_user: UserRead = Depends(get_current_user),
-) -> list[str]:
+) -> str:
     """
     Получает результат NER. На входе название номенклатуры, на выходе название компании производителя.
     """
     return brand_ner_model.get_ner_brand(text)
+
+@router.get("/all", response_model=list[str])
+@version(1)
+def get_ner_brand_results(
+    text: list[str],
+    current_user: UserRead = Depends(get_current_user),
+) -> list[str]:
+    """
+    Получает результат NER. На входе название номенклатуры, на выходе название компании производителя.
+    """
+    return brand_ner_model.get_all_ner_brands(text)

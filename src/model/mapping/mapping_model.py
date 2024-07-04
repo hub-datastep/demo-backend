@@ -21,6 +21,7 @@ from scheme.task.task_scheme import JobIdRead
 from util.extract_keyword import extract_keyword
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
 from util.normalize_name import normalize_name
+from model.ner.brand_model import brand_ner_model as ner_model
 
 tqdm.pandas()
 # noinspection PyTypeChecker
@@ -121,7 +122,6 @@ def split_nomenclatures_by_chunks(
     nomenclatures: list[MappingOneNomenclatureUpload],
     chunk_size: int = 100,
 ) -> list[list[MappingOneNomenclatureUpload]]:
-    # https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
     for i in range(0, len(nomenclatures), chunk_size):
         yield nomenclatures[i:i + chunk_size]
 
@@ -236,6 +236,7 @@ def _map_nomenclatures_chunk(
     noms['mappings'] = None
     noms['similar_mappings'] = None
     noms['nomenclature_params'] = None
+    noms['brand'] = ner_model(noms['nomenclature'])
     for i, nom in noms.iterrows():
         # Create mapping metadatas list for query
         metadatas_list = []

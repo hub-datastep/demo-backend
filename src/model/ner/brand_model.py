@@ -25,11 +25,20 @@ class NERModel:
         except Exception as e:
             raise RuntimeError(f"Failed to load the NER model: {str(e)}")
 
-    def get_ner_brand(self, text: str) -> list[str]:
+    def get_ner_brand(self, text: str) -> str:
         if self.ner_model is None:
             raise ValueError("Model is not loaded.")
         doc = self.ner_model(text)
-        brands = [ent.text for ent in doc.ents]
+        try:
+            return doc.ents[0].text
+        except:
+            return "ERRORE"
+         
+
+    def get_all_ner_brands(self, items: list[str]) -> list[str]:
+        brands = []
+        for text in items:
+            brands.append(self.get_ner_brand(text))
         return brands
 
 
