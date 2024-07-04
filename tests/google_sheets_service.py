@@ -1,5 +1,6 @@
 import os
 import sys
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 import pandas as pd
@@ -13,8 +14,27 @@ load_dotenv()
 
 CREDENTIALS_PATH = f"{DATA_FOLDER_PATH}/datastep-excel-for-classifier-66a610dc9ff6.json"
 
-TEST_CASES_TABLE_HEADERS = ['Тест-Кейс ID', 'Шаг алгоритма', 'Тип ошибки', 'Номенклатура поставщика',
-                            'Ожидание номенклатура', 'Ожидание группа']
+TEST_CASES_TABLE_HEADERS = [
+    'Тест-Кейс ID',
+    'Шаг алгоритма',
+    'Тип ошибки',
+    'Номенклатура поставщика',
+    'Ожидание номенклатура',
+    'Ожидание группа',
+]
+
+TESTS_RESULT_TABLE_HEADERS = [
+    "Тест-Кейс ID",
+    "Шаг алгоритма",
+    "Тип ошибки",
+    "Корректно группа?",
+    "Корректно номенклатура?",
+    "Номенклатура",
+    "Ожидание группа",
+    "Реальность группа",
+    "Ожидание номенклатура",
+    "Реальность номенклатура"
+]
 
 TEST_MAPPING_SPREADSHEET_NAME = os.getenv('TEST_MAPPING_SPREADSHEET_NAME')
 TEST_MAPPING_TEST_CASES_TABLE_NAME = os.getenv('TEST_MAPPING_TEST_CASES_TABLE_NAME')
@@ -49,17 +69,18 @@ def write_to_sheet(spreadsheet_name, sheet_name, data):
 
 
 def get_test_cases():
-    return read_sheet(TEST_MAPPING_SPREADSHEET_NAME, TEST_MAPPING_TEST_CASES_TABLE_NAME, TEST_CASES_TABLE_HEADERS)
+    return read_sheet(
+        TEST_MAPPING_SPREADSHEET_NAME,
+        TEST_MAPPING_TEST_CASES_TABLE_NAME,
+        TEST_CASES_TABLE_HEADERS,
+    )
 
 
 def create_new_sheet_and_write_results(new_sheet_name, processed_results):
     client = get_google_sheets_client()
     spreadsheet = client.open(TEST_MAPPING_SPREADSHEET_NAME)
     new_sheet = spreadsheet.add_worksheet(title=new_sheet_name, rows=100, cols=20)
-
-    headers = ['Тест-Кейс ID', 'Шаг алгоритма', 'Тип ошибки', 'Корректно?', 'Номенклатура', 'Ожидание группа',
-               'Реальность группа', 'Ожидание номенклатура', 'Реальность номенклатура']
-    new_sheet.insert_row(headers, 1)
+    new_sheet.insert_row(TESTS_RESULT_TABLE_HEADERS, 1)
 
     for i, result in enumerate(processed_results, start=2):
         row = [
@@ -78,11 +99,8 @@ def create_new_sheet_and_write_results(new_sheet_name, processed_results):
 
 
 def create_new_offline_sheet_and_write_results(new_sheet_name, processed_results):
-    headers = ['Тест-Кейс ID', 'Шаг алгоритма', 'Тип ошибки', 'Корректно?', 'Номенклатура', 'Ожидание группа',
-               'Реальность группа', 'Ожидание номенклатура', 'Реальность номенклатура']
-
     # Преобразуем данные в DataFrame
-    df = pd.DataFrame(processed_results, columns=headers)
+    df = pd.DataFrame(processed_results, columns=TESTS_RESULT_TABLE_HEADERS)
 
     # Сохраняем DataFrame в Excel файл
     file_path = f"{new_sheet_name}.xlsx"

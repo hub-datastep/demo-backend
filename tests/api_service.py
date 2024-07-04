@@ -53,7 +53,7 @@ def start_nomenclature_mapping(test_cases, token):
         "nomenclatures": [
             {
                 "row_number": idx,
-                "mapping": case['Номенклатура поставщика']
+                "nomenclature": case['Номенклатура поставщика']
             } for idx, case in enumerate(test_cases)
         ]
     }
