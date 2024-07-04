@@ -23,3 +23,4 @@ data/fastembed/models--qdrant--multilingual-e5-large-onnx
 
 # Tests
 # tests/
+ner_model

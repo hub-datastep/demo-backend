@@ -9,7 +9,7 @@ from scheme.user.user_scheme import UserRead
 router = APIRouter()
 
 
-@router.get("", response_model=list[str])
+@router.get("", response_model=str)
 @version(1)
 def get_ner_brand_results(
     text: str,
@@ -22,7 +22,7 @@ def get_ner_brand_results(
 
 @router.get("/all", response_model=list[str])
 @version(1)
-def get_ner_brand_results(
+def get_all_ner_brand_results(
     text: list[str],
     current_user: UserRead = Depends(get_current_user),
 ) -> list[str]:
