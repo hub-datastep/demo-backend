@@ -25,7 +25,6 @@ def _create_and_save_embeddings(
     chunk_size: int | None,
 ):
     job = get_current_job()
-
     df_noms = _fetch_all_noms(
         db_con_str=db_con_str,
         table_name=table_name,
@@ -52,15 +51,15 @@ def _create_and_save_embeddings(
     ids = df_noms_with_features['id'].to_list()
     documents = df_noms_with_features['name'].to_list()
 
-    collection = connect_to_chroma_collection(collection_name)
-    create_embeddings_by_chunks(
-        collection=collection,
-        ids=ids,
-        documents=documents,
-        metadatas=metadatas,
-        chunk_size=chunk_size,
-        is_in_job=True,
-    )
+    # collection = connect_to_chroma_collection(collection_name)
+    # create_embeddings_by_chunks(
+    #     collection=collection,
+    #     ids=ids,
+    #     documents=documents,
+    #     metadatas=metadatas,
+    #     chunk_size=chunk_size,
+    #     is_in_job=True,
+    # )
 
 
 def start_creating_and_saving_nomenclatures(
@@ -70,6 +69,7 @@ def start_creating_and_saving_nomenclatures(
     chunk_size: int | None,
 ):
     queue = get_redis_queue(name=QueueName.SYNCING)
+    print('CRASH JOB')
     job = queue.enqueue(
         _create_and_save_embeddings,
         db_con_str,
