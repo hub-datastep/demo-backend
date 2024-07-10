@@ -25,7 +25,7 @@ import httpx
 
 
 class HTTP_NER:
-    def __init__(self, link:str, k:int=100, timeout:int=100):
+    def __init__(self, link:str="http://ner:8000/get-brands/", k:int=100, timeout:int=100):
         self.__client = httpx.Client()  # Изменено на синхронный клиент
         self.__k = k
         self.__timeout = timeout
@@ -47,4 +47,4 @@ class HTTP_NER:
     def __exit__(self, exc_type, exc_val, exc_tb):  # Изменено на синхронный метод
         self.__client.close()
 
-ner_model = HTTP_NER("http://ner:8000/get-brands/")
+ner_model = HTTP_NER()

@@ -3,7 +3,7 @@ from fastapi import Depends
 from fastapi_versioning import version
 
 from model.auth.auth_model import get_current_user
-from model.ner.ner import ner_model
+from model.ner.ner import HTTP_NER
 from scheme.user.user_scheme import UserRead
 
 router = APIRouter()
@@ -15,7 +15,7 @@ def get_ner_brand_results(
     text: str,
     current_user: UserRead = Depends(get_current_user),
 ) -> str:
-    response = ner_model.predict([text])
+    response = HTTP_NER().predict([text])
     if response:
         return response[0]
     return ""
@@ -26,5 +26,5 @@ def get_all_ner_brand_results(
     text: list[str],
     current_user: UserRead = Depends(get_current_user),
 ) -> list[str]:
-    response = ner_model.predict(text)
+    response = HTTP_NER().predict(text)
     return response
