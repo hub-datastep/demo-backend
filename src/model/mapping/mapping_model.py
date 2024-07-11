@@ -21,6 +21,7 @@ from scheme.task.task_scheme import JobIdRead
 from util.extract_keyword import extract_keyword
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
 from util.normalize_name import normalize_name
+from model.ner.ner import HTTP_NER
 
 
 tqdm.pandas()
@@ -194,7 +195,7 @@ def _map_nomenclatures_chunk(
 
     # Convert nomenclatures to DataFrame
     noms = convert_nomenclatures_to_df(nomenclatures)
-
+    brands = HTTP_NER().predict(noms['nomenclature'].to_list())
     job.meta['total_count'] = len(noms)
     job.meta['ready_count'] = 0
     job.save_meta()
@@ -218,6 +219,8 @@ def _map_nomenclatures_chunk(
 
     # Copy noms to name column for extracting features
     noms['name'] = noms['nomenclature']
+    noms['brand'] = brands
+
     # Извлечение характеристик и добавление их в метаданные
     noms = extract_features(noms)
 

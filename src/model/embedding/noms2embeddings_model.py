@@ -72,7 +72,6 @@ def start_creating_and_saving_nomenclatures(
     chunk_size: int | None,
 ):
     queue = get_redis_queue(name=QueueName.SYNCING)
-    print('CRASH JOB')
     job = queue.enqueue(
         _create_and_save_embeddings,
         db_con_str,
