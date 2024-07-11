@@ -202,6 +202,9 @@ def _map_nomenclatures_chunk(
 
     is_use_keywords = classifier_config is None or classifier_config.is_use_keywords_detection
 
+    #TODO: сделать проверку на пустоту в названии хрома коллекции в контроллере и еще проверку на существование такой коллекции
+    classifier_config_chroma_collection = "" if classifier_config is None else classifier_config.chroma_collection_name
+
     if is_use_keywords:
         noms['keyword'] = noms['normalized'].progress_apply(
             lambda nom_name: extract_keyword(nom_name)
@@ -227,7 +230,7 @@ def _map_nomenclatures_chunk(
     # Получаем метаданные всех номенклатур с характеристиками
     noms['metadata'] = get_noms_metadatas_with_features(noms)
 
-    collection = connect_to_chroma_collection(collection_name=chroma_collection_name)
+    collection = connect_to_chroma_collection(collection_name=classifier_config_chroma_collection)
 
     noms['mappings'] = None
     noms['similar_mappings'] = None
