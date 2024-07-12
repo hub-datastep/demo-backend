@@ -22,12 +22,9 @@ class MappingOneNomenclatureRead(SQLModel):
 
 
 class MappingNomenclaturesUpload(SQLModel):
-    chroma_collection_name: str
-    model_id: str
-    most_similar_count: int = 1
-    chunk_size: int
     nomenclatures: list[MappingOneNomenclatureUpload]
-    use_params: bool = True
+    most_similar_count: int = 3
+    chunk_size: int
 
 
 class MappingNomenclaturesResultRead(SQLModel):
