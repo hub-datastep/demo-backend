@@ -1,19 +1,22 @@
+from typing import List
+
+import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List
-from model import brand_ner_model, load_ner_model
-import os
 
-HOST_NER = os.getenv('HOST_NER')
+from model import brand_ner_model, load_ner_model
 
 app = FastAPI(swagger_ui_parameters={"syntaxHighlight": False})
+
 
 class TextItems(BaseModel):
     items: List[str]
 
+
 @app.on_event("startup")
 async def startup_event():
     await load_ner_model()
+
 
 @app.post("/get_brands/")
 async def get_brands(text_items: TextItems):
@@ -23,7 +26,7 @@ async def get_brands(text_items: TextItems):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # Запуск приложения
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app:app", host=HOST_NER, port=8000, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
