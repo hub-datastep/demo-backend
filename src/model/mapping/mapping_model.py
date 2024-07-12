@@ -113,7 +113,7 @@ def get_nomenclatures_embeddings(strings: list[str]) -> list[np.ndarray]:
 
 def split_nomenclatures_by_chunks(
     nomenclatures: list[MappingOneNomenclatureUpload],
-    chunk_size: int = 100,
+    chunk_size: int,
 ) -> list[list[MappingOneNomenclatureUpload]]:
     for i in range(0, len(nomenclatures), chunk_size):
         yield nomenclatures[i:i + chunk_size]
