@@ -36,9 +36,29 @@ services:
       - DATA_FOLDER_PATH=${DATA_FOLDER_PATH}
       - FASTEMBED_CACHE_PATH=${FASTEMBED_CACHE_PATH}
     volumes:
-      - $PWD/src:/app/src
-      - $PWD/.env:/app/.env
+      - ./src:/app/src
+      - ./.env:/app/.env
+      - ./ner_model:${DATA_FOLDER_PATH}/ner_model
       - server:${DATA_FOLDER_PATH}
+    
+  ner:
+    build:
+      context: ./ner
+      dockerfile: ./Dockerfile
+    restart: always
+    command: >
+      bash -c "
+      python3 app.py
+      "
+    ports:
+      - "8091:8000"
+    environment:
+      - DATA_FOLDER_PATH=${DATA_FOLDER_PATH}
+      - HOST_NER=${HOST_NER}
+    volumes:
+      - ./ner:/app/
+      - ./.env:/app/.env
+      - ./data/ner_model:${DATA_FOLDER_PATH}/ner_model
 
   redis-server:
     image: redis/redis-stack-server
@@ -77,8 +97,8 @@ services:
       - DATA_FOLDER_PATH=${DATA_FOLDER_PATH}
       - FASTEMBED_CACHE_PATH=${FASTEMBED_CACHE_PATH}
     volumes:
-      - $PWD/src:/app/src
-      - $PWD/.env:/app/.env
+      - ./src:/app/src
+      - ./.env:/app/.env
       - server:${DATA_FOLDER_PATH}
 
   db:

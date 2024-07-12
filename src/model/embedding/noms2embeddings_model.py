@@ -6,6 +6,7 @@ from infra.redis_queue import get_redis_queue, QueueName, MAX_JOB_TIMEOUT, get_j
 from scheme.embedding.embedding_scheme import CreateAndSaveEmbeddingsResult
 from scheme.task.task_scheme import JobIdRead
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
+from model.ner.ner import HTTP_NER
 
 
 def _fetch_all_noms(db_con_str: str, table_name: str) -> DataFrame:
@@ -25,11 +26,11 @@ def _create_and_save_embeddings(
     chunk_size: int | None,
 ):
     job = get_current_job()
-
     df_noms = _fetch_all_noms(
         db_con_str=db_con_str,
         table_name=table_name,
     )
+
     print(f"Number of nomenclatures: {len(df_noms)}")
 
     job.meta['total_count'] = len(df_noms)
@@ -41,12 +42,14 @@ def _create_and_save_embeddings(
     print(f"Nomenclatures with features:")
     print(df_noms_with_features)
 
+    nomenclatures_brands = HTTP_NER().predict(df_noms.loc[:, 'name'].to_list())
+
     # Получаем метаданные всех номенклатур с характеристиками
     metadatas = get_noms_metadatas_with_features(df_noms_with_features)
-
     for i, metadata in enumerate(metadatas):
         metadatas[i].update({
-            "group": str(df_noms.loc[i]['group'])
+            "group": str(df_noms.loc[i]['group']),
+            "brand": nomenclatures_brands[i]
         })
 
     ids = df_noms_with_features['id'].to_list()

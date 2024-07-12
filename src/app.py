@@ -24,7 +24,6 @@ from controller.prompt import prompt_controller
 from controller.task import task_controller
 from controller.tenant import tenant_controller
 from controller.user import user_controller
-from model.ner.brand_model import load_ner_model
 
 app = FastAPI()
 
@@ -84,12 +83,6 @@ app = VersionedFastAPI(
 # Built docs dir
 app.mount("/mkdocs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True), name="mkdocs")
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"), name="static")
-
-
-@app.on_event("startup")
-async def on_startup():
-    # Асинхронно загружаем модель при старте приложения
-    await load_ner_model()
 
 
 if __name__ == "__main__":
