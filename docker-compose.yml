@@ -6,13 +6,10 @@ services:
       context: .
       dockerfile: ./Dockerfile
     restart: always
-    command: >
-      bash -c "
-      pip install httpx &&
-      cd /app/src &&
-      alembic upgrade head &&
-      python3 /app/src/app.py
-      "
+    command: bash -c "
+      cd /app/src
+      && python -m alembic upgrade head
+      && python3 /app/src/app.py"
     ports:
       - "8090:8080"
     environment:
@@ -61,7 +58,7 @@ services:
     volumes:
       - ./ner:/app/
       - ./.env:/app/.env
-      - ./ner_model:/app/ner_model
+      - ./data/ner_model:${DATA_FOLDER_PATH}/ner_model
 
   redis-server:
     image: redis/redis-stack-server
@@ -73,7 +70,7 @@ services:
       - redis-server:${DATA_FOLDER_PATH}
 
   rq-worker:
-    image: datastep-backend
+    image: datastep_backend
     restart: always
     command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT} mapping_nomenclatures sync_nomenclatures retrain_classifier classification documents
     environment:
@@ -104,39 +101,39 @@ services:
       - ./.env:/app/.env
       - server:${DATA_FOLDER_PATH}
 
-#   db:
-#     image: postgres
-#     restart: always
-#     ports:
-#       - "5442:5432"
-#     volumes:
-#       - datastep-db:/var/lib/postgresql/data
-#     environment:
-#       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  db:
+    image: postgres
+    restart: always
+    ports:
+      - "5442:5432"
+    volumes:
+      - datastep-db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
-#   dbeaver:
-#     image: dbeaver/cloudbeaver
-#     restart: always
-#     volumes:
-#       - datastep-dbeaver:/opt/cloudbeaver/workspace
-#     ports:
-#       - "8988:8978"
+  dbeaver:
+    image: dbeaver/cloudbeaver
+    restart: always
+    volumes:
+      - datastep-dbeaver:/opt/cloudbeaver/workspace
+    ports:
+      - "8988:8978"
 
-#   chroma-db:
-#     image: chromadb/chroma
-#     restart: always
-#     environment:
-#       - IS_PERSISTENT=TRUE
-#     volumes:
-#       - chroma-data:/chroma/chroma/
-#     ports:
-#       - "8011:8000"
+  chroma-db:
+    image: chromadb/chroma
+    restart: always
+    environment:
+      - IS_PERSISTENT=TRUE
+    volumes:
+      - chroma-data:/chroma/chroma/
+    ports:
+      - "8011:8000"
 
 volumes:
   server:
   redis-server:
-  # datastep-db:
-  # datastep-dbeaver:
-  # chroma-data:
-  #   driver: local
+  datastep-db:
+  datastep-dbeaver:
+  chroma-data:
+    driver: local
 

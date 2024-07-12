@@ -30,8 +30,7 @@ def _create_and_save_embeddings(
         db_con_str=db_con_str,
         table_name=table_name,
     )
-    # df_noms = df_noms[:20]
-    output = HTTP_NER().predict(df_noms.loc[:, 'name'].to_list())
+
     print(f"Number of nomenclatures: {len(df_noms)}")
 
     job.meta['total_count'] = len(df_noms)
@@ -43,12 +42,14 @@ def _create_and_save_embeddings(
     print(f"Nomenclatures with features:")
     print(df_noms_with_features)
 
+    nomenclatures_brands = HTTP_NER().predict(df_noms.loc[:, 'name'].to_list())
+
     # Получаем метаданные всех номенклатур с характеристиками
     metadatas = get_noms_metadatas_with_features(df_noms_with_features)
     for i, metadata in enumerate(metadatas):
         metadatas[i].update({
             "group": str(df_noms.loc[i]['group']),
-            "brand": output[i]
+            "brand": nomenclatures_brands[i]
         })
 
     ids = df_noms_with_features['id'].to_list()

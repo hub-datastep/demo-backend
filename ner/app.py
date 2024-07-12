@@ -1,18 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
-import asyncio
 from model import brand_ner_model, load_ner_model
 import os
 
 HOST_NER = os.getenv('HOST_NER')
 
 app = FastAPI(swagger_ui_parameters={"syntaxHighlight": False})
-
-
-@app.get("/users/{username}")
-async def read_user(username: str):
-    return {"message": f"Hello {username}"}
 
 class TextItems(BaseModel):
     items: List[str]
@@ -21,7 +15,7 @@ class TextItems(BaseModel):
 async def startup_event():
     await load_ner_model()
 
-@app.post("/get-brands/")
+@app.post("/get_brands/")
 async def get_brands(text_items: TextItems):
     try:
         brands = brand_ner_model.get_all_ner_brands(text_items.items)

@@ -30,10 +30,6 @@ class NERModel:
         else:
             return ""
         
-    def print_l(self):
-        print('NER instance')
-        print(self)
-
     def get_all_ner_brands(self, items: list[str]) -> list[str]:
         if self.ner_model is None:
             raise ValueError("Model is not loaded.")
@@ -44,7 +40,7 @@ class NERModel:
     
 
 # Путь к модели spaCy
-brand_model_path = "/app/ner_model"
+brand_model_path = f"{DATA_FOLDER_PATH}/ner_model"
 # Создание экземпляра модели
 brand_ner_model = NERModel(brand_model_path)
 

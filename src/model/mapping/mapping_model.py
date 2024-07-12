@@ -195,7 +195,7 @@ def _map_nomenclatures_chunk(
 
     # Convert nomenclatures to DataFrame
     noms = convert_nomenclatures_to_df(nomenclatures)
-    brands = HTTP_NER().predict(noms['nomenclature'].to_list())
+
     job.meta['total_count'] = len(noms)
     job.meta['ready_count'] = 0
     job.save_meta()
@@ -219,7 +219,7 @@ def _map_nomenclatures_chunk(
 
     # Copy noms to name column for extracting features
     noms['name'] = noms['nomenclature']
-    noms['brand'] = brands
+    noms['brand'] = HTTP_NER().predict(noms['nomenclature'].to_list())
 
     # Извлечение характеристик и добавление их в метаданные
     noms = extract_features(noms)
