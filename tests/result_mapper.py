@@ -10,7 +10,7 @@ def process_results(test_cases, api_results):
         actual_group = api_result['group']
 
         if api_result['mappings']:
-            actual_nomenclature = api_result['mappings'][0]['mapping']
+            actual_nomenclature = api_result['mappings'][0]['nomenclature']
         else:
             actual_nomenclature = ""
 

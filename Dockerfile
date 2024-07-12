@@ -8,7 +8,7 @@ RUN apt-get install -y redis
 
 WORKDIR /app
 
-COPY . /app
+COPY . /app/
 
 RUN poetry config virtualenvs.create false
 RUN poetry install --no-root

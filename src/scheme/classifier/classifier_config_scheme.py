@@ -1,8 +1,10 @@
 from sqlmodel import SQLModel, Field, Relationship
+from typing import Optional
 
 
 class ClassifierConfigBase(SQLModel):
     is_use_keywords_detection: bool
+    chroma_collection_name: Optional[str] = None
 
 
 class ClassifierConfig(ClassifierConfigBase, table=True):

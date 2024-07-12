@@ -13,6 +13,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def run_tests():
     try:
         logging.info("Получение тест кейсов.")
+        # TODO: return all tests results, not only first 100
         test_cases = get_test_cases()
 
         logging.info("Авторизация в API.")
