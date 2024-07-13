@@ -50,16 +50,17 @@ def map_on_nom(
     collection: Collection,
     nom_embeddings: np.ndarray,
     group: str,
+    brand: str,
     metadatas_list: list[dict],
     is_hard_params: bool,
     use_params: bool,
     most_similar_count: int = 1,
 ) -> list[MappingOneTargetRead] | None:
-    # Just sure that group is str
-    group = str(group)
-
     if len(metadatas_list) == 0 or not use_params:
-        where_metadatas = {"group": group}
+        where_metadatas = {"$and": [
+            {"group": group},
+            {"brand": brand},
+        ]}
     else:
         metadatas_list_with_group = [{"group": group}]
         for metadata in metadatas_list:
@@ -222,8 +223,10 @@ def _map_nomenclatures_chunk(
     # Create embeddings for every mapping
     noms['embeddings'] = get_nomenclatures_embeddings(noms['nomenclature'].to_list())
 
-    # Copy noms to name column for extracting features
+    # Copy noms to "name" column for extracting params
     noms['name'] = noms['nomenclature']
+
+    # Get noms brand params
     noms['brand'] = HTTP_NER().predict(noms['nomenclature'].to_list())
 
     # Extract all noms params
@@ -272,6 +275,7 @@ def _map_nomenclatures_chunk(
                 collection=collection,
                 nom_embeddings=nom['embeddings'],
                 group=nom['group'],
+                brand=nom['brand'],
                 metadatas_list=metadatas_list,
                 is_hard_params=True,
                 use_params=use_params,
@@ -284,6 +288,7 @@ def _map_nomenclatures_chunk(
                     collection=collection,
                     nom_embeddings=nom['embeddings'],
                     group=nom['group'],
+                    brand=nom['brand'],
                     most_similar_count=most_similar_count,
                     metadatas_list=metadatas_list,
                     is_hard_params=False,
