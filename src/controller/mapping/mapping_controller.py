@@ -22,10 +22,7 @@ def start_nomenclature_mapping(
     return mapping_model.start_mapping(
         nomenclatures=body.nomenclatures,
         most_similar_count=body.most_similar_count,
-        chroma_collection_name=body.chroma_collection_name,
         chunk_size=body.chunk_size,
-        model_id=body.model_id,
-        use_params=body.use_params,
         classifier_config=current_user.classifier_config,
     )
 

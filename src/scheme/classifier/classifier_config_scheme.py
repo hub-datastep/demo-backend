@@ -1,10 +1,11 @@
 from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional
 
 
 class ClassifierConfigBase(SQLModel):
     is_use_keywords_detection: bool
-    chroma_collection_name: Optional[str] = None
+    chroma_collection_name: str | None
+    model_id: str | None = Field(foreign_key="classifier_version.id")
+    use_params: bool | None = Field(default=False)
 
 
 class ClassifierConfig(ClassifierConfigBase, table=True):
@@ -12,6 +13,7 @@ class ClassifierConfig(ClassifierConfigBase, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
+
     user: "User" = Relationship(back_populates="classifier_config")
 
 
