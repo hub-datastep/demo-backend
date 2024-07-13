@@ -61,17 +61,24 @@ def doc_query(storage_filename: str, query: str) -> tuple[str, int]:
     return response, page
 
 
-def search_relevant_description(descriptions: list[dict], query: str, ) -> str:
+def search_relevant_description(document_descriptions: list[dict[str, str]], query: str, ) -> dict[str, str] | None:
     chain = get_chain_for_relevant_description()
     descriptions_str = "\n".join(
-        [f"Filename: {file['filename']}, Description: {file['description']}" for file in descriptions]
-    )
+        [f"{desc['description']} (Файл: {desc['original_filename']})" for desc in document_descriptions])
 
     relevant_filename = chain.run(
         document_descriptions=descriptions_str,
         query=query
     )
-    return relevant_filename
+    if relevant_filename.lower() == "none":
+        return None
+
+        # Поиск документа с именем, совпадающим с релевантным именем файла
+    for desc in document_descriptions:
+        if desc["original_filename"] == relevant_filename:
+            return desc
+
+    return None
 
 
 def knowledge_base_query(storage_filename: str, query: str) -> tuple[str, int]:
