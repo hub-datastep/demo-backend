@@ -1,4 +1,4 @@
-from pandas import DataFrame, read_sql, notna
+from pandas import read_sql, notna
 from sqlalchemy import text
 from infra.env import DB_CONNECTION_STRING
 

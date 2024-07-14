@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-from fastapi import Depends
 from fastapi_versioning import version
 
 from model.ksr.ksr_api_model import get_ksr
