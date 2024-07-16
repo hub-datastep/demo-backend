@@ -3,10 +3,10 @@ from rq import get_current_job
 
 from infra.chroma_store import connect_to_chroma_collection, create_embeddings_by_chunks
 from infra.redis_queue import get_redis_queue, QueueName, MAX_JOB_TIMEOUT, get_job
+from model.ner.ner import HTTP_NER
 from scheme.embedding.embedding_scheme import CreateAndSaveEmbeddingsResult
 from scheme.task.task_scheme import JobIdRead
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
-from model.ner.ner import HTTP_NER
 
 
 def _fetch_all_noms(db_con_str: str, table_name: str) -> DataFrame:
@@ -42,14 +42,15 @@ def _create_and_save_embeddings(
     print(f"Nomenclatures with features:")
     print(df_noms_with_features)
 
-    nomenclatures_brands = HTTP_NER().predict(df_noms.loc[:, 'name'].to_list())
+    df_noms_with_features['brand'] = HTTP_NER().predict(df_noms_with_features['name'].to_list())
 
     # Получаем метаданные всех номенклатур с характеристиками
     metadatas = get_noms_metadatas_with_features(df_noms_with_features)
     for i, metadata in enumerate(metadatas):
+        nom = df_noms_with_features.loc[i]
         metadatas[i].update({
-            "group": str(df_noms.loc[i]['group']),
-            "brand": nomenclatures_brands[i]
+            "group": str(nom['group']),
+            "brand": str(nom['brand']),
         })
 
     ids = df_noms_with_features['id'].to_list()

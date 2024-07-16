@@ -111,7 +111,6 @@ def get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[d
         # Извлечение значений регулярных выражений
         # Возвращает объект вида {regex_name: nomenclature_param}
         regex_values = row[FEATURES_REGEX_PATTERNS.keys()].to_dict()
-        regex_values.update({'brand': row['brand']})
 
         metadatas.append(regex_values)
 
