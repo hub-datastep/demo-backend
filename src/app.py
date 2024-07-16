@@ -24,6 +24,7 @@ from controller.prompt import prompt_controller
 from controller.task import task_controller
 from controller.tenant import tenant_controller
 from controller.user import user_controller
+from controller.ksr import ksr_controller
 
 app = FastAPI()
 
@@ -53,6 +54,9 @@ app.include_router(brand_model_controller.router, tags=["ner_brand"], prefix="/n
 
 # Other
 app.include_router(task_controller.router, tags=["task"], prefix="/task")
+
+# Ksr Nomenclature
+app.include_router(ksr_controller.router, tags=["ksr"], prefix="/ksr")
 
 
 @app.middleware("http")
