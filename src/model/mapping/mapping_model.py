@@ -125,6 +125,7 @@ def create_mapping_job(
     previous_job_id: str | None,
     most_similar_count: int,
     classifier_config: ClassifierConfig | None,
+    ner: bool,
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.MAPPING)
     job = queue.enqueue(
@@ -132,6 +133,7 @@ def create_mapping_job(
         nomenclatures,
         most_similar_count,
         classifier_config,
+        ner,
         meta={
             "previous_nomenclature_id": previous_job_id
         },
@@ -146,6 +148,7 @@ def start_mapping(
     most_similar_count: int,
     chunk_size: int,
     classifier_config: ClassifierConfig | None,
+    ner: bool,
 ) -> JobIdRead:
     # Check if collection name exists in user's classifier config
     collection_name = classifier_config.chroma_collection_name
@@ -186,6 +189,7 @@ def start_mapping(
             previous_job_id=last_job_id,
             most_similar_count=most_similar_count,
             classifier_config=classifier_config,
+            ner=ner,
         )
         last_job_id = job.job_id
 
@@ -196,6 +200,7 @@ def _map_nomenclatures_chunk(
     nomenclatures: list[MappingOneNomenclatureUpload],
     most_similar_count: int,
     classifier_config: ClassifierConfig | None,
+    ner: bool,
 ) -> list[MappingOneNomenclatureRead]:
     job = get_current_job()
 
@@ -227,7 +232,10 @@ def _map_nomenclatures_chunk(
     noms['name'] = noms['nomenclature']
 
     # Get noms brand params
-    noms['brand'] = HTTP_NER().predict(noms['nomenclature'].to_list())
+    if ner:
+        noms['brand'] = HTTP_NER().predict(noms['nomenclature'].to_list())
+    else:
+        noms['brand'] = [""] * len(noms['nomenclature'])
 
     # Extract all noms params
     noms = extract_features(noms)
@@ -235,11 +243,12 @@ def _map_nomenclatures_chunk(
     # Run classification to get mapping group
     model_id = classifier_config.model_id
     use_params = classifier_config is None or classifier_config.use_params
-    noms['group'] = get_nomenclatures_groups(
-        noms=noms,
-        model_id=model_id,
-        use_params=use_params,
-    )
+    noms['group'] = "13.02. Канцелярские товары"
+    # get_nomenclatures_groups(
+    #     noms=noms,
+    #     model_id=model_id,
+    #     use_params=use_params,
+    # )
 
     # Get all noms params with group as metadatas list
     noms['metadata'] = get_noms_metadatas_with_features(noms)
