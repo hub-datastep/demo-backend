@@ -36,7 +36,7 @@ def run_tests():
                 processed_results = process_results(test_cases, result)
 
                 # Создание уникального имени для нового листа без двоеточий
-                new_sheet_name = 'Mapping Results ' + datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+                new_sheet_name = f"Mapping Results {datetime.now().strftime('%Y-%m-%d %H-%M-%S')}"
 
                 logging.info(f"Сохранение результатов в новый лист: {new_sheet_name}.")
                 create_new_offline_sheet_and_write_results(new_sheet_name, processed_results)

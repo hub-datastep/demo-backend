@@ -9,6 +9,15 @@ def process_results(test_cases, api_results):
         expected_group = test_case['Ожидание группа']
         actual_group = api_result['group']
 
+        nomenclature_params_results: list[dict] = api_result['nomenclature_params']
+        nomenclature_params_list = []
+        for param in nomenclature_params_results:
+            param_name, param_value = list(param.items())[0]
+            nomenclature_params_list.append(
+                f"{param_name}: {param_value}"
+            )
+        nomenclature_params = "\n".join(nomenclature_params_list)
+
         if api_result['mappings']:
             actual_nomenclature = api_result['mappings'][0]['nomenclature']
         else:
@@ -36,7 +45,8 @@ def process_results(test_cases, api_results):
             "Ожидание группа": expected_group,
             "Реальность группа": actual_group,
             "Ожидание номенклатура": expected_nomenclature,
-            "Реальность номенклатура": actual_nomenclature
+            "Реальность номенклатура": actual_nomenclature,
+            "Параметры": nomenclature_params,
         }
 
         processed_results.append(processed_result)

@@ -33,7 +33,8 @@ TESTS_RESULT_TABLE_HEADERS = [
     "Ожидание группа",
     "Реальность группа",
     "Ожидание номенклатура",
-    "Реальность номенклатура"
+    "Реальность номенклатура",
+    "Параметры",
 ]
 
 TEST_MAPPING_SPREADSHEET_NAME = os.getenv('TEST_MAPPING_SPREADSHEET_NAME')
@@ -92,7 +93,8 @@ def create_new_sheet_and_write_results(new_sheet_name, processed_results):
             result['Ожидание группа'],
             result['Реальность группа'],
             result['Ожидание номенклатура'],
-            result['Реальность номенклатура']
+            result['Реальность номенклатура'],
+            result['Параметры'],
         ]
         new_sheet.insert_row(row, i)
     print(f"Результаты тестов успешно сохранены: {new_sheet.url}")
