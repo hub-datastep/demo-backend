@@ -40,6 +40,7 @@ from scheme.user.user_tenant_scheme import UserTenantLink
 from scheme.classifier.classifier_version_scheme import ClassifierVersion
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
 from scheme.mapping.mapping_results_scheme import MappingResult
+from scheme.used_token.used_token_scheme import UsedToken
 
 # target_metadata = mymodel.Base.metadata
 target_metadata = SQLModel.metadata

@@ -14,6 +14,7 @@ from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName, get_j
 from model.classifier.classifier_retrain_model import TRAINING_COLUMNS
 from model.classifier.classifier_version_model import get_model_path
 from model.ner.ner import HTTP_NER
+from model.used_token.used_token_model import charge_used_tokens, count_used_tokens
 from repository.mapping.mapping_result_repository import save_mapping_nomenclature_result
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
 from scheme.mapping.mapping_scheme import MappingOneNomenclatureUpload, \
@@ -126,6 +127,7 @@ def create_mapping_job(
     previous_job_id: str | None,
     most_similar_count: int,
     classifier_config: ClassifierConfig | None,
+    tenant_id: int,
     is_use_brand_recognition: bool,
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.MAPPING)
@@ -134,6 +136,7 @@ def create_mapping_job(
         nomenclatures,
         most_similar_count,
         classifier_config,
+        tenant_id,
         is_use_brand_recognition,
         meta={
             "previous_nomenclature_id": previous_job_id
@@ -149,6 +152,7 @@ def start_mapping(
     most_similar_count: int,
     chunk_size: int,
     classifier_config: ClassifierConfig | None,
+    tenant_id: int,
     is_use_brand_recognition: bool,
 ) -> JobIdRead:
     # Check if collection name exists in user's classifier config
@@ -190,6 +194,7 @@ def start_mapping(
             previous_job_id=last_job_id,
             most_similar_count=most_similar_count,
             classifier_config=classifier_config,
+            tenant_id=tenant_id,
             is_use_brand_recognition=is_use_brand_recognition,
         )
         last_job_id = job.job_id
@@ -201,13 +206,16 @@ def _map_nomenclatures_chunk(
     nomenclatures: list[MappingOneNomenclatureUpload],
     most_similar_count: int,
     classifier_config: ClassifierConfig | None,
+    tenant_id: int,
     is_use_brand_recognition: bool,
 ) -> list[MappingOneNomenclatureRead]:
     job = get_current_job()
 
+    # Init job data
     job.meta['total_count'] = len(nomenclatures)
     job.meta['ready_count'] = 0
     job.save_meta()
+
     # Convert nomenclatures to DataFrame
     noms = convert_nomenclatures_to_df(nomenclatures)
     # Normalize nomenclatures names
@@ -234,7 +242,7 @@ def _map_nomenclatures_chunk(
     if is_use_brand_recognition:
         noms['brand'] = HTTP_NER().predict(noms['nomenclature'].to_list())
     else:
-        noms['brand'] = [""] * len(noms['nomenclature'])
+        noms['brand'] = None
 
     # Extract all noms params
     noms = extract_features(noms)
@@ -314,7 +322,21 @@ def _map_nomenclatures_chunk(
 
     noms_dict = noms.to_dict(orient="records")
     result_nomenclatures = [MappingOneNomenclatureRead(**nom) for nom in noms_dict]
-    save_mapping_nomenclature_result(result_nomenclatures, classifier_config.user_id)
+
+    # Save mapping results for feedback
+    user_id = classifier_config.user_id
+    save_mapping_nomenclature_result(
+        nomenclatures=result_nomenclatures,
+        user_id=user_id,
+    )
+
+    # Charge tenant used tokens for nomenclatures mapping
+    tokens_count = count_used_tokens(result_nomenclatures)
+    charge_used_tokens(
+        tokens_count=tokens_count,
+        tenant_id=tenant_id,
+        user_id=user_id,
+    )
 
     return result_nomenclatures
 

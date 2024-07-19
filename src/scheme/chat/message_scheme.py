@@ -20,7 +20,7 @@ class Message(MessageBase, table=True):
     chat: "Chat" = Relationship(back_populates="messages")
     reviews: list["Review"] = Relationship(back_populates="message")
     mark: "Mark" = Relationship(back_populates="message")
-    created_at: datetime | None = Field(default=datetime.utcnow())
+    created_at: datetime | None = Field(default_factory=datetime.utcnow)
 
 
 class MessageCreate(MessageBase):

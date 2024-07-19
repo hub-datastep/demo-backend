@@ -11,7 +11,7 @@ class ClassifierVersion(SQLModel, table=True):
     description: str | None = Field()
     accuracy: float | None = Field(default=None)
     is_deleted: bool | None = Field(default=False)
-    created_at: datetime | None = Field(default=datetime.utcnow())
+    created_at: datetime | None = Field(default_factory=datetime.utcnow)
 
 
 class RetrainClassifierUpload(SQLModel):

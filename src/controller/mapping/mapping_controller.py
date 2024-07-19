@@ -35,11 +35,13 @@ def start_nomenclature_mapping(
     """
     Запускает процесс сопоставления номенклатур.
     """
+    tenant_id = current_user.tenants[0].id
     return mapping_model.start_mapping(
         nomenclatures=body.nomenclatures,
         most_similar_count=body.most_similar_count,
         chunk_size=body.chunk_size,
         classifier_config=current_user.classifier_config,
+        tenant_id=tenant_id,
         is_use_brand_recognition=body.is_use_brand_recognition,
     )
 
