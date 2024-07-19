@@ -23,6 +23,10 @@ class UserCreate(UserBase):
     tenant_id: int
 
 
+class UserUpdate(UserCreate):
+    id: int
+
+
 class UserRead(UserBase):
     id: int
     tenants: list["TenantRead"]
