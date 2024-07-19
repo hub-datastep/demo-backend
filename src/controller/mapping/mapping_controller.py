@@ -24,6 +24,7 @@ def start_nomenclature_mapping(
         most_similar_count=body.most_similar_count,
         chunk_size=body.chunk_size,
         classifier_config=current_user.classifier_config,
+        is_use_brand_recognition=body.is_use_brand_recognition,
     )
 
 
