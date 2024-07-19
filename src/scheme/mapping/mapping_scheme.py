@@ -25,7 +25,7 @@ class MappingNomenclaturesUpload(SQLModel):
     nomenclatures: list[MappingOneNomenclatureUpload]
     most_similar_count: int = 3
     chunk_size: int = 100
-    ner: bool = True
+    is_use_brand_recognition: bool = True
 
 
 class MappingNomenclaturesResultRead(SQLModel):
