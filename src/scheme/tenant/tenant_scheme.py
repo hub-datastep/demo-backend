@@ -6,8 +6,6 @@ from scheme.user.user_tenant_scheme import UserTenantLink
 
 class TenantBase(SQLModel):
     name: str
-    logo: str
-    is_last: bool = False
 
 
 class Tenant(TenantBase, table=True):
