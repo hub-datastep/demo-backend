@@ -13,7 +13,7 @@ class Mark(MarkBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     message_id: int = Field(foreign_key="message.id")
     message: Message = Relationship(back_populates="mark")
-    created_at: datetime | None = Field(default=datetime.utcnow())
+    created_at: datetime | None = Field(default_factory=datetime.utcnow)
 
 
 class MarkCreate(MarkBase):

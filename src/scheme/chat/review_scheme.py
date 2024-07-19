@@ -13,7 +13,7 @@ class Review(ReviewBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     message_id: int = Field(foreign_key="message.id")
     message: Message = Relationship(back_populates="reviews")
-    created_at: datetime | None = Field(default=datetime.utcnow())
+    created_at: datetime | None = Field(default_factory=datetime.utcnow)
 
 
 class ReviewCreate(ReviewBase):
