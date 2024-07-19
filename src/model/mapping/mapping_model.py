@@ -14,6 +14,7 @@ from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName, get_j
 from model.classifier.classifier_retrain_model import TRAINING_COLUMNS
 from model.classifier.classifier_version_model import get_model_path
 from model.ner.ner import HTTP_NER
+from repository.mapping.mapping_result_repository import save_mapping_nomenclature_result_to_db
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
 from scheme.mapping.mapping_scheme import MappingOneNomenclatureUpload, \
     MappingNomenclaturesResultRead, MappingOneTargetRead, MappingOneNomenclatureRead
@@ -202,10 +203,8 @@ def _map_nomenclatures_chunk(
     job.meta['total_count'] = len(nomenclatures)
     job.meta['ready_count'] = 0
     job.save_meta()
-
     # Convert nomenclatures to DataFrame
     noms = convert_nomenclatures_to_df(nomenclatures)
-
     # Normalize nomenclatures names
     noms['normalized'] = noms['nomenclature'].progress_apply(
         lambda nom_name: normalize_name(nom_name)
@@ -307,6 +306,7 @@ def _map_nomenclatures_chunk(
 
     noms_dict = noms.to_dict(orient="records")
     result_nomenclatures = [MappingOneNomenclatureRead(**nom) for nom in noms_dict]
+    save_mapping_nomenclature_result_to_db(result_nomenclatures, classifier_config.user_id)
 
     return result_nomenclatures
 
@@ -339,3 +339,6 @@ def get_jobs_from_rq(nomenclature_id: str) -> list[MappingNomenclaturesResultRea
 def get_all_jobs(nomenclature_id: str) -> list[MappingNomenclaturesResultRead]:
     jobs_from_rq = get_jobs_from_rq(nomenclature_id)
     return jobs_from_rq
+
+
+
