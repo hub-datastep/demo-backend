@@ -16,5 +16,5 @@ class MappingResult(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
     mapping_result: dict = Field(sa_column=Column(JSONB))
-    created_at: datetime | None = Field(default=datetime.utcnow())
+    created_at: datetime | None = Field(default_factory=datetime.utcnow)
     mapping_nomenclature_corrected: str | None = Field(default=None)
