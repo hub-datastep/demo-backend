@@ -38,7 +38,6 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
-      - ./ner_model:${DATA_FOLDER_PATH}/ner_model
       - server:${DATA_FOLDER_PATH}
 
   ner:
