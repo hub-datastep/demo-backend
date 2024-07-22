@@ -16,6 +16,7 @@ from controller.chroma_collection import chroma_collection_controller
 from controller.classifier import classifier_config_controller, classifier_controller
 from controller.embedding import embedding_controller
 from controller.file import file_controller
+from controller.ksr import ksr_controller
 from controller.mapping import mapping_controller
 from controller.mode import mode_controller
 from controller.ner import brand_model_controller
@@ -23,8 +24,8 @@ from controller.prediction import prediction_controller
 from controller.prompt import prompt_controller
 from controller.task import task_controller
 from controller.tenant import tenant_controller
+from controller.used_token import used_token_controller
 from controller.user import user_controller
-from controller.ksr import ksr_controller
 
 app = FastAPI()
 
@@ -51,6 +52,9 @@ app.include_router(embedding_controller.router, tags=["embedding"], prefix="/emb
 app.include_router(chroma_collection_controller.router, tags=["chroma_collection"], prefix="/collection")
 app.include_router(classifier_controller.router, tags=["classifier"], prefix="/classifier")
 app.include_router(brand_model_controller.router, tags=["ner_brand"], prefix="/ner_brand")
+
+# Used Tokens
+app.include_router(used_token_controller.router, tags=["used_token"], prefix="/used_token")
 
 # Other
 app.include_router(task_controller.router, tags=["task"], prefix="/task")
