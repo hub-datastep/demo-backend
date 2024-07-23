@@ -1,7 +1,6 @@
 from sqlmodel import Field, SQLModel, Relationship
 
 from scheme.mode.mode_tenant_scheme import ModeTenantLink
-from scheme.user.user_tenant_scheme import UserTenantLink
 
 
 class TenantBase(SQLModel):
@@ -11,7 +10,8 @@ class TenantBase(SQLModel):
 class Tenant(TenantBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     db_uri: str
-    users: list["User"] = Relationship(back_populates="tenants", link_model=UserTenantLink)
+
+    users: list["User"] = Relationship(back_populates="tenant")
     modes: list["Mode"] = Relationship(back_populates="tenants", link_model=ModeTenantLink)
     prompts: list["Prompt"] = Relationship(back_populates="tenant")
     active_prompt: "Prompt" = Relationship(

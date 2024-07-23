@@ -13,7 +13,7 @@ def create_user(session: Session, user: UserCreate) -> User:
     except HTTPException as e:
         if e.status_code != 404:
             raise HTTPException(status_code=400, detail=f"User with username={user.username} is already existed.")
-        
+
         tenant_db = tenant_repository.get_tenant_by_id(session, user.tenant_id)
 
         hashed_password = pwd_context.hash(user.password)
@@ -23,5 +23,3 @@ def create_user(session: Session, user: UserCreate) -> User:
         session.commit()
 
     return user_db
-
-

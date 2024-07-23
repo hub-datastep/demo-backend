@@ -22,6 +22,7 @@ from controller.mode import mode_controller
 from controller.ner import brand_model_controller
 from controller.prediction import prediction_controller
 from controller.prompt import prompt_controller
+from controller.role import role_controller
 from controller.task import task_controller
 from controller.tenant import tenant_controller
 from controller.used_token import used_token_controller
@@ -29,12 +30,25 @@ from controller.user import user_controller
 
 app = FastAPI()
 
-# Main
+# Auth
 app.include_router(auth_controller.router, tags=["auth"], prefix="/auth")
+
+# User
 app.include_router(user_controller.router, tags=["user"], prefix="/user")
+
+# Role
+app.include_router(role_controller.router, tags=["role"], prefix="/role")
+
+# Tenant
 app.include_router(tenant_controller.router, tags=["tenant"], prefix="/tenant")
+
+# Mode
 app.include_router(mode_controller.router, tags=["mode"], prefix="/mode")
+
+# Prompt
 app.include_router(prompt_controller.router, tags=["prompt"], prefix="/prompt")
+
+# Chat
 app.include_router(chat_controller.router, tags=["chat"], prefix="/chat")
 app.include_router(message_controller.router, tags=["message"], prefix="/message")
 # app.include_router(mark_controller.router, tags=["mark"], prefix="/mark")
