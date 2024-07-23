@@ -3,6 +3,7 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
+from middleware.role_middleware import admins_only
 from model.auth.auth_model import get_current_user
 from repository.user import user_repository
 from scheme.user.user_scheme import UserCreate, UserRead, User, UserUpdate
@@ -12,6 +13,7 @@ router = APIRouter()
 
 @router.post("", response_model=UserRead)
 @version(1)
+@admins_only
 def create_user(
     user: UserCreate,
     session: Session = Depends(get_session),
@@ -24,6 +26,7 @@ def create_user(
 
 @router.put("", response_model=UserRead)
 @version(1)
+@admins_only
 def update_user(
     user: UserUpdate,
     session: Session = Depends(get_session),
