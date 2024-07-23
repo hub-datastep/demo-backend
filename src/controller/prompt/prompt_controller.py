@@ -18,7 +18,7 @@ def get_active_tenant_prompt(
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    user_tenant_id = current_user.tenants[0].id
+    user_tenant_id = current_user.tenant_id
     return prompt_repository.get_active_tenant_prompt(session, user_tenant_id)
 
 
@@ -29,7 +29,7 @@ def get_tenant_tables(
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
-    user_tenant_id = current_user.tenants[0].id
+    user_tenant_id = current_user.tenant_id
     return prompt_repository.get_tenant_tables(session, user_tenant_id)
 
 

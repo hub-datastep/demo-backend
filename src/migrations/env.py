@@ -36,11 +36,11 @@ from scheme.chat.review_scheme import Review
 from scheme.tenant.tenant_scheme import Tenant
 from scheme.auth.token_scheme import Token
 from scheme.user.user_scheme import User
-from scheme.user.user_tenant_scheme import UserTenantLink
 from scheme.classifier.classifier_version_scheme import ClassifierVersion
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
 from scheme.mapping.mapping_results_scheme import MappingResult
 from scheme.used_token.used_token_scheme import UsedToken
+from scheme.role.role_scheme import Role
 
 # target_metadata = mymodel.Base.metadata
 target_metadata = SQLModel.metadata

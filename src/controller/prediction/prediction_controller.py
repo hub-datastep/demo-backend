@@ -26,7 +26,7 @@ async def get_database_prediction(
 ):
     """
     """
-    user_tenant_id = current_user.tenants[0].id
+    user_tenant_id = current_user.tenant_id
     current_user_tenant_db = tenant_repository.get_tenant_by_id(session, user_tenant_id)
     return await datastep_get_prediction(query, current_user_tenant_db, current_user.database_prediction_config)
 
@@ -54,4 +54,4 @@ def get_knowledge_base_prediction(
 ):
     """
     """
-    return datastep_pdf_model.get_prediction_with_relevant_file(session, body.query, current_user.tenants[0].id)
+    return datastep_pdf_model.get_prediction_with_relevant_file(session, body.query, current_user.tenant_id)

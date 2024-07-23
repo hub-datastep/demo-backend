@@ -22,7 +22,7 @@ def get_all_files(
 ):
     """
     """
-    return get_all_filenames_by_tenant_id(session, current_user.tenants[0].id)
+    return get_all_filenames_by_tenant_id(session, current_user.tenant_id)
 
 
 @router.post("/extract_data", response_model=list[DataExtract])
@@ -45,7 +45,7 @@ def upload_file(
 ):
     """
     """
-    tenant_id = current_user.tenants[0].id
+    tenant_id = current_user.tenant_id
     # TODO: В контроллере не должно быть логики, перенести генерацию описания в save_file
     # description = get_file_description(file_object)
     description = ""
