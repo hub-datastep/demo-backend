@@ -3,6 +3,7 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
+from middleware.role_middleware import admins_only
 from model.auth.auth_model import get_current_user
 from model.role import role_model
 from repository.role import role_repository
@@ -14,6 +15,7 @@ router = APIRouter()
 
 @router.post("", response_model=Role)
 @version(1)
+@admins_only
 def create_role(
     role: RoleBase,
     current_user: UserRead = Depends(get_current_user),
@@ -24,6 +26,7 @@ def create_role(
 
 @router.get("/{role_id}", response_model=Role)
 @version(1)
+@admins_only
 def get_role_by_id(
     role_id: int,
     current_user: UserRead = Depends(get_current_user),
@@ -34,6 +37,7 @@ def get_role_by_id(
 
 @router.delete("/{role_id}", response_model=None)
 @version(1)
+@admins_only
 def delete_role(
     role_id: int,
     current_user: UserRead = Depends(get_current_user),

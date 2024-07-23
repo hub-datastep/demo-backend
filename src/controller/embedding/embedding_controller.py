@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 
+from middleware.role_middleware import admins_only
 from model.auth.auth_model import get_current_user
 from model.embedding import noms2embeddings_model
 from scheme.embedding.embedding_scheme import CreateAndSaveEmbeddingsUpload, CreateAndSaveEmbeddingsResult
@@ -12,6 +13,7 @@ router = APIRouter()
 
 @router.post("", response_model=JobIdRead)
 @version(1)
+@admins_only
 def create_and_save_embeddings(
     body: CreateAndSaveEmbeddingsUpload,
     current_user: UserRead = Depends(get_current_user),
@@ -29,6 +31,7 @@ def create_and_save_embeddings(
 
 @router.get("/{job_id}", response_model=CreateAndSaveEmbeddingsResult)
 @version(1)
+@admins_only
 def create_and_save_embeddings_result(
     job_id: str,
     current_user: UserRead = Depends(get_current_user),

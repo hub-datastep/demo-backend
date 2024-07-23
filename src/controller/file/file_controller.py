@@ -3,8 +3,9 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
-from model.file import file_model
+from middleware.role_middleware import admins_only
 from model.auth.auth_model import get_current_user
+from model.file import file_model
 from model.file.file_model import extract_data_from_invoice
 from repository.file.file_repository import get_all_filenames_by_tenant_id
 from scheme.file.file_scheme import FileRead, DataExtract, File
@@ -15,6 +16,7 @@ router = APIRouter()
 
 @router.get("", response_model=list[FileRead])
 @version(1)
+@admins_only
 def get_all_files(
     *,
     current_user: UserRead = Depends(get_current_user),
@@ -27,6 +29,7 @@ def get_all_files(
 
 @router.post("/extract_data", response_model=list[DataExtract])
 @version(1)
+@admins_only
 async def extract_data_invoice(
     file_object: UploadFile,
     with_metadata: bool = False,
@@ -37,6 +40,7 @@ async def extract_data_invoice(
 
 @router.post("", response_model=File)
 @version(1)
+@admins_only
 def upload_file(
     file_object: UploadFile,
     is_knowledge_base: bool,
@@ -54,6 +58,7 @@ def upload_file(
 
 @router.delete("/{file_id}")
 @version(1)
+@admins_only
 def delete_file(
     *,
     current_user: UserRead = Depends(get_current_user),

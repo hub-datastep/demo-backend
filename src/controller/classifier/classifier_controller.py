@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi_versioning import version
 
+from middleware.role_middleware import admins_only
 from model.auth.auth_model import get_current_user
 from model.classifier import classifier_retrain_model, classifier_execute_model, classifier_version_model
 from scheme.classifier.classifier_version_scheme import RetrainClassifierUpload, ClassifierRetrainingResult, \
@@ -14,6 +15,7 @@ router = APIRouter()
 
 @router.get("")
 @version(1)
+@admins_only
 def get_classifier_versions(current_user: UserRead = Depends(get_current_user)) -> list[ClassifierVersionRead]:
     """
     Получает все версии обученных классификаторов.
@@ -23,6 +25,7 @@ def get_classifier_versions(current_user: UserRead = Depends(get_current_user)) 
 
 @router.post("/retrain")
 @version(1)
+@admins_only
 def retrain_classifier(
     body: RetrainClassifierUpload,
     current_user: UserRead = Depends(get_current_user),
@@ -40,6 +43,7 @@ def retrain_classifier(
 
 @router.get("/retrain/{job_id}")
 @version(1)
+@admins_only
 def retrain_classifier_result(
     job_id: str,
     current_user: UserRead = Depends(get_current_user),
@@ -52,6 +56,7 @@ def retrain_classifier_result(
 
 @router.delete("/{model_id}")
 @version(1)
+@admins_only
 def delete_classifier_by_id(
     model_id: str,
     current_user: UserRead = Depends(get_current_user),
@@ -64,6 +69,7 @@ def delete_classifier_by_id(
 
 @router.post("/classification")
 @version(1)
+@admins_only
 def start_classification(
     model_id: str,
     items: list[str],
@@ -80,6 +86,7 @@ def start_classification(
 
 @router.get("/classification/{job_id}")
 @version(1)
+@admins_only
 def get_classification_result(
     job_id: str,
     current_user: UserRead = Depends(get_current_user),

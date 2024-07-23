@@ -3,8 +3,9 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
-from model.chat import chat_model
+from middleware.role_middleware import admins_only
 from model.auth.auth_model import get_current_user
+from model.chat import chat_model
 from repository.chat import chat_repository
 from scheme.chat.chat_scheme import ChatRead, ChatCreate
 from scheme.user.user_scheme import UserRead
@@ -14,6 +15,7 @@ router = APIRouter()
 
 @router.get("/{user_id}/{mode_id}", response_model=ChatRead)
 @version(1)
+@admins_only
 def get_chat(
     *,
     current_user: UserRead = Depends(get_current_user),
@@ -28,6 +30,7 @@ def get_chat(
 
 @router.post("", response_model=ChatRead)
 @version(1)
+@admins_only
 def create_chat(
     *,
     current_user: UserRead = Depends(get_current_user),
