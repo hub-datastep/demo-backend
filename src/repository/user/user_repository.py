@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlmodel import Session, select
 
 from scheme.tenant.tenant_scheme import Tenant
-from scheme.user.user_scheme import UserCreate, User
+from scheme.user.user_scheme import UserCreate, User, UserUpdate
 from util.hashing import get_password_hash
 
 
@@ -36,5 +36,18 @@ def create_user(session: Session, user: UserCreate) -> User:
     user_db.tenants = [tenant_db]
 
     session.add(user_db)
+    session.commit()
+    return user_db
+
+
+def update_user(session: Session, user: UserUpdate) -> User:
+    tenant_db = session.get(Tenant, user.tenant_id)
+
+    if user.password is not None:
+        user.password = get_password_hash(user.password)
+    user_db = User.from_orm(user)
+    user_db.tenants = [tenant_db]
+
+    session.merge(user_db)
     session.commit()
     return user_db

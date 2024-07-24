@@ -4,8 +4,9 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
-from model.classifier import classifier_config_model
+from middleware.role_middleware import admins_only
 from model.auth.auth_model import get_current_user
+from model.classifier import classifier_config_model
 from scheme.classifier.classifier_config_scheme import ClassifierConfig, ClassifierConfigBase
 from scheme.user.user_scheme import UserRead
 
@@ -27,6 +28,7 @@ def get_classifier_config_by_user_id(
 
 @router.post("", response_model=ClassifierConfig)
 @version(1)
+@admins_only
 def create_classifier_config(
     body: ClassifierConfigBase,
     session: Session = Depends(get_session),
@@ -41,6 +43,7 @@ def create_classifier_config(
 
 @router.put("", response_model=ClassifierConfig | None)
 @version(1)
+@admins_only
 def update_classifier_config_by_user_id(
     body: ClassifierConfigBase,
     session: Session = Depends(get_session),
@@ -55,6 +58,7 @@ def update_classifier_config_by_user_id(
 
 @router.delete("", response_model=None)
 @version(1)
+@admins_only
 def delete_classifier_config_by_user_id(
     session: Session = Depends(get_session),
     current_user: UserRead = Depends(get_current_user)

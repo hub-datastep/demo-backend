@@ -7,9 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 TESTS_API_URL = os.getenv('TESTS_API_URL')
-TEST_MAPPING_MODEL_ID = os.getenv('TEST_MAPPING_MODEL_ID')
-TEST_MAPPING_CHROMA_COLLECTION = os.getenv('TEST_MAPPING_CHROMA_COLLECTION')
-TEST_MAPPING_USE_PARAMS = bool(int(os.getenv('TEST_MAPPING_USE_PARAMS')))
+TEST_MAPPING_USERNAME = os.getenv('TEST_MAPPING_USERNAME')
+TEST_MAPPING_PASSWORD = os.getenv('TEST_MAPPING_PASSWORD')
 
 # URL для авторизации и API
 AUTH_URL = f"{TESTS_API_URL}/auth/sign_in"
@@ -18,19 +17,13 @@ API_URL = f"{TESTS_API_URL}/mapping"
 # Данные для авторизации
 AUTH_PAYLOAD = {
     "grant_type": "password",
-    "username": "admin@admin.com",
-    "password": "admin",
-    "scope": "",
-    "client_id": "",
-    "client_secret": ""
+    "username": TEST_MAPPING_USERNAME,
+    "password": TEST_MAPPING_PASSWORD,
 }
 
 START_NOMENCLATURE_MAPPING_PAYLOAD_CONFIG = {
-    "chroma_collection_name": TEST_MAPPING_CHROMA_COLLECTION,
-    "model_id": TEST_MAPPING_MODEL_ID,
-    "most_similar_count": 1,
+    "most_similar_count": 3,
     "chunk_size": 100,
-    "use_params": TEST_MAPPING_USE_PARAMS,
 }
 
 
@@ -42,7 +35,7 @@ def authenticate():
         raise Exception("Authentication failed")
 
 
-def start_nomenclature_mapping(test_cases, token):
+def start_nomenclature_mapping(test_cases, token: str):
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
@@ -68,7 +61,7 @@ def start_nomenclature_mapping(test_cases, token):
         return None
 
 
-def get_nomenclature_mappings(job_id, token):
+def get_nomenclature_mappings(job_id: str, token: str):
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json"
@@ -92,7 +85,7 @@ def get_nomenclature_mappings(job_id, token):
         return None
 
 
-def wait_for_job_completion(job_id, token, interval=5):
+def wait_for_job_completion(job_id: str, token: str, interval: int = 5):
     while True:
         result = get_nomenclature_mappings(job_id, token)
         if result and isinstance(result, list):

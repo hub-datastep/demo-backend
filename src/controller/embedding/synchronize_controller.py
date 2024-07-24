@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 
+from middleware.role_middleware import admins_only
 from model.auth.auth_model import get_current_user
 from model.mapping import synchronize_model
 from scheme.mapping.synchronize_scheme import SyncNomenclaturesUpload, SyncNomenclaturesResultRead
@@ -12,6 +13,7 @@ router = APIRouter()
 
 @router.post("", response_model=JobIdRead)
 @version(1)
+@admins_only
 def synchronize_nomenclatures(
     body: SyncNomenclaturesUpload,
     current_user: UserRead = Depends(get_current_user),
@@ -28,6 +30,7 @@ def synchronize_nomenclatures(
 
 @router.get("/{job_id}")
 @version(1)
+@admins_only
 def synchronize_nomenclatures_result(
     job_id: str,
     current_user: UserRead = Depends(get_current_user),
