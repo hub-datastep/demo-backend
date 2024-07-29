@@ -6,6 +6,7 @@ class ClassifierConfigBase(SQLModel):
     chroma_collection_name: str | None
     model_id: str | None = Field(foreign_key="classifier_version.id")
     use_params: bool | None = Field(default=False)
+    nomenclatures_table_name: str | None
 
 
 class ClassifierConfig(ClassifierConfigBase, table=True):

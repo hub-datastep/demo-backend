@@ -4,9 +4,9 @@ from sqlmodel import Session
 
 from infra.database import get_session
 from model.auth.auth_model import get_current_user
-from model.mapping import mapping_model
+from model.mapping import mapping_model, mapping_result_model
 from repository.mapping import mapping_result_repository
-from scheme.mapping.mapping_results_scheme import MappingResult
+from scheme.mapping.mapping_results_scheme import MappingResult, NomenclatureQuery
 from scheme.mapping.mapping_scheme import MappingNomenclaturesUpload, MappingNomenclaturesResultRead
 from scheme.task.task_scheme import JobIdRead
 from scheme.user.user_scheme import UserRead
@@ -56,3 +56,13 @@ def get_nomenclature_mapping_result(
     Получает результат сопоставления номенклатур через указанный идентификатор задачи.
     """
     return mapping_model.get_all_jobs(job_id)
+
+
+@router.post("/similar_search", response_model=list[str])
+@version(1)
+def get_similar_nomenclatures_by_user_query(
+    body: NomenclatureQuery,
+    session: Session = Depends(get_session),
+    current_user: UserRead = Depends(get_current_user),
+):
+    return mapping_result_model.get_similar_nomenclatures(body.query, current_user, session)
