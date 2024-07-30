@@ -22,3 +22,8 @@ class MappingResult(SQLModel, table=True):
 
 class NomenclatureQuery(SQLModel):
     query: str
+
+
+class MappingResultUpdate(SQLModel):
+    id: int
+    mapping_nomenclature_corrected: str
