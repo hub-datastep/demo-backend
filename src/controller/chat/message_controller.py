@@ -3,7 +3,7 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
-from middleware.role_middleware import admins_only
+from middleware.mode_middleware import modes_required, TenantMode
 from model.auth.auth_model import get_current_user
 from repository.chat import message_repository
 from scheme.chat.message_scheme import MessageRead, MessageCreate
@@ -14,12 +14,11 @@ router = APIRouter()
 
 @router.post("", response_model=MessageRead)
 @version(1)
-@admins_only
+@modes_required([TenantMode.DB, TenantMode.DOCS])
 def create_message(
-    *,
+    message: MessageCreate,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-    message: MessageCreate
 ):
     """
     """
@@ -28,12 +27,11 @@ def create_message(
 
 @router.delete("/{chat_id}")
 @version(1)
-@admins_only
+@modes_required([TenantMode.DB, TenantMode.DOCS])
 def clear_all_messages_by_chat_id(
-    *,
+    chat_id: int,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-    chat_id: int
 ):
     """
     """

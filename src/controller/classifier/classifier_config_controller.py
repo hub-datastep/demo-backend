@@ -4,6 +4,7 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
+from middleware.mode_middleware import TenantMode, modes_required
 from middleware.role_middleware import admins_only
 from model.auth.auth_model import get_current_user
 from model.classifier import classifier_config_model
@@ -15,10 +16,11 @@ router = APIRouter()
 
 @router.get("", response_model=ClassifierConfig)
 @version(1)
+@modes_required([TenantMode.CLASSIFIER])
 def get_classifier_config_by_user_id(
     session: Session = Depends(get_session),
     current_user: UserRead = Depends(get_current_user)
-) -> ClassifierConfig | None:
+) -> ClassifierConfig:
     """
     Получает конфиг классификатора для текущего юзера.
     """
@@ -41,14 +43,14 @@ def create_classifier_config(
     return classifier_config_model.create_classifier_config(session, body, user_id)
 
 
-@router.put("", response_model=ClassifierConfig | None)
+@router.put("", response_model=ClassifierConfig)
 @version(1)
 @admins_only
 def update_classifier_config_by_user_id(
     body: ClassifierConfigBase,
     session: Session = Depends(get_session),
     current_user: UserRead = Depends(get_current_user)
-) -> ClassifierConfig | None:
+) -> ClassifierConfig:
     """
     Обновляет параметры в конфиге классификатора для текущего юзера.
     """

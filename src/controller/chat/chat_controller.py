@@ -3,7 +3,7 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
-from middleware.role_middleware import admins_only
+from middleware.mode_middleware import modes_required, TenantMode
 from model.auth.auth_model import get_current_user
 from model.chat import chat_model
 from repository.chat import chat_repository
@@ -15,13 +15,12 @@ router = APIRouter()
 
 @router.get("/{user_id}/{mode_id}", response_model=ChatRead)
 @version(1)
-@admins_only
+@modes_required([TenantMode.DB, TenantMode.DOCS])
 def get_chat(
-    *,
+    user_id: int,
+    mode_id: int,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-    user_id: int,
-    mode_id: int
 ):
     """
     """
@@ -30,12 +29,11 @@ def get_chat(
 
 @router.post("", response_model=ChatRead)
 @version(1)
-@admins_only
+@modes_required([TenantMode.DB, TenantMode.DOCS])
 def create_chat(
-    *,
+    chat: ChatCreate,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-    chat: ChatCreate
 ):
     """
     """

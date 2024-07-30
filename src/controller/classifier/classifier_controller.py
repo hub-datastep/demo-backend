@@ -16,7 +16,9 @@ router = APIRouter()
 @router.get("")
 @version(1)
 @admins_only
-def get_classifier_versions(current_user: UserRead = Depends(get_current_user)) -> list[ClassifierVersionRead]:
+def get_classifier_versions(
+    current_user: UserRead = Depends(get_current_user)
+) -> list[ClassifierVersionRead]:
     """
     Получает все версии обученных классификаторов.
     """

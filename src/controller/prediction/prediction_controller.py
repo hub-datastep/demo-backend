@@ -3,7 +3,7 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
-from middleware.role_middleware import admins_only
+from middleware.mode_middleware import TenantMode, modes_required
 from model.auth.auth_model import get_current_user
 from model.prediction import datastep_pdf_model
 from model.prediction.datastep_model import datastep_get_prediction
@@ -19,12 +19,11 @@ router = APIRouter()
 
 @router.post("/assistant/prediction", response_model=DatabasePredictionRead)
 @version(1)
-@admins_only
+@modes_required([TenantMode.DB])
 async def get_database_prediction(
-    *,
+    query: DatabasePredictionQuery,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-    query: DatabasePredictionQuery
 ):
     """
     """
@@ -35,12 +34,11 @@ async def get_database_prediction(
 
 @router.post("/chat_pdf/prediction", response_model=DocumentPredictionRead)
 @version(1)
-@admins_only
+@modes_required([TenantMode.DOCS])
 def get_document_prediction(
-    *,
+    body: DocumentPredictionQuery,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-    body: DocumentPredictionQuery
 ):
     """
     """
@@ -49,12 +47,11 @@ def get_document_prediction(
 
 @router.post("/chat_knowledge_base/prediction", response_model=KnowledgeBasePredictionRead)
 @version(1)
-@admins_only
+@modes_required([TenantMode.DOCS])
 def get_knowledge_base_prediction(
-    *,
+    body: PredictionQueryBase,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-    body: PredictionQueryBase
 ):
     """
     """

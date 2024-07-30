@@ -16,10 +16,9 @@ router = APIRouter()
 @version(1)
 @admins_only
 def create_or_update_mark(
-    *,
+    mark: MarkCreate,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-    mark: MarkCreate
 ):
     """
     """
