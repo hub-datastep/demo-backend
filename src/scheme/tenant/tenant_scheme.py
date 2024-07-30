@@ -24,8 +24,13 @@ class TenantCreate(TenantBase):
     modes: list[int]
 
 
+class TenantUpdate(TenantCreate):
+    id: int
+
+
 class TenantRead(TenantBase):
     id: int
+    db_uri: str
     modes: list["ModeRead"]
 
 
