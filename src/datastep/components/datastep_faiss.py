@@ -10,6 +10,7 @@ from datastep.chains.datastep_docs_chain import get_chain_for_docs
 from datastep.chains.datastep_knowledge_base_chain import get_chain_for_knowledge_base
 from datastep.chains.datastep_search_relevant_description_chain import get_chain_for_relevant_description
 from infra.env import AZURE_DEPLOYMENT_NAME_EMBEDDINGS
+from scheme.file.file_scheme import KnowledgeBaseFile
 from util.files_paths import get_file_folder_path
 
 
@@ -61,10 +62,10 @@ def doc_query(storage_filename: str, query: str) -> tuple[str, int]:
     return response, page
 
 
-def search_relevant_description(document_descriptions: list[dict[str, str]], query: str, ) -> dict[str, str] | None:
+def search_relevant_description(documents: [KnowledgeBaseFile], query: str, ) -> KnowledgeBaseFile | None:
     chain = get_chain_for_relevant_description()
     descriptions_str = "\n".join(
-        [f"{desc['description']} (Файл: {desc['original_filename']})" for desc in document_descriptions])
+        [f"{desc['description']} (Файл: {desc['original_filename']})" for desc in documents])
 
     relevant_filename = chain.run(
         document_descriptions=descriptions_str,
@@ -73,10 +74,9 @@ def search_relevant_description(document_descriptions: list[dict[str, str]], que
     if relevant_filename.lower() == "none":
         return None
 
-        # Поиск документа с именем, совпадающим с релевантным именем файла
-    for desc in document_descriptions:
+    for desc in documents:
         if desc["original_filename"] == relevant_filename:
-            return desc
+            return KnowledgeBaseFile(filename=relevant_filename, file_description=desc)
 
     return None
 

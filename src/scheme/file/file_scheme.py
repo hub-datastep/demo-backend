@@ -24,3 +24,7 @@ class FileRead(FileBase):
 class DataExtract(SQLModel):
     nomenclature: str | None
     file_metadata: dict[str, str] | None
+
+class KnowledgeBaseFile(SQLModel):
+    filename: str
+    file_description: str
