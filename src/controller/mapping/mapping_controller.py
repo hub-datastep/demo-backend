@@ -7,7 +7,7 @@ from middleware.mode_middleware import TenantMode, modes_required
 from model.auth.auth_model import get_current_user
 from model.mapping import mapping_model, mapping_result_model
 from repository.mapping import mapping_result_repository
-from scheme.mapping.mapping_results_scheme import MappingResult, NomenclatureQuery
+from scheme.mapping.mapping_results_scheme import MappingResult, NomenclatureQuery, MappingResultUpdate
 from scheme.mapping.mapping_scheme import MappingNomenclaturesUpload, MappingNomenclaturesResultRead
 from scheme.task.task_scheme import JobIdRead
 from scheme.user.user_scheme import UserRead
@@ -71,3 +71,14 @@ def get_similar_nomenclatures_by_user_query(
     current_user: UserRead = Depends(get_current_user),
 ):
     return mapping_result_model.get_similar_nomenclatures(body.query, current_user, session)
+
+
+@router.post("/history", response_model=MappingResult)
+@version(1)
+@modes_required([TenantMode.CLASSIFIER])
+def save_correct_nomenclature(
+    body: MappingResultUpdate,
+    session: Session = Depends(get_session),
+    current_user: UserRead = Depends(get_current_user),
+):
+    return mapping_result_repository.save_correct_nomenclature(body, session)
