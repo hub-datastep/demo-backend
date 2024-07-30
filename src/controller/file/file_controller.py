@@ -3,7 +3,7 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
-from middleware.role_middleware import admins_only
+from middleware.mode_middleware import TenantMode, modes_required
 from model.auth.auth_model import get_current_user
 from model.file import file_model
 from model.file.file_model import extract_data_from_invoice
@@ -16,9 +16,8 @@ router = APIRouter()
 
 @router.get("", response_model=list[FileRead])
 @version(1)
-@admins_only
+@modes_required([TenantMode.DOCS])
 def get_all_files(
-    *,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
@@ -29,7 +28,7 @@ def get_all_files(
 
 @router.post("/extract_data", response_model=list[DataExtract])
 @version(1)
-@admins_only
+@modes_required([TenantMode.CLASSIFIER])
 async def extract_data_invoice(
     file_object: UploadFile,
     with_metadata: bool = False,
@@ -40,7 +39,7 @@ async def extract_data_invoice(
 
 @router.post("", response_model=File)
 @version(1)
-@admins_only
+@modes_required([TenantMode.DOCS])
 def upload_file(
     file_object: UploadFile,
     is_knowledge_base: bool,
@@ -58,11 +57,10 @@ def upload_file(
 
 @router.delete("/{file_id}")
 @version(1)
-@admins_only
+@modes_required([TenantMode.DOCS])
 def delete_file(
-    *,
+    file_id: int,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-    file_id: int,
 ):
     return file_model.delete_file(session, file_id)

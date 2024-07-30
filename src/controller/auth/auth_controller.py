@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 @router.post("/sign_in", response_model=Token)
-async def sign_in(
+def sign_in(
     session: Session = Depends(get_session),
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):

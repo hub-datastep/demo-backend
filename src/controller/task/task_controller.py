@@ -14,7 +14,9 @@ router = APIRouter()
 @router.get("/", response_model=list[RQJob])
 @version(1)
 @admins_only
-def get_all_jobs(current_user: UserRead = Depends(get_current_user)) -> list[RQJob]:
+def get_all_jobs(
+    current_user: UserRead = Depends(get_current_user),
+) -> list[RQJob]:
     return task_model.get_all_jobs()
 
 

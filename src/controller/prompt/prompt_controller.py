@@ -3,6 +3,7 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
+from middleware.mode_middleware import modes_required, TenantMode
 from middleware.role_middleware import admins_only
 from model.auth.auth_model import get_current_user
 from repository.prompt import prompt_repository
@@ -16,7 +17,6 @@ router = APIRouter()
 @version(1)
 @admins_only
 def get_active_tenant_prompt(
-    *,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
 ):
@@ -24,14 +24,13 @@ def get_active_tenant_prompt(
     return prompt_repository.get_active_tenant_prompt(session, user_tenant_id)
 
 
-@router.get("/tables")
+@router.get("/tables", response_model=list[str])
 @version(1)
-@admins_only
+@modes_required([TenantMode.DB])
 def get_tenant_tables(
-    *,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-):
+) -> list[str]:
     user_tenant_id = current_user.tenant_id
     return prompt_repository.get_tenant_tables(session, user_tenant_id)
 
@@ -40,10 +39,9 @@ def get_tenant_tables(
 @version(1)
 @admins_only
 def create_prompt(
-    *,
+    prompt: PromptCreate,
     current_user: UserRead = Depends(get_current_user),
     session: Session = Depends(get_session),
-    prompt: PromptCreate,
 ):
     """
     """
@@ -54,10 +52,9 @@ def create_prompt(
 @version(1)
 @admins_only
 def update_prompt(
-    *,
-    current_user: UserRead = Depends(get_current_user),
-    session: Session = Depends(get_session),
     prompt_id: int,
     new_prompt: PromptUpdate,
+    current_user: UserRead = Depends(get_current_user),
+    session: Session = Depends(get_session),
 ):
     return prompt_repository.update_prompt(session, prompt_id, new_prompt)

@@ -13,7 +13,6 @@ router = APIRouter()
 @version(1)
 @admins_only
 def get_all_chroma_collections(
-    *,
     current_user: UserRead = Depends(get_current_user),
 ):
     """
@@ -26,9 +25,8 @@ def get_all_chroma_collections(
 @version(1)
 @admins_only
 def get_chroma_collection_length(
-    *,
+    collection_name: str,
     current_user: UserRead = Depends(get_current_user),
-    collection_name: str
 ) -> int:
     """
     Получает количество векторов в Chroma коллекции.
@@ -40,9 +38,8 @@ def get_chroma_collection_length(
 @version(1)
 @admins_only
 def create_chroma_collection(
-    *,
+    collection_name: str,
     current_user: UserRead = Depends(get_current_user),
-    collection_name: str
 ):
     """
     Создает Chroma коллекцию.
@@ -54,9 +51,8 @@ def create_chroma_collection(
 @version(1)
 @admins_only
 def delete_chroma_collection(
-    *,
+    collection_name: str,
     current_user: UserRead = Depends(get_current_user),
-    collection_name: str
 ):
     """
     Удаляет Chroma коллекцию.
