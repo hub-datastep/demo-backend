@@ -20,10 +20,6 @@ class MappingResult(SQLModel, table=True):
     mapping_nomenclature_corrected: str | None = Field(default=None)
 
 
-class NomenclatureQuery(SQLModel):
-    query: str
-
-
 class MappingResultUpdate(SQLModel):
     id: int
     mapping_nomenclature_corrected: str
