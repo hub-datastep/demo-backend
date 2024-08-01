@@ -10,6 +10,7 @@ from datastep.chains.datastep_docs_chain import get_chain_for_docs
 from datastep.chains.datastep_knowledge_base_chain import get_chain_for_knowledge_base
 from datastep.chains.datastep_search_relevant_description_chain import get_chain_for_relevant_description
 from infra.env import AZURE_DEPLOYMENT_NAME_EMBEDDINGS
+from scheme.file.file_scheme import KnowledgeBaseFile
 from util.files_paths import get_file_folder_path
 
 
@@ -61,17 +62,22 @@ def doc_query(storage_filename: str, query: str) -> tuple[str, int]:
     return response, page
 
 
-def search_relevant_description(descriptions: list[dict], query: str, ) -> str:
+def search_relevant_description(documents: list[KnowledgeBaseFile], query: str) -> KnowledgeBaseFile | None:
     chain = get_chain_for_relevant_description()
-    descriptions_str = "\n".join(
-        [f"Filename: {file['filename']}, Description: {file['description']}" for file in descriptions]
+
+    relevant_storage_filename = chain.run(
+        documents=documents,
+        query=query,
     )
 
-    relevant_filename = chain.run(
-        document_descriptions=descriptions_str,
-        query=query
-    )
-    return relevant_filename
+    if relevant_storage_filename.lower() == "none":
+        return None
+
+    for doc in documents:
+        if doc.storage_filename == relevant_storage_filename:
+            return doc
+
+    return None
 
 
 def knowledge_base_query(storage_filename: str, query: str) -> tuple[str, int]:
