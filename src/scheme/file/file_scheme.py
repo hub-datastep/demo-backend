@@ -25,6 +25,8 @@ class DataExtract(SQLModel):
     nomenclature: str | None
     file_metadata: dict[str, str] | None
 
+
 class KnowledgeBaseFile(SQLModel):
-    filename: str
+    original_filename: str
     file_description: str
+    storage_filename: str
