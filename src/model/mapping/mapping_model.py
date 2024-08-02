@@ -13,9 +13,9 @@ from infra.chroma_store import connect_to_chroma_collection, get_all_collections
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName, get_job
 from model.classifier.classifier_retrain_model import TRAINING_COLUMNS
 from model.classifier.classifier_version_model import get_model_path
+from model.mapping.mapping_result_model import save_mapping_result
 from model.ner.ner import HTTP_NER
 from model.used_token.used_token_model import charge_used_tokens, count_used_tokens
-from repository.mapping.mapping_result_repository import save_mapping_nomenclature_result
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
 from scheme.mapping.mapping_scheme import MappingOneNomenclatureUpload, \
     MappingNomenclaturesResultRead, MappingOneTargetRead, MappingOneNomenclatureRead
@@ -325,7 +325,7 @@ def _map_nomenclatures_chunk(
 
     # Save mapping results for feedback
     user_id = classifier_config.user_id
-    save_mapping_nomenclature_result(
+    save_mapping_result(
         nomenclatures=result_nomenclatures,
         user_id=user_id,
     )
