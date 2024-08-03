@@ -40,24 +40,6 @@ services:
       - ./.env:/app/.env
       - server:${DATA_FOLDER_PATH}
 
-  ner:
-    build:
-      context: ./ner
-      dockerfile: ./Dockerfile
-    restart: always
-    command: >
-      bash -c "
-      python3 app.py
-      "
-    ports:
-      - "8091:8000"
-    environment:
-      - DATA_FOLDER_PATH=${DATA_FOLDER_PATH}
-    volumes:
-      - ./ner:/app/
-      - ./.env:/app/.env
-      - ./data/ner_model:${DATA_FOLDER_PATH}/ner_model
-
   redis-server:
     image: redis/redis-stack-server
     restart: always
