@@ -31,7 +31,7 @@ class TenantUpdate(TenantCreate):
 class TenantRead(TenantBase):
     id: int
     db_uri: str
-    modes: list["ModeRead"]
+    modes: list["Mode"]
 
 
 from scheme.prompt.prompt_scheme import Prompt
