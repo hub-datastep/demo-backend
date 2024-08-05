@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+NER_SERVICE_URL = os.getenv('NER_SERVICE_URL')
+
 OPENAI_API_BASE = os.getenv('OPENAI_API_BASE')
 
 AZURE_DEPLOYMENT_NAME_DB_ASSISTANT = os.getenv('AZURE_DEPLOYMENT_NAME_DB_ASSISTANT')

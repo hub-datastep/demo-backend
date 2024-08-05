@@ -14,7 +14,7 @@ from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName, get_j
 from model.classifier.classifier_retrain_model import TRAINING_COLUMNS
 from model.classifier.classifier_version_model import get_model_path
 from model.mapping.mapping_result_model import save_mapping_result
-from model.ner.ner import HTTP_NER
+from model.ner.ner import ner_service
 from model.used_token.used_token_model import charge_used_tokens, count_used_tokens
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
 from scheme.mapping.mapping_scheme import MappingOneNomenclatureUpload, \
@@ -240,7 +240,7 @@ def _map_nomenclatures_chunk(
 
     # Get noms brand params
     if is_use_brand_recognition:
-        noms['brand'] = HTTP_NER().predict(noms['nomenclature'].to_list())
+        noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
     else:
         noms['brand'] = None
 
