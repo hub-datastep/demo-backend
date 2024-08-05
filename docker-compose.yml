@@ -116,4 +116,3 @@ volumes:
   datastep-dbeaver:
   chroma-data:
     driver: local
-
