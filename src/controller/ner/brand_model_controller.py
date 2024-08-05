@@ -4,7 +4,7 @@ from fastapi_versioning import version
 
 from middleware.role_middleware import admins_only
 from model.auth.auth_model import get_current_user
-from model.ner.ner import HTTP_NER
+from model.ner.ner import ner_service
 from scheme.user.user_scheme import UserRead
 
 router = APIRouter()
@@ -14,21 +14,17 @@ router = APIRouter()
 @version(1)
 @admins_only
 def get_ner_brand_results(
-    text: str,
+    nomenclature: str,
     current_user: UserRead = Depends(get_current_user),
 ) -> str:
-    response = HTTP_NER().predict([text])
-    if response:
-        return response[0]
-    return ""
+    return ner_service.predict([nomenclature])[0]
 
 
-@router.get("/all", response_model=list[str])
+@router.post("/all", response_model=list[str])
 @version(1)
 @admins_only
 def get_all_ner_brand_results(
-    text: list[str],
+    nomenclatures_list: list[str],
     current_user: UserRead = Depends(get_current_user),
 ) -> list[str]:
-    response = HTTP_NER().predict(text)
-    return response
+    return ner_service.predict(nomenclatures_list)

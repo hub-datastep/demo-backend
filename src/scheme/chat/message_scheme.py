@@ -10,6 +10,8 @@ class MessageBase(SQLModel):
     sql: str = ""
     table: str = ""
     table_source: str = ""
+    file_path: str | None = None
+    filename: str | None = None
     is_deleted: bool = Field(default=False)
     connected_message_id: int | None = Field(default=None, foreign_key="message.id")
     chat_id: int = Field(foreign_key="chat.id")

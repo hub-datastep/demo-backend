@@ -18,8 +18,10 @@ class ModeCreate(ModeBase):
 
 class ModeRead(ModeBase):
     id: int
+    tenants: list["Tenant"]
 
 
 from scheme.tenant.tenant_scheme import Tenant
 
 Mode.update_forward_refs()
+ModeRead.update_forward_refs()

@@ -8,13 +8,13 @@ SEARCH_RELEVANT_DESCRIPTION_PROMPT_TEMPLATE = """
 You are an expert in analyzing and matching documents. Given a question and a list of document descriptions with their respective filenames, determine which document is most relevant to answer the question.
 
 Document descriptions:
-{document_descriptions}
+{documents}
 
 Question:
 {query}
 
 Provide the name of the document that is most relevant to answer the question. If there is no relevant document, provide the word "None".
-Your answer should be in the format: <filename> or "None"
+Your answer should be in the format: <storage_filename> or "None"
 You must answer in Russian.
 """
 
@@ -28,7 +28,7 @@ def get_chain_for_relevant_description():
 
     prompt = PromptTemplate(
         template=SEARCH_RELEVANT_DESCRIPTION_PROMPT_TEMPLATE,
-        input_variables=["document_descriptions", "query"]
+        input_variables=["documents", "query"]
     )
 
     return LLMChain(llm=llm, prompt=prompt)

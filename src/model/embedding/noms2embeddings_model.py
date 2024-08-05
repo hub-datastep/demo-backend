@@ -3,7 +3,7 @@ from rq import get_current_job
 
 from infra.chroma_store import connect_to_chroma_collection, create_embeddings_by_chunks
 from infra.redis_queue import get_redis_queue, QueueName, MAX_JOB_TIMEOUT, get_job
-from model.ner.ner import HTTP_NER
+from model.ner.ner import ner_service
 from scheme.embedding.embedding_scheme import CreateAndSaveEmbeddingsResult
 from scheme.task.task_scheme import JobIdRead
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
@@ -42,7 +42,7 @@ def _create_and_save_embeddings(
     print(f"Nomenclatures with features:")
     print(df_noms_with_features)
 
-    df_noms_with_features['brand'] = HTTP_NER().predict(df_noms_with_features['name'].to_list())
+    df_noms_with_features['brand'] = ner_service.predict(df_noms_with_features['name'].to_list())
 
     # Получаем метаданные всех номенклатур с характеристиками
     metadatas = get_noms_metadatas_with_features(df_noms_with_features)

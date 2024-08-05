@@ -18,7 +18,9 @@ class MappingResult(SQLModel, table=True):
     mapping_result: dict = Field(sa_column=Column(JSONB))
     created_at: datetime | None = Field(default_factory=datetime.utcnow)
     mapping_nomenclature_corrected: str | None = Field(default=None)
+    iteration_key: str | None = Field(default=None)
 
 
-class NomenclatureQuery(SQLModel):
-    query: str
+class MappingResultUpdate(SQLModel):
+    id: int
+    mapping_nomenclature_corrected: str
