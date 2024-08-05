@@ -4,9 +4,9 @@ from infra.env import NER_SERVICE_URL
 
 
 class HTTP_NER:
-    def __init__(self, url: str = NER_SERVICE_URL, k: int = 100, timeout: int = 100):
+    def __init__(self, url: str = NER_SERVICE_URL, chunk_size: int = 100, timeout: int = 100):
         self.__client = httpx.Client()
-        self.__k = k
+        self.__chunk_size = chunk_size
         self.__timeout = timeout
         self.__url = url
 
@@ -14,9 +14,8 @@ class HTTP_NER:
         noms_brands_list = []
 
         nomenclatures_count = len(nomenclatures)
-        noms_chunk_size = nomenclatures_count // self.__k + 1
-        for i in range(0, nomenclatures_count, noms_chunk_size):
-            noms_chunk = nomenclatures[i:noms_chunk_size]
+        for i in range(0, nomenclatures_count, self.__chunk_size):
+            noms_chunk = nomenclatures[i:self.__chunk_size]
 
             if len(noms_chunk) == 0:
                 break

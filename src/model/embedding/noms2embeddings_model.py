@@ -42,7 +42,8 @@ def _create_and_save_embeddings(
     print(f"Nomenclatures with features:")
     print(df_noms_with_features)
 
-    df_noms_with_features['brand'] = ner_service.predict(df_noms_with_features['name'].to_list())
+    noms_names_list = df_noms_with_features['name'].to_list()
+    df_noms_with_features['brand'] = ner_service.predict(noms_names_list)
 
     # Получаем метаданные всех номенклатур с характеристиками
     metadatas = get_noms_metadatas_with_features(df_noms_with_features)
@@ -50,7 +51,6 @@ def _create_and_save_embeddings(
         nom = df_noms_with_features.loc[i]
         metadatas[i].update({
             "group": str(nom['group']),
-            "brand": str(nom['brand']),
         })
 
     ids = df_noms_with_features['id'].to_list()
