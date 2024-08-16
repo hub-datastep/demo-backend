@@ -9,6 +9,11 @@ https://public-api.domyland.ru/sud-api/webhooks/exploitation/
 """
 
 
+class AlertTypeID:
+    NEW_ORDER = 1
+    UPDATE_ORDER_STATUS = 13
+
+
 class SummaryType(str, Enum):
     STRING = "string"
     RADIO = "radio"
@@ -65,3 +70,12 @@ class EmergencyClassRequest(SQLModel):
     alertTypeId: int
     timestamp: int | None
     data: OrderData
+
+
+class EmergencyClassResponse(SQLModel):
+    order_id: int
+    order_query: str | None
+    is_accident: bool
+    order_emergency: str
+    # Response from Domyland API
+    order_update_response: dict | None
