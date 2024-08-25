@@ -1,5 +1,3 @@
-from enum import Enum
-
 from sqlmodel import SQLModel
 
 """
@@ -14,19 +12,22 @@ class AlertTypeID:
     UPDATE_ORDER_STATUS = 13
 
 
-class SummaryType(str, Enum):
+class SummaryType:
     STRING = "string"
     RADIO = "radio"
     TEXT = "text"
     IMAGE = "image"
+    SELECT = "select"
 
 
-class SummaryTitle(str, Enum):
+class SummaryTitle:
     ADDRESS = "Адрес"
     OBJECT = "Объект"
     ISSUE = "Что случилось?"
     COMMENT = "Комментарий"
     ATTACH_PHOTO = "Прикрепите фото"
+    WHAT_REASON = "С чем связано обращение?"
+    JOB_TYPE = "Выберите вид работ"
 
 
 class SummaryValue(SQLModel):
@@ -37,8 +38,8 @@ class SummaryValue(SQLModel):
 
 class Summary(SQLModel):
     id: int | None
-    type: SummaryType
-    title: SummaryTitle
+    type: str
+    title: str
     name: str | None
     value: str
     target: str | None
@@ -49,20 +50,21 @@ class Summary(SQLModel):
     elementValueIds: list[int] | None
 
 
+class OrderDetails(SQLModel):
+    id: int
+    # List of order params
+    summary: list[Summary]
+
+
 class OrderData(SQLModel):
-    title: str | None
     # Resident order id
     orderId: int
-    serviceId: int | None
+    orderStatusId: int | None
     orderExtId: str | None
     rating: int | None
-    ratingComment: str | None
-    orderStatusId: int | None
     unregisteredAddress: str | None
     unregisteredPhoneNumber: str | None
     unregisteredCustomerName: str | None
-    # List with order details
-    summary: list[Summary]
 
 
 class EmergencyClassRequest(SQLModel):
@@ -70,6 +72,11 @@ class EmergencyClassRequest(SQLModel):
     alertTypeId: int
     timestamp: int | None
     data: OrderData
+
+
+# class OrderUpdate(SQLModel):
+#     isAccident: bool
+#     orderStatusId: int
 
 
 class EmergencyClassResponse(SQLModel):
