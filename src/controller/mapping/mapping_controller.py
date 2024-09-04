@@ -5,9 +5,9 @@ from sqlmodel import Session
 from infra.database import get_session
 from middleware.mode_middleware import TenantMode, modes_required
 from model.auth.auth_model import get_current_user
-from model.mapping import mapping_model, mapping_result_model
+from model.mapping import mapping_model, mapping_result_model, mapping_cim_work_type_model
 from repository.mapping import mapping_result_repository
-from scheme.mapping.mapping_results_scheme import MappingResult, MappingResultUpdate
+from scheme.mapping.mapping_results_scheme import MappingResult, MappingResultUpdate, InputModel, MappedCimModel
 from scheme.mapping.mapping_scheme import MappingNomenclaturesUpload, MappingNomenclaturesResultRead
 from scheme.mapping.search_autocomplete_scheme import AutocompleteNomenclatureNameQuery
 from scheme.task.task_scheme import JobIdRead
@@ -83,3 +83,11 @@ def save_correct_nomenclature(
     current_user: UserRead = Depends(get_current_user),
 ):
     return mapping_result_repository.save_correct_nomenclature(body, session)
+
+
+@router.post("/cim_model_work_types", response_model=MappedCimModel)
+@version(1)
+def mapping_cim_model(
+    body: InputModel,
+):
+    return mapping_cim_work_type_model.mapping_cim_model(body)
