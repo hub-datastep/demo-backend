@@ -30,30 +30,34 @@ class SummaryTitle:
     JOB_TYPE = "Выберите вид работ"
 
 
-class SummaryValue(SQLModel):
-    id: str | None
-    value: str | None
-    fileTypeId: int | None
+class Order(SQLModel):
+    id: int
+    serviceId: int
+    eventId: int
+    buildingId: int
 
 
-class Summary(SQLModel):
-    id: int | None
+class OrderForm(SQLModel):
+    id: int
     type: str
+    typeId: int | None
     title: str
-    name: str | None
-    value: str
-    target: str | None
-    price: float | None
-    currency: str | None
-    elementValueId: int | None
-    values: list[SummaryValue] | None
-    elementValueIds: list[int] | None
+    value: int | str
+
+
+class OrderFormUpdate(SQLModel):
+    id: int
+    value: int | str
+
+
+class Service(SQLModel):
+    orderForm: list[OrderForm]
 
 
 class OrderDetails(SQLModel):
-    id: int
+    order: Order
     # List of order params
-    summary: list[Summary]
+    service: Service
 
 
 class OrderData(SQLModel):
@@ -68,7 +72,7 @@ class OrderData(SQLModel):
 
 
 class EmergencyClassRequest(SQLModel):
-    alertId: str
+    alertId: str | None
     alertTypeId: int
     timestamp: int | None
     data: OrderData
@@ -82,7 +86,7 @@ class EmergencyClassRequest(SQLModel):
 class EmergencyClassResponse(SQLModel):
     order_id: int
     order_query: str | None
-    is_accident: bool
+    is_emergency: bool
     order_emergency: str
     # Response from Domyland API
     order_update_response: dict | None

@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 from datastep.chains.emergency_class_chain import get_emergency_class_chain
 from infra.env import DOMYLAND_AUTH_EMAIL, DOMYLAND_AUTH_PASSWORD, DOMYLAND_AUTH_TENANT_NAME
 from scheme.emergency_class.emergency_class_scheme import EmergencyClassRequest, SummaryType, SummaryTitle, \
-    EmergencyClassResponse, AlertTypeID, OrderDetails
+    EmergencyClassResponse, AlertTypeID, OrderDetails, OrderFormUpdate
 
 DOMYLAND_API_BASE_URL = "https://sud-api.domyland.ru"
 DOMYLAND_APP_NAME = "Datastep"
@@ -69,7 +69,7 @@ def _get_order_details_by_id(order_id: int) -> OrderDetails:
 
     # Update order status
     response = requests.get(
-        url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}",
+        url=f"{DOMYLAND_API_BASE_URL}/initial-data/dispatcher/order-info/{order_id}",
         headers=_get_domyland_headers(auth_token)
     )
     response_data = response.json()
@@ -84,16 +84,31 @@ def _get_order_details_by_id(order_id: int) -> OrderDetails:
     return order_details
 
 
-def _update_order_emergency_status(order_id: int, is_accident: bool):
+def _update_order_emergency_status(
+    order_id: int,
+    service_id: int,
+    event_id: int,
+    building_id: int,
+    order_data: list[OrderFormUpdate],
+):
     # Authorize in Domyland API
     auth_token = _get_auth_token()
+
+    order_data_dict = [data.dict() for data in order_data]
+
+    req_body = {
+        "serviceId": service_id,
+        "eventId": event_id,
+        "buildingId": building_id,
+        "orderData": order_data_dict,
+        # serviceTypeId == 1 is Аварийная заявка
+        "serviceTypeId": 1,
+    }
 
     # Update order status
     response = requests.put(
         url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}",
-        json={
-            "isAccident": is_accident,
-        },
+        json=req_body,
         headers=_get_domyland_headers(auth_token)
     )
     response_data = response.json()
@@ -120,9 +135,9 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassResponse:
     order_details = _get_order_details_by_id(order_id)
 
     order_query: str | None = None
-    for summary in order_details.summary:
-        if summary.type == SummaryType.TEXT and summary.title == SummaryTitle.COMMENT:
-            order_query = summary.value
+    for order_form in order_details.service.orderForm:
+        if order_form.type == SummaryType.TEXT and order_form.title == SummaryTitle.COMMENT:
+            order_query = order_form.value
 
     # Check if resident comment exists
     if order_query is None:
@@ -135,20 +150,34 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassResponse:
     normalized_query = _normalize_resident_request_string(order_query)
     chain = get_emergency_class_chain()
     order_emergency: str = chain.run(query=normalized_query)
-    is_accident = order_emergency.lower().strip() == "аварийная"
+    is_emergency = order_emergency.lower().strip() == "аварийная"
 
     # Update order emergency class in Domyland
     update_order_response_data = None
-    if is_accident:
+    if is_emergency:
+        order = order_details.order
+
+        service_id = order.serviceId
+        event_id = order.eventId
+        building_id = order.buildingId
+
+        order_data = [
+            OrderFormUpdate(**order_form.dict())
+            for order_form in order_details.service.orderForm
+        ]
+
         update_order_response_data = _update_order_emergency_status(
             order_id=order_id,
-            is_accident=is_accident,
+            service_id=service_id,
+            event_id=event_id,
+            building_id=building_id,
+            order_data=order_data,
         )
 
     return EmergencyClassResponse(
         order_id=order_id,
         order_query=order_query,
-        is_accident=is_accident,
+        is_emergency=is_emergency,
         order_emergency=order_emergency,
         order_update_response=update_order_response_data,
     )
