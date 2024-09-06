@@ -86,6 +86,8 @@ def _get_order_details_by_id(order_id: int) -> OrderDetails:
 
 def _update_order_emergency_status(
     order_id: int,
+    customer_id: int,
+    place_id: int,
     service_id: int,
     event_id: int,
     building_id: int,
@@ -97,6 +99,8 @@ def _update_order_emergency_status(
     order_data_dict = [data.dict() for data in order_data]
 
     req_body = {
+        "customerId": customer_id,
+        "placeId": place_id,
         "serviceId": service_id,
         "eventId": event_id,
         "buildingId": building_id,
@@ -157,6 +161,8 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassResponse:
     if is_emergency:
         order = order_details.order
 
+        customer_id = order.customerId
+        place_id = order.placeId
         service_id = order.serviceId
         event_id = order.eventId
         building_id = order.buildingId
@@ -168,6 +174,8 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassResponse:
 
         update_order_response_data = _update_order_emergency_status(
             order_id=order_id,
+            customer_id=customer_id,
+            place_id=place_id,
             service_id=service_id,
             event_id=event_id,
             building_id=building_id,
