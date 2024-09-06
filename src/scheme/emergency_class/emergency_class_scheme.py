@@ -35,6 +35,8 @@ class Order(SQLModel):
     serviceId: int
     eventId: int
     buildingId: int
+    customerId: int
+    placeId: int
 
 
 class OrderForm(SQLModel):
@@ -58,6 +60,7 @@ class OrderDetails(SQLModel):
     order: Order
     # List of order params
     service: Service
+
 
 
 class OrderData(SQLModel):
