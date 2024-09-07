@@ -10,6 +10,8 @@ from scheme.emergency_class.emergency_class_scheme import EmergencyClassRequest,
 
 DOMYLAND_API_BASE_URL = "https://sud-api.domyland.ru"
 DOMYLAND_APP_NAME = "Datastep"
+RESPONSIBLE_USER_ID = 15698
+RESPONSIBLE_DEPT_ID = 38
 
 
 def _normalize_resident_request_string(query: str) -> str:
@@ -101,7 +103,7 @@ def _update_order_emergency_status(
     req_body = {
         "customerId": customer_id,
         "placeId": place_id,
-        "serviceId": service_id,
+        "serviceId": 5790,
         "eventId": event_id,
         "buildingId": building_id,
         "orderData": order_data_dict,
@@ -123,7 +125,39 @@ def _update_order_emergency_status(
             detail=f"Order UPDATE: {response_data}",
         )
 
-    return response_data
+    return response_data, req_body
+
+
+def _update_responsible_user(
+    order_id: int,
+    responsible_dept_id: int,
+    order_status_id: int,
+    responsible_user_ids: [int],
+):
+    # Authorize in Domyland API
+    auth_token = _get_auth_token()
+
+    req_body = {
+        "responsibleDeptId": responsible_dept_id,
+        "orderStatusId": order_status_id,
+        "responsibleUserIds": responsible_user_ids,
+    }
+
+    # Update responsible user
+    response = requests.put(
+        url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}/status",
+        json=req_body,
+        headers=_get_domyland_headers(auth_token)
+    )
+    response_data = response.json()
+
+    if not response.ok:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Order status UPDATE: {response_data}",
+        )
+
+    return response_data, req_body
 
 
 def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassResponse:
@@ -137,6 +171,7 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassResponse:
     # Get order details to get resident comment
     order_id: int = body.data.orderId
     order_details = _get_order_details_by_id(order_id)
+    order_status_id = body.data.orderStatusId
 
     order_query: str | None = None
     for order_form in order_details.service.orderForm:
@@ -157,37 +192,48 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassResponse:
     is_emergency = order_emergency.lower().strip() == "аварийная"
 
     # Update order emergency class in Domyland
-    update_order_response_data = None
+    # update_order_response_data = None
+    # order_update_request = None
+    response = None
+    request_body = None
     if is_emergency:
-        order = order_details.order
-
-        customer_id = order.customerId
-        place_id = order.placeId
-        service_id = order.serviceId
-        event_id = order.eventId
-        building_id = order.buildingId
-
-        order_data = [
-            OrderFormUpdate(**order_form.dict())
-            for order_form in order_details.service.orderForm
-        ]
-
-        update_order_response_data = _update_order_emergency_status(
+        response, request_body = _update_responsible_user(
             order_id=order_id,
-            customer_id=customer_id,
-            place_id=place_id,
-            service_id=service_id,
-            event_id=event_id,
-            building_id=building_id,
-            order_data=order_data,
+            responsible_dept_id=RESPONSIBLE_DEPT_ID,
+            order_status_id=order_status_id,
+            responsible_user_ids=[RESPONSIBLE_USER_ID],
         )
+        # order = order_details.order
+
+        # For changing emergency status
+        # customer_id = order.customerId
+        # place_id = order.placeId
+        # service_id = order.serviceId
+        # event_id = order.eventId
+        # building_id = order.buildingId
+
+        # order_data = [
+        #     OrderFormUpdate(**order_form.dict())
+        #     for order_form in order_details.service.orderForm
+        # ]
+
+        # update_order_response_data, order_update_request = _update_order_emergency_status(
+        #     order_id=order_id,
+        #     customer_id=customer_id,
+        #     place_id=place_id,
+        #     service_id=service_id,
+        #     event_id=event_id,
+        #     building_id=building_id,
+        #     order_data=order_data,
+        # )
 
     return EmergencyClassResponse(
         order_id=order_id,
         order_query=order_query,
         is_emergency=is_emergency,
         order_emergency=order_emergency,
-        order_update_response=update_order_response_data,
+        order_update_request=request_body,
+        order_update_response=response,
     )
 
 # [

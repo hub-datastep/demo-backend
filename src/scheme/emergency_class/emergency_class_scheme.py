@@ -62,11 +62,10 @@ class OrderDetails(SQLModel):
     service: Service
 
 
-
 class OrderData(SQLModel):
     # Resident order id
     orderId: int
-    orderStatusId: int | None
+    orderStatusId: int
     orderExtId: str | None
     rating: int | None
     unregisteredAddress: str | None
@@ -92,4 +91,5 @@ class EmergencyClassResponse(SQLModel):
     is_emergency: bool
     order_emergency: str
     # Response from Domyland API
+    order_update_request: dict | None
     order_update_response: dict | None
