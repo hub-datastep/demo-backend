@@ -103,7 +103,6 @@ def _update_order_emergency_status(
     req_body = {
         "customerId": customer_id,
         "placeId": place_id,
-        "serviceId": 5790,
         "eventId": event_id,
         "buildingId": building_id,
         "orderData": order_data_dict,
