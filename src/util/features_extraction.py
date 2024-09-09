@@ -95,8 +95,8 @@ def extract_match(pattern: str, text: str) -> str:
 
 def extract_features(nomenclatures: DataFrame) -> DataFrame:
     # Применяем регулярные выражения для извлечения характеристик
-    for name, pattern in FEATURES_REGEX_PATTERNS.items():
-        nomenclatures[name] = nomenclatures['name'].progress_apply(
+    for param_name, pattern in FEATURES_REGEX_PATTERNS.items():
+        nomenclatures[param_name] = nomenclatures['name'].progress_apply(
             lambda nom_name: extract_match(pattern, nom_name)
         )
 
@@ -112,9 +112,9 @@ def get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[d
         # Возвращает объект вида {regex_name: nomenclature_param}
         regex_values = row[FEATURES_REGEX_PATTERNS.keys()].to_dict()
 
-        regex_values.update({
-            "brand": row['brand']
-        })
+        # regex_values.update({
+        #     "brand": row['brand']
+        # })
 
         metadatas.append(regex_values)
 
