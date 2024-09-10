@@ -24,3 +24,15 @@ class MappingResult(SQLModel, table=True):
 class MappingResultUpdate(SQLModel):
     id: int
     mapping_nomenclature_corrected: str
+
+
+class InputModel(SQLModel):
+    model_name: str
+    model_type: str
+    material: str
+
+
+class MappedCimModel(SQLModel):
+    model: str
+    work_type: str
+

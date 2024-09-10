@@ -2,11 +2,12 @@ from sqlmodel import SQLModel, Field, Relationship
 
 
 class ClassifierConfigBase(SQLModel):
-    is_use_keywords_detection: bool
+    is_use_keywords_detection: bool | None = Field(default=False)
     chroma_collection_name: str | None
     model_id: str | None = Field(foreign_key="classifier_version.id")
-    use_params: bool | None = Field(default=False)
+    is_use_params: bool | None = Field(default=False)
     nomenclatures_table_name: str | None
+    is_use_brand_recognition: bool | None = Field(default=False)
 
 
 class ClassifierConfig(ClassifierConfigBase, table=True):
