@@ -46,7 +46,6 @@ def start_nomenclature_mapping(
         chunk_size=body.chunk_size,
         classifier_config=current_user.classifier_config,
         tenant_id=tenant_id,
-        is_use_brand_recognition=body.is_use_brand_recognition,
     )
 
 

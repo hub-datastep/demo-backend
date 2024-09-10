@@ -51,6 +51,7 @@ def _create_and_save_embeddings(
         nom = df_noms_with_features.loc[i]
         metadatas[i].update({
             "group": str(nom['group']),
+            "brand": str(nom['brand']),
         })
 
     ids = df_noms_with_features['id'].to_list()

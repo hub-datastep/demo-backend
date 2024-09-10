@@ -14,9 +14,9 @@ class MappingOneTargetRead(SQLModel):
 
 class MappingOneNomenclatureRead(SQLModel):
     row_number: int
-    nomenclature: str | None
+    nomenclature: str
     group: str
-    nomenclature_params: list[dict]
+    nomenclature_params: list[dict] | None
     mappings: list[MappingOneTargetRead] | None
     similar_mappings: list[MappingOneTargetRead] | None
 
@@ -25,7 +25,6 @@ class MappingNomenclaturesUpload(SQLModel):
     nomenclatures: list[MappingOneNomenclatureUpload]
     most_similar_count: int = 3
     chunk_size: int = 100
-    is_use_brand_recognition: bool = True
 
 
 class MappingNomenclaturesResultRead(SQLModel):
