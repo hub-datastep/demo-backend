@@ -49,7 +49,35 @@ def get_nomenclatures_groups(
     return predicted_groups
 
 
-def build_where_metadatas(
+def _build_where_metadatas_old(
+    group: str,
+    brand: str | None,
+    metadatas_list: list[dict] | None,
+    is_params_needed: bool,
+    is_brand_needed: bool,
+    is_hard_params: bool,
+):
+    if len(metadatas_list) == 0 or not is_params_needed:
+        where_metadatas = {"$and": [
+            {"group": group},
+            {"brand": brand},
+        ]}
+    else:
+        metadatas_list_with_group = [{"group": group}]
+        for metadata in metadatas_list:
+            metadatas_list_with_group.append(metadata)
+
+        # Get metadatas for hard-search
+        if is_hard_params:
+            where_metadatas = {"$and": metadatas_list_with_group}
+        # Get metadatas for soft-search
+        else:
+            where_metadatas = {"$or": metadatas_list_with_group}
+
+    return where_metadatas
+
+
+def _build_where_metadatas(
     group: str,
     brand: str | None,
     metadatas_list: list[dict] | None,
@@ -182,7 +210,16 @@ def map_on_nom(
     is_brand_exists = brand is not None
     is_brand_needed = is_brand_exists and is_use_brand_recognition
 
-    where_metadatas = build_where_metadatas(
+    # where_metadatas = _build_where_metadatas(
+    #     group=group,
+    #     brand=brand,
+    #     metadatas_list=metadatas_list,
+    #     is_params_needed=is_params_needed,
+    #     is_brand_needed=is_brand_needed,
+    #     is_hard_params=is_hard_params,
+    # )
+
+    where_metadatas = _build_where_metadatas_old(
         group=group,
         brand=brand,
         metadatas_list=metadatas_list,
@@ -322,6 +359,7 @@ def _map_nomenclatures_chunk(
     classifier_config: ClassifierConfig | None,
     tenant_id: int,
 ) -> list[MappingOneNomenclatureRead]:
+    print(classifier_config)
     job = get_current_job()
 
     # Init job data
