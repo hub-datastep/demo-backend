@@ -223,7 +223,7 @@ def map_on_nom(
         group=group,
         brand=brand,
         metadatas_list=metadatas_list,
-        is_params_needed=is_params_needed,
+        is_params_needed=is_use_params,
         is_brand_needed=is_brand_needed,
         is_hard_params=is_hard_params,
     )
