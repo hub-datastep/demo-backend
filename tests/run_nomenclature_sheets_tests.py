@@ -2,9 +2,9 @@ import logging
 import pprint
 from datetime import datetime
 
-from api_service import authenticate, start_nomenclature_mapping, wait_for_job_completion
-from google_sheets_service import create_new_offline_sheet_and_write_results, get_test_cases
-from result_mapper import process_results
+from services.api_service import authenticate, start_nomenclature_mapping, wait_for_job_completion
+from services.google_sheets_service import create_new_offline_sheet_and_write_results, get_test_cases
+from utils.result_mapper import process_results
 
 # Настройка логгирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
