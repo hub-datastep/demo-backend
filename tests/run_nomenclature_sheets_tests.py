@@ -2,8 +2,9 @@ import logging
 import pprint
 from datetime import datetime
 
-from services.api_service import authenticate, start_nomenclature_mapping, wait_for_job_completion
+from services.auth_api_service import authenticate
 from services.google_sheets_service import create_new_offline_sheet_and_write_results, get_test_cases
+from services.mapping_api_service import start_nomenclature_mapping, wait_for_job_completion
 from utils.result_mapper import process_results
 
 # Настройка логгирования
@@ -13,7 +14,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def run_tests():
     try:
         logging.info("Получение тест кейсов.")
-        # TODO: return all tests results, not only first 100
         test_cases = get_test_cases()
 
         logging.info("Авторизация в API.")
@@ -27,6 +27,7 @@ def run_tests():
             logging.info("Ожидание завершения задачи маппинга.")
             # Ожидание завершения задачи
             result = wait_for_job_completion(job_id, token, interval=30)
+            print(len(result))
 
             if result:
                 logging.info("Результаты маппинга получены успешно.")

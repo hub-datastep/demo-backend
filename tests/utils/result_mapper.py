@@ -1,7 +1,7 @@
-def process_results(test_cases, api_results):
+def process_results(test_cases, nomenclatures: list):
     processed_results = []
 
-    for idx, api_result in enumerate(api_results['nomenclatures']):
+    for idx, api_result in enumerate(nomenclatures):
         test_case = test_cases[idx]
 
         # Сравнение номенклатур и групп

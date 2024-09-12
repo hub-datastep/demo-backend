@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime
 
-from services.api_service_kb import authenticate, start_knowledge_base_prediction
+from services.api_service_kb import start_knowledge_base_prediction
+from services.auth_api_service import authenticate
 from services.google_sheets_service_kb import get_test_cases, create_new_sheet_and_write_results
 from utils.result_knowledge_base import process_results
 
