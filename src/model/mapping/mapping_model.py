@@ -77,7 +77,7 @@ def _build_where_metadatas_old(
     return where_metadatas
 
 
-def _build_where_metadatas(
+def build_where_metadatas(
     group: str,
     brand: str | None,
     metadatas_list: list[dict] | None,
@@ -86,6 +86,8 @@ def _build_where_metadatas(
     is_hard_params: bool,
 ) -> Where:
     metadata_list_with_group = [{"group": group}]
+    # metadata_list_with_brand = [{"brand": brand}] if is_brand_needed else []
+    # metadata_list_with_params = metadatas_list if is_params_needed else []
     metadata_list_with_brand = [{"brand": brand}]
     metadata_list_with_params = metadatas_list
 
@@ -138,10 +140,14 @@ def _build_where_metadatas(
             # If using brand
             if is_brand_needed:
                 where_metadatas = {
-                    **metadata_list_with_group[0],
-                    "$or": [
-                        *metadata_list_with_params,
-                        *metadata_list_with_brand,
+                    "$and": [
+                        *metadata_list_with_group,
+                        {
+                            "$or": [
+                                *metadata_list_with_params,
+                                *metadata_list_with_brand,
+                            ],
+                        },
                     ],
                 }
 
@@ -150,9 +156,13 @@ def _build_where_metadatas(
                 # If params 2 or more
                 if is_many_params:
                     where_metadatas = {
-                        **metadata_list_with_group[0],
-                        "$or": [
-                            *metadata_list_with_params,
+                        "$and": [
+                            *metadata_list_with_group,
+                            {
+                                "$or": [
+                                    *metadata_list_with_params,
+                                ],
+                            },
                         ],
                     }
 
@@ -210,7 +220,7 @@ def map_on_nom(
     is_brand_exists = brand is not None
     is_brand_needed = is_brand_exists and is_use_brand_recognition
 
-    # where_metadatas = _build_where_metadatas(
+    # where_metadatas = build_where_metadatas(
     #     group=group,
     #     brand=brand,
     #     metadatas_list=metadatas_list,
