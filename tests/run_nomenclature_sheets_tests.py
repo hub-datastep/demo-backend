@@ -15,6 +15,7 @@ def run_tests():
     try:
         logging.info("Получение тест кейсов.")
         test_cases = get_test_cases()
+        print(f"Test cases count: {len(test_cases)}")
 
         logging.info("Авторизация в API.")
         token = authenticate()
@@ -27,7 +28,7 @@ def run_tests():
             logging.info("Ожидание завершения задачи маппинга.")
             # Ожидание завершения задачи
             result = wait_for_job_completion(job_id, token, interval=30)
-            print(len(result))
+            print(f"Mapping results count: {len(result)}")
 
             if result:
                 logging.info("Результаты маппинга получены успешно.")
