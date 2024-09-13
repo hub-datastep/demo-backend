@@ -32,6 +32,24 @@ np.set_printoptions(threshold=np.inf)
 def get_nomenclatures_groups(
     noms: DataFrame,
     model_id: str,
+) -> list[str]:
+    model_path = get_model_path(model_id)
+    model_packages = joblib.load(model_path)
+    model = model_packages['model']
+    label_encoder = model_packages['label_encoder']
+
+    prediction_df = noms['name']
+    # Predict groups ids and encode them to groups names
+    predicted_groups = label_encoder.inverse_transform(
+        model.predict(prediction_df)
+    )
+
+    return predicted_groups
+
+
+def get_nomenclatures_groups_old(
+    noms: DataFrame,
+    model_id: str,
     is_use_params: bool,
 ) -> list[str]:
     model_path = get_model_path(model_id)
@@ -220,32 +238,14 @@ def map_on_nom(
     is_brand_exists = brand is not None
     is_brand_needed = is_brand_exists and is_use_brand_recognition
 
-    # where_metadatas = build_where_metadatas(
-    #     group=group,
-    #     brand=brand,
-    #     metadatas_list=metadatas_list,
-    #     is_params_needed=is_params_needed,
-    #     is_brand_needed=is_brand_needed,
-    #     is_hard_params=is_hard_params,
-    # )
-
-    # TODO: remove this algorithm
-    if len(metadatas_list) == 0 or not is_use_params:
-        where_metadatas = {"$and": [
-            {"group": group},
-            {"brand": brand},
-        ]}
-    else:
-        metadatas_list_with_group = [{"group": group}]
-        for metadata in metadatas_list:
-            metadatas_list_with_group.append(metadata)
-
-        # Get metadatas for hard-search
-        if is_hard_params:
-            where_metadatas = {"$and": metadatas_list_with_group}
-        # Get metadatas for soft-search
-        else:
-            where_metadatas = {"$or": metadatas_list_with_group}
+    where_metadatas = build_where_metadatas(
+        group=group,
+        brand=brand,
+        metadatas_list=metadatas_list,
+        is_params_needed=is_params_needed,
+        is_brand_needed=is_brand_needed,
+        is_hard_params=is_hard_params,
+    )
 
     nom_embeddings = nom_embeddings.tolist()
     response: QueryResult = collection.query(
@@ -409,15 +409,12 @@ def _map_nomenclatures_chunk(
     noms['name'] = noms['nomenclature']
 
     # Get noms brand params
-    # TODO: uncomment this
-    # is_use_brand_recognition = classifier_config is None or classifier_config.is_use_brand_recognition
-    # if is_use_brand_recognition:
-    #     noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
-    # else:
-    #     noms['brand'] = None
-    # TODO: remove this
     is_use_brand_recognition = classifier_config is None or classifier_config.is_use_brand_recognition
-    noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
+    if is_use_brand_recognition:
+        noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
+    else:
+        noms['brand'] = None
+    # noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
 
     # Extract all noms params
     is_use_params = classifier_config is None or classifier_config.is_use_params
@@ -430,7 +427,7 @@ def _map_nomenclatures_chunk(
         noms['group'] = get_nomenclatures_groups(
             noms=noms,
             model_id=model_id,
-            is_use_params=is_use_params,
+            # is_use_params=is_use_params,
         )
     except ValueError:
         raise Exception(
