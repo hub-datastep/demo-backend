@@ -80,6 +80,17 @@ services:
       - ./src:/app/src
       - ./.env:/app/.env
       - server:${DATA_FOLDER_PATH}
+    depends_on:
+      - redis-server
+
+  rq-dashboard:
+    image: eoranged/rq-dashboard
+    ports:
+      - "9181:9181"
+    environment:
+      - RQ_DASHBOARD_REDIS_URL=redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}
+    depends_on:
+      - redis-server
 
   db:
     image: postgres
