@@ -1,6 +1,8 @@
 import os
 import sys
 
+from loguru import logger
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
 import pandas as pd
@@ -97,7 +99,7 @@ def create_new_sheet_and_write_results(new_sheet_name, processed_results):
             result['Параметры'],
         ]
         new_sheet.insert_row(row, i)
-    print(f"Результаты тестов успешно сохранены: {new_sheet.url}")
+    logger.info(f"Результаты тестов успешно сохранены: {new_sheet.url}")
 
 
 def create_new_offline_sheet_and_write_results(new_sheet_name, processed_results):
@@ -107,4 +109,4 @@ def create_new_offline_sheet_and_write_results(new_sheet_name, processed_results
     # Сохраняем DataFrame в Excel файл
     file_path = f"{new_sheet_name}.xlsx"
     df.to_excel(file_path, index=False)
-    print(f"Результаты тестов успешно сохранены: {file_path}")
+    logger.info(f"Результаты тестов успешно сохранены: {file_path}")

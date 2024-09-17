@@ -1,6 +1,7 @@
 import time
 
 import requests
+from loguru import logger
 from rq.job import JobStatus
 
 from configs.env import TESTS_API_URL
@@ -34,8 +35,9 @@ def start_nomenclature_mapping(test_cases, token: str):
     if response.status_code == 200:
         return response.json().get("job_id")
     else:
-        print(f"Failed to start mapping. Status code: {response.status_code}")
-        print(response.text)
+        logger.info(f"Failed to start mapping")
+        logger.info(f"Status code: {response.status_code}")
+        logger.info(f"Response: {response.text}")
         return None
 
 
@@ -54,21 +56,23 @@ def get_nomenclature_mappings(
 
     if response.status_code == 200:
         response_datas = response.json()
-        print(f"Mapping status: {response_datas[0]['general_status']}")
+        logger.info(f"Mapping status: {response_datas[0]['general_status']}")
         if is_verbose:
             for mapping_results in response_datas:
-                print(f"Mapping job id: {mapping_results['job_id']}")
-                print(f"Mapping status: {mapping_results['general_status']}")
-                print(f"Mapping ready count: {mapping_results['ready_count']}")
-                print(f"Mapping total count: {mapping_results['total_count']}")
-                print()
+                logger.info(f"Mapping job id: {mapping_results['job_id']}")
+                logger.info(f"Mapping status: {mapping_results['general_status']}")
+                logger.info(f"Mapping ready count: {mapping_results['ready_count']}")
+                logger.info(f"Mapping total count: {mapping_results['total_count']}")
+                logger.info("")
         return response_datas
     else:
-        print(response.text)
+        logger.info(f"Failed to get mapping results")
+        logger.info(f"Status code: {response.status_code}")
+        logger.info(f"Response: {response.text}")
         return None
 
 
-def wait_for_job_completion(job_id: str, token: str, interval: int = 5):
+def wait_for_job_completion(job_id: str, token: str, interval: float = 10):
     while True:
         result = get_nomenclature_mappings(job_id, token)
         if result and isinstance(result, list):
