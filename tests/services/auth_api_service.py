@@ -1,12 +1,12 @@
 import requests
 
-from configs.env import TEST_AUTH_USERNAME, TEST_AUTH_PASSWORD, AUTH_URL
+from configs.env import TESTS_AUTH_USERNAME, TESTS_AUTH_PASSWORD, AUTH_URL
 
 # Данные для авторизации
 AUTH_PAYLOAD = {
     "grant_type": "password",
-    "username": TEST_AUTH_USERNAME,
-    "password": TEST_AUTH_PASSWORD,
+    "username": TESTS_AUTH_USERNAME,
+    "password": TESTS_AUTH_PASSWORD,
 }
 
 
