@@ -6,7 +6,7 @@
 
 ## Как загрузить УПД PDF файл
 
-1. Отправляем запрос на `POST /file/extract/upd`
+1. Отправляем запрос на `POST /file/extract/utd`
 
     - В заголовках указывать хедер `Content-Type: multipart/form-data`
     - В теле запроса передаём PDF файл

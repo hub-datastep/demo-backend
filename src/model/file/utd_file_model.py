@@ -16,13 +16,13 @@ def _clean_text(text: str):
     return re.sub(r'[\s\n]+', ' ', text).strip()
 
 
-def _save_upd_file(file_object: UploadFile):
+def _save_utd_file(file_object: UploadFile):
     file_name = file_object.filename
     filename_with_postfix = get_filename_with_postfix(file_name)
-    file_path = f"{DATA_FOLDER_PATH}/UPDs/{filename_with_postfix}"
+    file_path = f"{DATA_FOLDER_PATH}/UTDs/{filename_with_postfix}"
     file_folder_path = Path(file_path).parent
 
-    # Create dir UPDs if not exists
+    # Create dir UTDs if not exists
     os.makedirs(file_folder_path, exist_ok=True)
 
     with open(file_path, "wb") as new_file:
@@ -32,8 +32,8 @@ def _save_upd_file(file_object: UploadFile):
     return file_path
 
 
-def extract_noms_from_upd(file_object: UploadFile):
-    file_path = _save_upd_file(file_object)
+def extract_noms_from_utd(file_object: UploadFile):
+    file_path = _save_utd_file(file_object)
 
     parsed_noms = []
     try:
