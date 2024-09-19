@@ -5,7 +5,7 @@ from sqlmodel import Session
 from infra.database import get_session
 from middleware.mode_middleware import TenantMode, modes_required
 from model.auth.auth_model import get_current_user
-from model.file import file_model
+from model.file import file_model, utd_file_model
 from model.file.file_model import extract_data_from_invoice
 from repository.file.file_repository import get_all_filenames_by_tenant_id
 from scheme.file.file_scheme import FileRead, DataExtract, File
@@ -35,6 +35,16 @@ async def extract_data_invoice(
     current_user: UserRead = Depends(get_current_user),
 ):
     return extract_data_from_invoice(file_object, with_metadata)
+
+
+@router.post("/extract/utd", response_model=list[str])
+@version(1)
+@modes_required([TenantMode.CLASSIFIER])
+def extract_utd_nomenclatures(
+    file_object: UploadFile,
+    current_user: UserRead = Depends(get_current_user),
+):
+    return utd_file_model.extract_noms_from_utd(file_object)
 
 
 @router.post("", response_model=File)
