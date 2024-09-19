@@ -110,6 +110,13 @@ services:
     ports:
       - "8988:8978"
 
+  volumes-viewer:
+    image: filebrowser/filebrowser
+    ports:
+      - "9080:80"
+    volumes:
+      - server:/srv
+
   chroma-db:
     image: chromadb/chroma
     restart: always
@@ -125,5 +132,6 @@ volumes:
   redis-server:
   datastep-db:
   datastep-dbeaver:
+  portainer:
   chroma-data:
     driver: local
