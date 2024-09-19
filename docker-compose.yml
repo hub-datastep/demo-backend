@@ -132,6 +132,5 @@ volumes:
   redis-server:
   datastep-db:
   datastep-dbeaver:
-  portainer:
   chroma-data:
     driver: local
