@@ -33,7 +33,7 @@ def _create_and_save_embeddings(
     df_noms = _fetch_all_noms(
         db_con_str=db_con_str,
         table_name=table_name,
-    )[:5]
+    )
 
     noms_count = len(df_noms)
     print(f"Number of nomenclatures: {noms_count}")
