@@ -1,6 +1,7 @@
 import os
 import sys
 
+from gspread import SpreadsheetNotFound
 from loguru import logger
 
 from configs.env import TESTS_MAPPING_SPREADSHEET_NAME, TESTS_MAPPING_TEST_CASES_TABLE_NAME
@@ -23,8 +24,8 @@ TEST_CASES_TABLE_HEADERS = [
     'Шаг алгоритма',
     'Тип ошибки',
     'Номенклатура поставщика',
-    'Ожидание номенклатура',
     'Ожидание группа',
+    'Ожидание номенклатура',
 ]
 
 TESTS_RESULT_TABLE_HEADERS = [
@@ -47,7 +48,6 @@ def get_google_sheets_client():
     # Авторизация
     creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_PATH, scope)
     client = gspread.authorize(creds)
-
     return client
 
 
@@ -59,9 +59,15 @@ def get_sheet_headers(spreadsheet_name, sheet_name):
 
 
 def read_sheet(spreadsheet_name, sheet_name, expected_headers):
-    client = get_google_sheets_client()
-    sheet = client.open(spreadsheet_name).worksheet(sheet_name)
-    return sheet.get_all_records(expected_headers=expected_headers)
+    try:
+        client = get_google_sheets_client()
+        sheet = client.open(spreadsheet_name).worksheet(sheet_name)
+        return sheet.get_all_records(expected_headers=expected_headers)
+    except SpreadsheetNotFound as e:
+        logger.error(e)
+        raise ValueError(
+            f"Spreadsheet '{spreadsheet_name}' not found. Check TESTS_MAPPING_SPREADSHEET_NAME and TESTS_MAPPING_TEST_CASES_TABLE_NAME in .env"
+        )
 
 
 def write_to_sheet(spreadsheet_name, sheet_name, data):
