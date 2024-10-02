@@ -37,7 +37,7 @@ def run_tests():
 
         if result:
             logger.info("Результаты маппинга получены успешно.")
-            logger.info(result)
+            # logger.info(result)
 
             logger.info("Предобработка результатов.")
             processed_results = process_results(test_cases, result)
