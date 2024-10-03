@@ -66,7 +66,7 @@ def read_sheet(spreadsheet_name, sheet_name, expected_headers):
     except SpreadsheetNotFound as e:
         logger.error(e)
         raise ValueError(
-            f"Spreadsheet '{spreadsheet_name}' not found. Check TESTS_MAPPING_SPREADSHEET_NAME and TESTS_MAPPING_TEST_CASES_TABLE_NAME in .env"
+            f"Spreadsheet '{spreadsheet_name}' not found. Check if it's not XLSX or try publish it for service account."
         )
 
 
