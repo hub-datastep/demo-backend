@@ -11,9 +11,10 @@ from util.features_extraction import extract_features, get_noms_metadatas_with_f
 
 def _fetch_all_noms(db_con_str: str, table_name: str) -> DataFrame:
     st = f"""
-        SELECT "id", "name", "internal_group", "group"
+        SELECT "id", "name", "internal_group", "group", "view"
         FROM {table_name}
         WHERE "is_group" = FALSE
+        AND "is_deleted" = FALSE
      """
 
     return read_sql(st, db_con_str)
@@ -62,9 +63,11 @@ def _create_and_save_embeddings(
     metadatas = get_noms_metadatas_with_features(df_noms_with_features)
     for i, metadata in enumerate(metadatas):
         nom = df_noms_with_features.loc[i]
+        # Add additional columns, that not features
         metadatas[i].update({
             "internal_group": str(nom['internal_group']),
             "group": str(nom['group']),
+            "view": str(nom['view']),
             "brand": str(nom['brand']),
         })
 
