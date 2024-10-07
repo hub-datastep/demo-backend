@@ -121,12 +121,13 @@ def process_results(test_cases, mapping_results_list: list):
             "Реальность внутренняя группа": actual_internal_group,
             "Ожидание группа": expected_group,
             "Реальность группа": actual_group,
-            "Ожидание номенклатура": expected_nomenclature,
-            "Реальность номенклатура": actual_nomenclature,
-            "Реальность варианты номенклатур": actual_similar_nomenclatures,
+            "Реальность внутренняя группа": actual_internal_group,
             # TODO: add correct view
             "Ожидание вид": "",
             "Реальность вид": actual_view,
+            "Ожидание номенклатура": expected_nomenclature,
+            "Реальность номенклатура": actual_nomenclature,
+            "Реальность варианты номенклатур": actual_similar_nomenclatures,
             "Параметры": nomenclature_params,
         }
 
