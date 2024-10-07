@@ -72,7 +72,10 @@ def get_nomenclature_mappings(
         return None
 
 
-def wait_for_job_completion(job_id: str, token: str, interval: float = 10):
+def wait_for_job_completion(job_id: str, token: str, interval: float = 30):
+    # Minimal interval is 30 sec
+    interval = max(interval, 30)
+
     while True:
         result = get_nomenclature_mappings(job_id, token)
         if result and isinstance(result, list):
