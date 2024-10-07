@@ -4,6 +4,7 @@ from chromadb import QueryResult, Where
 from chromadb.api.models.Collection import Collection
 from fastapi import HTTPException, status
 from fastembed import TextEmbedding
+from loguru import logger
 from pandas import DataFrame
 from rq import get_current_job
 from rq.job import JobStatus
@@ -13,6 +14,7 @@ from infra.chroma_store import connect_to_chroma_collection, get_all_collections
 from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName, get_job
 from model.classifier.classifier_retrain_model import TRAINING_COLUMNS
 from model.classifier.classifier_version_model import get_model_path
+from model.mapping.group_views_model import get_nomenclatures_views
 from model.mapping.mapping_result_model import save_mapping_result
 from model.ner.ner import ner_service
 from model.used_token.used_token_model import charge_used_tokens, count_used_tokens
@@ -101,12 +103,17 @@ def _build_where_metadatas_old(
 def build_where_metadatas(
     group: str,
     brand: str | None,
+    view: str | None,
     metadatas_list: list[dict] | None,
     is_params_needed: bool,
     is_brand_needed: bool,
     is_hard_params: bool,
 ) -> Where:
-    metadata_list_with_group = [{"internal_group": group}]
+    metadata_list_with_group = [
+        {"internal_group": group},
+        # Ставлю использование Вида номенклатуры пока здесь, пока у нас нет этого параметра в конфиге Классификатора
+        {"view": view},
+    ]
     # metadata_list_with_brand = [{"brand": brand}] if is_brand_needed else []
     # metadata_list_with_params = metadatas_list if is_params_needed else []
     metadata_list_with_brand = [{"brand": brand}]
@@ -229,6 +236,7 @@ def map_on_nom(
     nom_embeddings: np.ndarray,
     group: str,
     brand: str | None,
+    view: str | None,
     metadatas_list: list[dict] | None,
     is_hard_params: bool,
     is_use_params: bool,
@@ -244,6 +252,7 @@ def map_on_nom(
     where_metadatas = build_where_metadatas(
         group=group,
         brand=brand,
+        view=view,
         metadatas_list=metadatas_list,
         is_params_needed=is_params_needed,
         is_brand_needed=is_brand_needed,
@@ -397,7 +406,8 @@ def _map_nomenclatures_chunk(
     classifier_config: ClassifierConfig | None,
     tenant_id: int,
 ) -> list[MappingOneNomenclatureRead]:
-    print(classifier_config)
+    logger.info(f"Classifier config for user with ID {classifier_config.user_id}: {classifier_config}")
+
     job = get_current_job()
 
     # Init job data
@@ -424,7 +434,7 @@ def _map_nomenclatures_chunk(
     # Create embeddings for every mapping
     noms['embeddings'] = get_nomenclatures_embeddings(noms['nomenclature'].to_list())
 
-    # Copy noms to "name" column for extracting params
+    # Copy noms to "name" column for params extracting
     noms['name'] = noms['nomenclature']
 
     # Get noms brand params
@@ -440,7 +450,7 @@ def _map_nomenclatures_chunk(
     if is_use_params:
         noms = extract_features(noms)
 
-    # Run classification to get mapping group
+    # Run classification to get nomenclatures groups
     model_id = classifier_config.model_id
     try:
         noms['internal_group'] = get_nomenclatures_groups(
@@ -452,6 +462,11 @@ def _map_nomenclatures_chunk(
         raise Exception(
             f"Model with ID '{model_id}' does not support params or DataFrame for prediction does not contains them"
         )
+
+    # Run LLM to get nomenclatures views
+    # TODO: add this to ClassifierConfig
+    # TODO: run this only if param in ClassifierConfig is true
+    noms = get_nomenclatures_views(noms)
 
     # Get all noms params with group as metadatas list
     if is_use_params:
@@ -496,6 +511,7 @@ def _map_nomenclatures_chunk(
                 nom_embeddings=nom['embeddings'],
                 group=nom['internal_group'],
                 brand=nom['brand'],
+                view=nom['view'],
                 metadatas_list=metadatas_list,
                 is_hard_params=True,
                 is_use_params=is_use_params,
@@ -514,6 +530,7 @@ def _map_nomenclatures_chunk(
                     nom_embeddings=nom['embeddings'],
                     group=nom['internal_group'],
                     brand=nom['brand'],
+                    view=nom['view'],
                     most_similar_count=most_similar_count,
                     metadatas_list=metadatas_list,
                     is_hard_params=False,

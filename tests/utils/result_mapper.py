@@ -77,6 +77,8 @@ def process_results(test_cases, mapping_results_list: list):
         expected_nomenclature = test_case['Ожидание номенклатура']
         expected_group = test_case['Ожидание группа']
         actual_group = mapping_result['group']
+        actual_internal_group = mapping_result['internal_group']
+        actual_view = mapping_result['view']
 
         nomenclature_params_results: list[dict] = mapping_result['nomenclature_params']
         nomenclature_params_list = []
@@ -110,8 +112,10 @@ def process_results(test_cases, mapping_results_list: list):
             "Номенклатура": test_case_nomenclature,
             "Ожидание группа": expected_group,
             "Реальность группа": actual_group,
+            "Реальность внутренняя группа": actual_internal_group,
             "Ожидание номенклатура": expected_nomenclature,
             "Реальность номенклатура": actual_nomenclature,
+            "Реальность вид": actual_view,
             "Параметры": nomenclature_params,
         }
 
