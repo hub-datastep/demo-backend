@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import joblib
 import numpy as np
 from chromadb import QueryResult, Where
@@ -484,6 +486,7 @@ def _map_nomenclatures_chunk(
     noms['similar_mappings'] = None
 
     for i, nom in noms.iterrows():
+        start_at = datetime.now()
         # Create mapping metadatas list for query
         if is_use_params:
             metadatas_list = []
@@ -546,6 +549,9 @@ def _map_nomenclatures_chunk(
         noms.loc[i] = nom
         job.meta['ready_count'] += 1
         job.save_meta()
+
+        end_at = datetime.now()
+        logger.debug(f"Nomenclature processing time: {end_at - start_at}")
 
     job.meta['status'] = "finished"
     job.save_meta()

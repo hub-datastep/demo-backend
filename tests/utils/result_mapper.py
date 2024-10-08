@@ -80,13 +80,14 @@ def process_results(test_cases, mapping_results_list: list):
         actual_internal_group = mapping_result['internal_group']
         actual_view = mapping_result['view']
 
-        nomenclature_params_results: list[dict] = mapping_result['nomenclature_params']
+        nomenclature_params_results: list[dict] | None = mapping_result['nomenclature_params']
         nomenclature_params_list = []
-        for param in nomenclature_params_results:
-            param_name, param_value = list(param.items())[0]
-            nomenclature_params_list.append(
-                f"{param_name}: {param_value}"
-            )
+        if nomenclature_params_results:
+            for param in nomenclature_params_results:
+                param_name, param_value = list(param.items())[0]
+                nomenclature_params_list.append(
+                    f"{param_name}: {param_value}"
+                )
         nomenclature_params = "\n".join(nomenclature_params_list)
 
         actual_nomenclature = ""
