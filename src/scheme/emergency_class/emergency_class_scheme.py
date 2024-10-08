@@ -30,6 +30,12 @@ class SummaryTitle:
     JOB_TYPE = "Выберите вид работ"
 
 
+class OrderSummary(SQLModel):
+    type: str
+    title: str
+    value: str
+
+
 class Order(SQLModel):
     id: int
     serviceId: int
@@ -37,6 +43,7 @@ class Order(SQLModel):
     buildingId: int
     customerId: int
     placeId: int
+    summary: list[OrderSummary]
 
 
 class OrderForm(SQLModel):
