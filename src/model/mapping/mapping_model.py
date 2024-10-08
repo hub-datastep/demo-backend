@@ -29,7 +29,7 @@ tqdm.pandas()
 np.set_printoptions(threshold=np.inf)
 
 
-def get_nomenclatures_groups(
+def get_nomenclatures_groups_old(
     noms: DataFrame,
     model_id: str,
     is_use_params: bool,
@@ -45,6 +45,27 @@ def get_nomenclatures_groups(
 
     prediction_df = noms[final_training_columns]
     predicted_groups = model.predict(prediction_df)
+
+    return predicted_groups
+
+
+def get_nomenclatures_groups(
+    noms: DataFrame,
+    model_id: str,
+) -> list[str]:
+    model_path = get_model_path(model_id)
+    model_packages = joblib.load(model_path)
+    # logger.info(f"model packages: {model_packages}")
+    model = model_packages['model']
+    label_encoder = model_packages['label_encoder']
+
+    prediction_df = noms['name']
+    prediction_list = prediction_df.to_list()
+
+    # Predict groups ids and encode them to groups names
+    predicted_groups = label_encoder.inverse_transform(
+        model.predict(prediction_list)
+    )
 
     return predicted_groups
 
@@ -77,7 +98,7 @@ def _build_where_metadatas_old(
     return where_metadatas
 
 
-def _build_where_metadatas(
+def build_where_metadatas(
     group: str,
     brand: str | None,
     metadatas_list: list[dict] | None,
@@ -85,7 +106,9 @@ def _build_where_metadatas(
     is_brand_needed: bool,
     is_hard_params: bool,
 ) -> Where:
-    metadata_list_with_group = [{"group": group}]
+    metadata_list_with_group = [{"internal_group": group}]
+    # metadata_list_with_brand = [{"brand": brand}] if is_brand_needed else []
+    # metadata_list_with_params = metadatas_list if is_params_needed else []
     metadata_list_with_brand = [{"brand": brand}]
     metadata_list_with_params = metadatas_list
 
@@ -138,10 +161,14 @@ def _build_where_metadatas(
             # If using brand
             if is_brand_needed:
                 where_metadatas = {
-                    **metadata_list_with_group[0],
-                    "$or": [
-                        *metadata_list_with_params,
-                        *metadata_list_with_brand,
+                    "$and": [
+                        *metadata_list_with_group,
+                        {
+                            "$or": [
+                                *metadata_list_with_params,
+                                *metadata_list_with_brand,
+                            ],
+                        },
                     ],
                 }
 
@@ -150,9 +177,13 @@ def _build_where_metadatas(
                 # If params 2 or more
                 if is_many_params:
                     where_metadatas = {
-                        **metadata_list_with_group[0],
-                        "$or": [
-                            *metadata_list_with_params,
+                        "$and": [
+                            *metadata_list_with_group,
+                            {
+                                "$or": [
+                                    *metadata_list_with_params,
+                                ],
+                            },
                         ],
                     }
 
@@ -210,58 +241,56 @@ def map_on_nom(
     is_brand_exists = brand is not None
     is_brand_needed = is_brand_exists and is_use_brand_recognition
 
-    # where_metadatas = _build_where_metadatas(
-    #     group=group,
-    #     brand=brand,
-    #     metadatas_list=metadatas_list,
-    #     is_params_needed=is_params_needed,
-    #     is_brand_needed=is_brand_needed,
-    #     is_hard_params=is_hard_params,
-    # )
-
-    # TODO: remove this algorithm
-    if len(metadatas_list) == 0 or not is_use_params:
-        where_metadatas = {"$and": [
-            {"group": group},
-            {"brand": brand},
-        ]}
-    else:
-        metadatas_list_with_group = [{"group": group}]
-        for metadata in metadatas_list:
-            metadatas_list_with_group.append(metadata)
-
-        # Get metadatas for hard-search
-        if is_hard_params:
-            where_metadatas = {"$and": metadatas_list_with_group}
-        # Get metadatas for soft-search
-        else:
-            where_metadatas = {"$or": metadatas_list_with_group}
+    where_metadatas = build_where_metadatas(
+        group=group,
+        brand=brand,
+        metadatas_list=metadatas_list,
+        is_params_needed=is_params_needed,
+        is_brand_needed=is_brand_needed,
+        is_hard_params=is_hard_params,
+    )
 
     nom_embeddings = nom_embeddings.tolist()
     response: QueryResult = collection.query(
         query_embeddings=[nom_embeddings],
         where=where_metadatas,
         n_results=most_similar_count,
+        include=["documents", "distances", "metadatas"],
     )
 
     response_ids = response['ids'][0]
-    response_documents = response['documents'][0]
-    response_distances = response['distances'][0]
 
     if len(response_ids) == 0:
         return None
 
+    response_documents = response['documents'][0]
+    response_metadatas = response['metadatas'][0]
+    response_distances = response['distances'][0]
+
     mapped_noms = []
     for i in range(len(response_ids)):
+        response_group = response_metadatas[i].get("group")
         mapped_noms.append(
             MappingOneTargetRead(
                 nomenclature_guid=response_ids[i],
                 nomenclature=response_documents[i],
+                group=response_group,
                 similarity_score=response_distances[i],
             )
         )
 
     return mapped_noms
+
+
+def _get_mappings_group(mappings: list[MappingOneTargetRead]) -> str | None:
+    mappings_group = None
+
+    for mapping_nom in mappings:
+        if mapping_nom is not None:
+            mappings_group = mapping_nom.group
+            break
+
+    return mappings_group
 
 
 def convert_nomenclatures_to_df(nomenclatures: list[MappingOneNomenclatureUpload]) -> DataFrame:
@@ -399,15 +428,12 @@ def _map_nomenclatures_chunk(
     noms['name'] = noms['nomenclature']
 
     # Get noms brand params
-    # TODO: uncomment this
-    # is_use_brand_recognition = classifier_config is None or classifier_config.is_use_brand_recognition
-    # if is_use_brand_recognition:
-    #     noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
-    # else:
-    #     noms['brand'] = None
-    # TODO: remove this
     is_use_brand_recognition = classifier_config is None or classifier_config.is_use_brand_recognition
-    noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
+    if is_use_brand_recognition:
+        noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
+    else:
+        noms['brand'] = None
+    # noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
 
     # Extract all noms params
     is_use_params = classifier_config is None or classifier_config.is_use_params
@@ -417,10 +443,10 @@ def _map_nomenclatures_chunk(
     # Run classification to get mapping group
     model_id = classifier_config.model_id
     try:
-        noms['group'] = get_nomenclatures_groups(
+        noms['internal_group'] = get_nomenclatures_groups(
             noms=noms,
             model_id=model_id,
-            is_use_params=is_use_params,
+            # is_use_params=is_use_params,
         )
     except ValueError:
         raise Exception(
@@ -436,9 +462,11 @@ def _map_nomenclatures_chunk(
     collection_name = classifier_config.chroma_collection_name
     collection = connect_to_chroma_collection(collection_name)
 
+    # Init noms result params
+    noms['group'] = None
+    noms['nomenclature_params'] = None
     noms['mappings'] = None
     noms['similar_mappings'] = None
-    noms['nomenclature_params'] = None
 
     for i, nom in noms.iterrows():
         # Create mapping metadatas list for query
@@ -455,7 +483,7 @@ def _map_nomenclatures_chunk(
         nom['nomenclature_params'] = metadatas_list
 
         # Check if nom really belong to mapped group, only if is_use_keywords is True
-        if is_use_keywords and nom['keyword'] not in nom['group'].lower():
+        if is_use_keywords and nom['keyword'] not in nom['internal_group'].lower():
             nom['mappings'] = [MappingOneTargetRead(
                 nomenclature_guid="",
                 nomenclature="Для такой номенклатуры группы не нашлось",
@@ -466,7 +494,7 @@ def _map_nomenclatures_chunk(
             mappings = map_on_nom(
                 collection=collection,
                 nom_embeddings=nom['embeddings'],
-                group=nom['group'],
+                group=nom['internal_group'],
                 brand=nom['brand'],
                 metadatas_list=metadatas_list,
                 is_hard_params=True,
@@ -475,12 +503,16 @@ def _map_nomenclatures_chunk(
             )
             nom['mappings'] = mappings
 
+            # Extract NSI group
+            if mappings is not None:
+                nom['group'] = _get_mappings_group(mappings)
+
             # Map similar nomenclatures if nom's params is not valid
             if mappings is None:
                 similar_mappings = map_on_nom(
                     collection=collection,
                     nom_embeddings=nom['embeddings'],
-                    group=nom['group'],
+                    group=nom['internal_group'],
                     brand=nom['brand'],
                     most_similar_count=most_similar_count,
                     metadatas_list=metadatas_list,
@@ -489,6 +521,10 @@ def _map_nomenclatures_chunk(
                     is_use_brand_recognition=is_use_brand_recognition,
                 )
                 nom['similar_mappings'] = similar_mappings
+
+                # Extract NSI group
+                if similar_mappings is not None:
+                    nom['group'] = _get_mappings_group(similar_mappings)
 
         noms.loc[i] = nom
         job.meta['ready_count'] += 1
