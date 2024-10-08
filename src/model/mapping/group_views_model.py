@@ -17,7 +17,9 @@ tqdm.pandas()
 а не по НСИшной (group)
 """
 
-GROUP_VIEWS_TABLE_PATH = f"{DATA_FOLDER_PATH}/levelgroup-group-views.xlsx"
+# GROUP_VIEWS_TABLE_PATH = f"{DATA_FOLDER_PATH}/levelgroup-group-views.xlsx"
+# ! REMOVE
+GROUP_VIEWS_TABLE_PATH = f"/home/syrnnik/Documents/Syrnnik/BandaWorks/Datastep/demo-backend/data/levelgroup-group-views.xlsx"
 
 
 # For tests
