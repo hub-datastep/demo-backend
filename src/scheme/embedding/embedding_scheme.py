@@ -12,5 +12,6 @@ class CreateAndSaveEmbeddingsUpload(SQLModel):
 class CreateAndSaveEmbeddingsResult(SQLModel):
     job_id: str
     status: JobStatus
+    general_status: str
     ready_count: int | None
     total_count: int | None
