@@ -63,7 +63,7 @@ def get_nomenclatures_groups(
     model = model_packages['model']
     label_encoder = model_packages['label_encoder']
 
-    prediction_df = noms['name']
+    prediction_df = noms['nomenclature']
     prediction_list = prediction_df.to_list()
 
     # Predict groups ids and encode them to groups names
