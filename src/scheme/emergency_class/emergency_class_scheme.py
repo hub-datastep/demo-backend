@@ -73,11 +73,6 @@ class OrderData(SQLModel):
     # Resident order id
     orderId: int
     orderStatusId: int
-    orderExtId: str | None
-    rating: int | None
-    unregisteredAddress: str | None
-    unregisteredPhoneNumber: str | None
-    unregisteredCustomerName: str | None
 
 
 class EmergencyClassRequest(SQLModel):
@@ -86,17 +81,6 @@ class EmergencyClassRequest(SQLModel):
     timestamp: int | None
     data: OrderData
 
-
 # class OrderUpdate(SQLModel):
 #     isAccident: bool
 #     orderStatusId: int
-
-
-class EmergencyClassResponse(SQLModel):
-    order_id: int
-    order_query: str | None
-    is_emergency: bool
-    order_emergency: str
-    # Response from Domyland API
-    order_update_request: dict | None
-    order_update_response: dict | None
