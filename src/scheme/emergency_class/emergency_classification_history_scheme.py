@@ -33,5 +33,5 @@ class EmergencyClassificationRecordBase(SQLModel):
 class EmergencyClassificationRecord(EmergencyClassificationRecordBase, table=True):
     __tablename__ = "emergency_classification_history"
 
-    id: int | None = Field(primary_key=True)
+    id: int | None = Field(default=None, primary_key=True)
     created_at: datetime | None = Field(default_factory=datetime.utcnow)

@@ -8,6 +8,7 @@ from datastep.chains.emergency_class_chain import get_emergency_class_chain
 from infra.env import DOMYLAND_AUTH_EMAIL, DOMYLAND_AUTH_PASSWORD, DOMYLAND_AUTH_TENANT_NAME
 from infra.vysota_uds_list import UDS_LIST
 from model.emergency_class.emergency_classification_history_model import save_emergency_classification_record
+from repository.emergency_class.emergency_classification_config_repository import get_default_config
 from scheme.emergency_class.emergency_class_scheme import EmergencyClassRequest, SummaryType, SummaryTitle, \
     AlertTypeID, OrderDetails, OrderFormUpdate
 from scheme.emergency_class.emergency_classification_history_scheme import EmergencyClassificationRecord
@@ -202,6 +203,21 @@ def get_emergency_class(
     )
 
     try:
+        emergency_classification_config = get_default_config()
+        user_id = emergency_classification_config.user_id
+        # Is need to classify order emergency
+        is_use_emergency_classification = emergency_classification_config.is_use_emergency_classification
+        # Is need to update order emergency in Domyland (blocked by is_use_emergency_classification)
+        is_use_order_updating = emergency_classification_config.is_use_order_updating and is_use_emergency_classification
+        # Message to disabled fields
+        disabled_field_msg = f"skipped by emergency classification config of user with ID {user_id}"
+
+        if emergency_classification_config is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Неверный ID типа уведомления ({body.alertTypeId})",
+            )
+
         # Check if order is new (created)
         if body.alertTypeId != AlertTypeID.NEW_ORDER:
             raise HTTPException(
@@ -221,12 +237,15 @@ def get_emergency_class(
 
         history_record.order_query = order_query
 
-        # Check if resident comment exists
-        if order_query is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"В заявке {order_id} отсутствует комментарий для определения её аварийности.",
-            )
+        # Check if resident comment exists and not empty if enabled
+        if is_use_emergency_classification:
+            is_order_query_exists = order_query is None
+            is_order_query_empty = not bool(order_query.strip())
+            if not is_order_query_exists or is_order_query_empty:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"В заявке {order_id} отсутствует комментарий для определения её аварийности.",
+                )
 
         # Get resident address
         order_address: str | None = None
@@ -237,27 +256,35 @@ def get_emergency_class(
 
         history_record.order_address = order_address
 
-        # Check if resident address exists
-        if order_address is None:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"В заявке {order_id} отсутствует адрес для определения ответственного ЕДС.",
-            )
+        # Check if resident address exists and not empty if enabled
+        if is_use_emergency_classification:
+            is_order_address_exists = order_address is None
+            is_order_address_empty = not bool(order_address.strip())
+
+            if not is_order_address_exists or is_order_address_empty:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"В заявке {order_id} отсутствует адрес для определения ответственного ЕДС.",
+                )
 
         # Get order emergency
-        normalized_query = _normalize_resident_request_string(order_query)
-        chain = get_emergency_class_chain()
-
-        order_emergency: str = chain.run(query=normalized_query)
+        if is_use_emergency_classification:
+            normalized_query = _normalize_resident_request_string(order_query)
+            chain = get_emergency_class_chain()
+            order_emergency: str = chain.run(query=normalized_query)
+        else:
+            order_emergency = disabled_field_msg
         history_record.order_emergency = order_emergency
 
-        is_emergency = order_emergency.lower().strip() == "аварийная"
+        is_emergency = None
+        if is_use_emergency_classification:
+            is_emergency = order_emergency.lower().strip() == "аварийная"
         history_record.is_emergency = is_emergency
 
         # Update order emergency class in Domyland
         # order_update_request = None
         # update_order_response_data = None
-        if is_emergency:
+        if is_emergency and is_use_emergency_classification:
             # Get responsible UDS user id
             responsible_users_ids = _get_responsible_users_ids_by_order_address(order_address)
             # Convert list to str
@@ -269,13 +296,18 @@ def get_emergency_class(
                     detail=f"Не получилось найти ответственный ЕДС для заявки {order_id}",
                 )
 
-            # Update order responsible user
-            response, request_body = _update_responsible_user(
-                order_id=order_id,
-                responsible_dept_id=RESPONSIBLE_DEPT_ID,
-                order_status_id=order_status_id,
-                responsible_users_ids=responsible_users_ids,
-            )
+            # Update order responsible user is enabled
+            if is_use_order_updating:
+                response, request_body = _update_responsible_user(
+                    order_id=order_id,
+                    responsible_dept_id=RESPONSIBLE_DEPT_ID,
+                    order_status_id=order_status_id,
+                    responsible_users_ids=responsible_users_ids,
+                )
+            else:
+                request_body = {"result": disabled_field_msg}
+                response = {"result": disabled_field_msg}
+
             history_record.order_update_request = request_body
             history_record.order_update_response = response
 
