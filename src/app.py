@@ -12,6 +12,7 @@ from controller.chat import message_controller, chat_controller
 from controller.chroma_collection import chroma_collection_controller
 from controller.classifier import classifier_config_controller, classifier_controller
 from controller.embedding import embedding_controller
+from controller.emergency_class import emergency_class_controller
 from controller.file import file_controller
 from controller.ksr import ksr_controller
 from controller.mapping import mapping_controller
@@ -73,6 +74,9 @@ app.include_router(task_controller.router, tags=["task"], prefix="/task")
 
 # Ksr Nomenclature
 app.include_router(ksr_controller.router, tags=["ksr"], prefix="/ksr")
+
+# Emergency Class
+app.include_router(emergency_class_controller.router, tags=["emergency_class"], prefix="/emergency_class")
 
 
 @app.get("/healthcheck")
