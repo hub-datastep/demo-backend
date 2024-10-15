@@ -271,10 +271,12 @@ def get_emergency_class(
                     detail=f"В заявке {order_id} отсутствует адрес для определения ответственного ЕДС.",
                 )
 
+        # Normalize order query for LLM chain
+        normalized_query = _normalize_resident_request_string(order_query)
+        history_record.order_normalized_query = normalized_query
+
         # Get order emergency
         if is_use_emergency_classification:
-            normalized_query = _normalize_resident_request_string(order_query)
-            history_record.order_normalized_query = normalized_query
             chain = get_emergency_class_chain()
             order_emergency: str = chain.run(query=normalized_query)
         else:
