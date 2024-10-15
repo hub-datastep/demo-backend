@@ -216,21 +216,17 @@ def get_emergency_class(
         is_use_emergency_classification = emergency_classification_config.is_use_emergency_classification
         # Is need to update order emergency in Domyland (blocked by is_use_emergency_classification)
         is_use_order_updating = emergency_classification_config.is_use_order_updating and is_use_emergency_classification
-        # Message to disabled fields
+
+        # Message for response fields disabled by config
         disabled_field_msg = f"skipped by emergency classification config of user with ID {user_id}"
 
-        if is_use_emergency_classification is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Неверный ID типа уведомления ({body.alertTypeId})",
-            )
-
         # Check if order is new (created)
-        if body.alertTypeId != AlertTypeID.NEW_ORDER:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Неверный ID типа уведомления ({body.alertTypeId})",
-            )
+        if is_use_emergency_classification:
+            if body.alertTypeId != AlertTypeID.NEW_ORDER:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Неверный ID типа уведомления ({body.alertTypeId})",
+                )
 
         # Get order details
         order_details = _get_order_details_by_id(order_id)
@@ -339,8 +335,6 @@ def get_emergency_class(
         #     building_id=building_id,
         #     order_data=order_data,
         # )
-
-        # TODO: use emergency classification config
 
     except Exception as error:
         history_record.is_error = True
