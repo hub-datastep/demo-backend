@@ -9,8 +9,8 @@ from infra.env import DOMYLAND_AUTH_EMAIL, DOMYLAND_AUTH_PASSWORD, DOMYLAND_AUTH
 from infra.vysota_uds_list import UDS_LIST
 from model.emergency_class.emergency_classification_history_model import save_emergency_classification_record
 from repository.emergency_class.emergency_classification_config_repository import get_default_config
-from scheme.emergency_class.emergency_class_scheme import EmergencyClassRequest, SummaryType, SummaryTitle, \
-    AlertTypeID, OrderDetails, OrderFormUpdate
+from scheme.emergency_class.emergency_class_scheme import (AlertTypeID, EmergencyClassRequest, OrderDetails,
+                                                           OrderFormUpdate, SummaryTitle, SummaryType)
 from scheme.emergency_class.emergency_classification_history_scheme import EmergencyClassificationRecord
 from scheme.emergency_class.uds_scheme import UDS
 
@@ -204,6 +204,13 @@ def get_emergency_class(
 
     try:
         emergency_classification_config = get_default_config()
+        # Check if default config exists
+        if emergency_classification_config is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Default emergency classification config (for user with ID 0) not found",
+            )
+
         user_id = emergency_classification_config.user_id
         # Is need to classify order emergency
         is_use_emergency_classification = emergency_classification_config.is_use_emergency_classification
