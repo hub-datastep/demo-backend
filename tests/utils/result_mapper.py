@@ -128,6 +128,7 @@ def process_results(test_cases, mapping_results_list: list):
             "Ожидание номенклатура": expected_nomenclature,
             "Реальность номенклатура": actual_nomenclature,
             "Реальность варианты номенклатур": actual_similar_nomenclatures,
+            "Реальность варианты номенклатур": actual_similar_nomenclatures,
             "Параметры": nomenclature_params,
         }
 
