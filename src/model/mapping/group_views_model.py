@@ -36,9 +36,9 @@ def get_group_views(group: str, groups_view_df: DataFrame) -> str:
     # df = read_excel(GROUP_VIEWS_TABLE_PATH)
 
     # Ищем строки с Видами для нужной группы
-    filtered_df = groups_view_df[groups_view_df['Внутренняя группа'] == group]
+    # filtered_df = groups_view_df[groups_view_df['Внутренняя группа'] == group]
     # For tests
-    # filtered_df = groups_view_df[groups_view_df['Группа в НСИ'] == group]
+    filtered_df = groups_view_df[groups_view_df['Группа в НСИ'] == group]
 
     # Соединяем все Виды в строку через запятую
     result = "; ".join(filtered_df['Список Видов'].astype(str))
@@ -54,15 +54,15 @@ def _get_nom_view(
     try:
         nom_group: str = nom['internal_group']
 
-    views = get_group_views(
-        group=nom_group,
-        groups_view_df=groups_view_df,
-    )
+        views = get_group_views(
+            group=nom_group,
+            groups_view_df=groups_view_df,
+        )
 
-    if not bool(views.strip()):
-        return "Не нашлось видов для такой группы"
+        if not bool(views.strip()):
+            return "Не нашлось видов для такой группы"
 
-    nom_name: str = nom['nomenclature']
+        nom_name: str = nom['nomenclature']
 
         nom_view = views_chain.run(
             nomenclature=nom_name,
