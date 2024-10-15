@@ -336,10 +336,15 @@ def get_emergency_class(
         #     order_data=order_data,
         # )
 
-    except Exception as error:
+    except (HTTPException, Exception) as error:
         history_record.is_error = True
 
-        comment = str(error)
+        # Получаем текст ошибки из атрибута detail для HTTPException
+        if isinstance(error, HTTPException):
+            comment = error.detail
+        # Для других исключений используем str(error)
+        else:
+            comment = str(error)
         history_record.comment = comment
 
         # Print error to logs
