@@ -2,6 +2,8 @@ from langchain.chains.llm import LLMChain
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 
+from infra.env import AZURE_DEPLOYMENT_NAME_EMERGENCY_CLASSIFICATION
+
 DOCS_PROMPT_TEMPLATE = """
 # Роль
 Ты класифицируешь заявки, которые поступают в управляющую компанию, по классам:
@@ -42,7 +44,7 @@ DOCS_PROMPT_TEMPLATE = """
 
 def get_emergency_class_chain():
     llm = AzureChatOpenAI(
-        azure_deployment="gpt-4-0125-preview-db-assistant",
+        azure_deployment=AZURE_DEPLOYMENT_NAME_EMERGENCY_CLASSIFICATION,
         temperature=0,
         verbose=False,
     )
