@@ -28,20 +28,21 @@ TEST_CASES_TABLE_HEADERS = [
     'Ожидание номенклатура',
 ]
 
-TESTS_RESULT_TABLE_HEADERS = [
-    "Тест-Кейс ID",
-    "Шаг алгоритма",
-    "Тип ошибки",
-    "Корректно группа?",
-    "Корректно номенклатура?",
-    "Номенклатура",
-    "Ожидание группа",
-    "Реальность группа",
-    "Ожидание номенклатура",
-    "Реальность номенклатура",
-    "Реальность вид",
-    "Параметры",
-]
+
+# TESTS_RESULT_TABLE_HEADERS = [
+#     "Тест-Кейс ID",
+#     "Шаг алгоритма",
+#     "Тип ошибки",
+#     "Корректно группа?",
+#     "Корректно номенклатура?",
+#     "Номенклатура",
+#     "Ожидание группа",
+#     "Реальность группа",
+#     "Ожидание номенклатура",
+#     "Реальность номенклатура",
+#     "Реальность вид",
+#     "Параметры",
+# ]
 
 
 def get_google_sheets_client():
@@ -89,7 +90,7 @@ def create_new_sheet_and_write_results(new_sheet_name, processed_results):
     client = get_google_sheets_client()
     spreadsheet = client.open(TESTS_MAPPING_SPREADSHEET_NAME)
     new_sheet = spreadsheet.add_worksheet(title=new_sheet_name, rows=100, cols=20)
-    new_sheet.insert_row(TESTS_RESULT_TABLE_HEADERS, 1)
+    # new_sheet.insert_row(TESTS_RESULT_TABLE_HEADERS, 1)
 
     for i, result in enumerate(processed_results, start=2):
         row = [
@@ -110,7 +111,8 @@ def create_new_sheet_and_write_results(new_sheet_name, processed_results):
 
 def create_new_offline_sheet_and_write_results(new_sheet_name, processed_results):
     # Преобразуем данные в DataFrame
-    df = pd.DataFrame(processed_results, columns=TESTS_RESULT_TABLE_HEADERS)
+    # df = pd.DataFrame(processed_results, columns=TESTS_RESULT_TABLE_HEADERS)
+    df = pd.DataFrame(processed_results)
 
     # Сохраняем DataFrame в Excel файл
     file_path = f"{new_sheet_name}.xlsx"

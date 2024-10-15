@@ -10,7 +10,7 @@ from utils.result_mapper import process_results
 
 def run_tests():
     logger.info("Получение тест кейсов.")
-    test_cases = get_test_cases()[:50]
+    test_cases = get_test_cases()
     test_cases_count = len(test_cases)
     logger.info(f"Test cases count: {test_cases_count}")
 

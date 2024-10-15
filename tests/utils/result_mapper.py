@@ -91,8 +91,13 @@ def process_results(test_cases, mapping_results_list: list):
         nomenclature_params = "\n".join(nomenclature_params_list)
 
         actual_nomenclature = ""
+        actual_similar_nomenclatures = ""
         if mapping_result['mappings']:
             actual_nomenclature = mapping_result['mappings'][0]['nomenclature']
+
+        if mapping_result['similar_mappings']:
+            for mapping in mapping_result['similar_mappings']:
+                actual_similar_nomenclatures += f"{mapping['nomenclature']}\n"
 
         if actual_nomenclature == "":
             if mapping_result['similar_mappings']:
@@ -116,6 +121,7 @@ def process_results(test_cases, mapping_results_list: list):
             "Реальность внутренняя группа": actual_internal_group,
             "Ожидание номенклатура": expected_nomenclature,
             "Реальность номенклатура": actual_nomenclature,
+            "Реальность варианты номенклатур": actual_similar_nomenclatures,
             "Реальность вид": actual_view,
             "Параметры": nomenclature_params,
         }
