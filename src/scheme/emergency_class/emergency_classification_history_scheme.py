@@ -16,7 +16,7 @@ class EmergencyClassificationRecordBase(SQLModel):
     order_status_id: int
     order_query: str | None = None
     order_normalized_query: str | None = None
-    order_details: dict | None = Field(sa_column=Column(JSONB))
+    order_details: dict | None = Field(default=None, sa_column=Column(JSONB))
     # LLM response
     order_emergency: str | None = None
     is_emergency: bool | None = None
