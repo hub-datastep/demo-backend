@@ -34,10 +34,10 @@ def get_group_views(group: str, groups_view_df: DataFrame) -> str:
     # Ищем строки с Видами для нужной группы
     # filtered_df = groups_view_df[groups_view_df['Внутренняя группа'] == group]
     # For tests
-    filtered_df = groups_view_df[groups_view_df['Группа'] == group]
+    filtered_df = groups_view_df[groups_view_df['Группа в НСИ'] == group]
 
     # Соединяем все Виды в строку через запятую
-    result = "; ".join(filtered_df['Вид'].astype(str))
+    result = "; ".join(filtered_df['Список Видов'].astype(str))
 
     return result
 
