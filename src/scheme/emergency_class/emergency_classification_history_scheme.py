@@ -14,20 +14,20 @@ class EmergencyClassificationRecordBase(SQLModel):
     # Order data
     order_id: int
     order_status_id: int
-    order_query: str | None
-    order_normalized_query: str | None
+    order_query: str | None = None
+    order_normalized_query: str | None = None
     order_details: dict | None = Field(sa_column=Column(JSONB))
     # LLM response
-    order_emergency: str | None
-    is_emergency: bool | None
+    order_emergency: str | None = None
+    is_emergency: bool | None = None
     # UDS mapping data
-    order_address: str | None
-    uds_id: str | None
+    order_address: str | None = None
+    uds_id: str | None = None
     # Response from Domyland API
-    order_update_request: dict | None = Field(sa_column=Column(JSONB))
-    order_update_response: dict | None = Field(sa_column=Column(JSONB))
+    order_update_request: dict | None = Field(default=None, sa_column=Column(JSONB))
+    order_update_response: dict | None = Field(default=None, sa_column=Column(JSONB))
     # Just for errors msgs or our comments
-    comment: str | None
+    comment: str | None = None
 
 
 class EmergencyClassificationRecord(EmergencyClassificationRecordBase, table=True):
