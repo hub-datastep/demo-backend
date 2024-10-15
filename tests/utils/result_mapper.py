@@ -115,13 +115,17 @@ def process_results(test_cases, mapping_results_list: list):
             "Тип ошибки": test_case['Тип ошибки'],
             "Корректно группа?": is_correct_group_text,
             "Корректно номенклатура?": is_correct_nom_text,
-            "Номенклатура": test_case_nomenclature,
+            "Номенклатура на вход": test_case_nomenclature,
+            # TODO: add correct internal group
+            "Ожидание внутренняя группа": "",
+            "Реальность внутренняя группа": actual_internal_group,
             "Ожидание группа": expected_group,
             "Реальность группа": actual_group,
-            "Реальность внутренняя группа": actual_internal_group,
             "Ожидание номенклатура": expected_nomenclature,
             "Реальность номенклатура": actual_nomenclature,
             "Реальность варианты номенклатур": actual_similar_nomenclatures,
+            # TODO: add correct view
+            "Ожидание вид": "",
             "Реальность вид": actual_view,
             "Параметры": nomenclature_params,
         }
