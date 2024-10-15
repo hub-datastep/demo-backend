@@ -15,4 +15,8 @@ def authenticate():
     if response.status_code == 200:
         return response.json().get("access_token")
     else:
-        raise Exception("Authentication failed")
+        raise Exception(f"Authentication failed with status {response.status_code}. Details: {response.text}")
+
+
+if __name__ == "__main__":
+    authenticate()
