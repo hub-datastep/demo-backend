@@ -2,6 +2,7 @@ import time
 from pathlib import Path
 
 from langchain.chains.llm import LLMChain
+from loguru import logger
 from pandas import DataFrame, read_excel
 from tqdm import tqdm
 
@@ -31,12 +32,12 @@ def get_group_views(group: str, groups_view_df: DataFrame) -> str:
     # df = read_excel(GROUP_VIEWS_TABLE_PATH)
 
     # Ищем строки с Видами для нужной группы
-    filtered_df = groups_view_df[groups_view_df['Внутренняя группа'] == group]
+    # filtered_df = groups_view_df[groups_view_df['Внутренняя группа'] == group]
     # For tests
-    # filtered_df = groups_view_df[groups_view_df['Группа'] == group]
+    filtered_df = groups_view_df[groups_view_df['Группа'] == group]
 
     # Соединяем все Виды в строку через запятую
-    result = ", ".join(filtered_df['Вид'].astype(str))
+    result = "; ".join(filtered_df['Вид'].astype(str))
 
     return result
 
@@ -46,27 +47,33 @@ def _get_nom_view(
     views_chain: LLMChain,
     groups_view_df: DataFrame,
 ):
-    # Timeout to not catch Rate Limit
-    time.sleep(30)
+    try:
+        nom_group: str = nom['internal_group']
 
-    nom_group: str = nom['internal_group']
+        views = get_group_views(
+            group=nom_group,
+            groups_view_df=groups_view_df,
+        )
 
-    views = get_group_views(
-        group=nom_group,
-        groups_view_df=groups_view_df,
-    )
+        if not bool(views.strip()):
+            return "Не нашлось видов для такой группы"
 
-    if not bool(views.strip()):
-        return "Не нашлось видов для такой группы"
+        nom_name: str = nom['nomenclature']
 
-    nom_name: str = nom['nomenclature']
+        nom_view = views_chain.run(
+            nomenclature=nom_name,
+            views=views,
+        )
 
-    nom_view = views_chain.run(
-        nomenclature=nom_name,
-        views=views,
-    )
-
-    return nom_view
+        return nom_view
+    except Exception as error:
+        logger.error(str(error))
+        time.sleep(60)
+        return _get_nom_view(
+            nom=nom,
+            views_chain=views_chain,
+            groups_view_df=groups_view_df,
+        )
 
 
 def get_nomenclatures_views(nomenclatures: DataFrame):
