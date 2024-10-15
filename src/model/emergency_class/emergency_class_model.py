@@ -212,7 +212,7 @@ def get_emergency_class(
         # Message to disabled fields
         disabled_field_msg = f"skipped by emergency classification config of user with ID {user_id}"
 
-        if emergency_classification_config is None:
+        if is_use_emergency_classification is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Неверный ID типа уведомления ({body.alertTypeId})",
