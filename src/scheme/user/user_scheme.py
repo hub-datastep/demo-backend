@@ -15,8 +15,11 @@ class User(UserBase, table=True):
 
     tenant: "Tenant" = Relationship(back_populates="users")
     role: "Role" = Relationship(back_populates="users")
+
     database_prediction_config: "DatabasePredictionConfig" = Relationship(back_populates="user")
     classifier_config: "ClassifierConfig" = Relationship(back_populates="user")
+    emergency_classification_config: "EmergencyClassificationConfig" = Relationship(back_populates="user")
+
     chat: "Chat" = Relationship(back_populates="user")
 
 
@@ -41,6 +44,7 @@ from scheme.classifier.classifier_config_scheme import ClassifierConfig
 from scheme.prediction.database_prediction_config_scheme import DatabasePredictionConfig
 from scheme.tenant.tenant_scheme import Tenant, TenantRead
 from scheme.role.role_scheme import Role
+from scheme.emergency_class.emergency_classification_config_scheme import EmergencyClassificationConfig
 
 User.update_forward_refs()
 UserRead.update_forward_refs()

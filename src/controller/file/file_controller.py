@@ -29,7 +29,7 @@ def get_all_files(
 @router.post("/extract_data", response_model=list[DataExtract])
 @version(1)
 @modes_required([TenantMode.CLASSIFIER])
-async def extract_data_invoice(
+def extract_data_invoice(
     file_object: UploadFile,
     with_metadata: bool = False,
     current_user: UserRead = Depends(get_current_user),
