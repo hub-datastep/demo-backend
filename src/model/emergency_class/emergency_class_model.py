@@ -243,7 +243,7 @@ def get_emergency_class(
         # Check if resident comment exists and not empty if enabled
         if is_use_emergency_classification:
             is_order_query_exists = order_query is not None
-            is_order_query_empty = not bool(order_query.strip())
+            is_order_query_empty = is_order_query_exists and not bool(order_query.strip())
 
             if not is_order_query_exists or is_order_query_empty:
                 raise HTTPException(
@@ -263,7 +263,7 @@ def get_emergency_class(
         # Check if resident address exists and not empty if enabled
         if is_use_emergency_classification:
             is_order_address_exists = order_address is not None
-            is_order_address_empty = not bool(order_address.strip())
+            is_order_address_empty = is_order_address_exists and not bool(order_address.strip())
 
             if not is_order_address_exists or is_order_address_empty:
                 raise HTTPException(
