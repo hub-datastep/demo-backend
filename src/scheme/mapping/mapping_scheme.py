@@ -9,13 +9,15 @@ class MappingOneNomenclatureUpload(SQLModel):
 class MappingOneTargetRead(SQLModel):
     nomenclature_guid: str
     nomenclature: str
+    group: str | None
     similarity_score: float
 
 
 class MappingOneNomenclatureRead(SQLModel):
     row_number: int
     nomenclature: str
-    group: str
+    group: str | None
+    internal_group: str
     nomenclature_params: list[dict] | None
     mappings: list[MappingOneTargetRead] | None
     similar_mappings: list[MappingOneTargetRead] | None
