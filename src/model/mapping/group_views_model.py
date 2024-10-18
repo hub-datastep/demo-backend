@@ -20,14 +20,6 @@ tqdm.pandas()
 GROUP_VIEWS_TABLE_PATH = f"{DATA_FOLDER_PATH}/levelgroup-group-views.xlsx"
 
 
-# For tests
-# GROUP_VIEWS_TABLE_PATH = f"/home/syrnnik/Documents/Syrnnik/BandaWorks/Datastep/demo-backend/data/levelgroup-group-views.xlsx"
-
-
-# For tests
-# GROUP_VIEWS_TABLE_PATH = f"/home/syrnnik/Documents/Syrnnik/BandaWorks/Datastep/demo-backend/data/levelgroup-group-views.xlsx"
-
-
 def get_group_views(group: str, groups_view_df: DataFrame) -> str:
     # Проверяем, что файл с группами и их Видами существует локально
     if not Path(GROUP_VIEWS_TABLE_PATH).exists():
@@ -36,9 +28,18 @@ def get_group_views(group: str, groups_view_df: DataFrame) -> str:
     # df = read_excel(GROUP_VIEWS_TABLE_PATH)
 
     # Ищем строки с Видами для нужной группы
-    # filtered_df = groups_view_df[groups_view_df['Внутренняя группа'] == group]
+    filtered_df = groups_view_df[groups_view_df['Внутренняя группа'] == group]
+    count_of_rows_with_views = len(filtered_df)
     # For tests
-    filtered_df = groups_view_df[groups_view_df['Группа в НСИ'] == group]
+    # filtered_df = groups_view_df[groups_view_df['Группа в НСИ'] == group]
+    logger.debug(f"Count of rows with views for '{group}' in column 'Внутренняя группа': {count_of_rows_with_views}")
+
+    # TODO: fix training dataset & group-group-views table
+    if filtered_df.empty:
+        filtered_df = groups_view_df[groups_view_df['Группа в НСИ'] == group]
+        count_of_rows_with_views = len(filtered_df)
+
+        logger.debug(f"Count of rows with views for '{group}' in column 'Группа в НСИ': {count_of_rows_with_views}")
 
     # Соединяем все Виды в строку через запятую
     result = "; ".join(filtered_df['Список Видов'].astype(str))
