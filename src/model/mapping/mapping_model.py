@@ -13,7 +13,7 @@ from rq.job import JobStatus
 from tqdm import tqdm
 
 from infra.chroma_store import connect_to_chroma_collection, get_all_collections
-from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName, get_job
+from infra.redis_queue import MAX_JOB_TIMEOUT, QueueName, get_job, get_redis_queue
 from model.classifier.classifier_retrain_model import TRAINING_COLUMNS
 from model.classifier.classifier_version_model import get_model_path
 from model.mapping.group_views_model import get_nomenclatures_views
@@ -21,8 +21,8 @@ from model.mapping.mapping_result_model import save_mapping_result
 from model.ner.ner import ner_service
 from model.used_token.used_token_model import charge_used_tokens, count_used_tokens
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
-from scheme.mapping.mapping_scheme import MappingOneNomenclatureUpload, \
-    MappingNomenclaturesResultRead, MappingOneTargetRead, MappingOneNomenclatureRead
+from scheme.mapping.mapping_scheme import (MappingNomenclaturesResultRead, MappingOneNomenclatureRead,
+                                           MappingOneNomenclatureUpload, MappingOneTargetRead)
 from scheme.task.task_scheme import JobIdRead
 from util.extract_keyword import extract_keyword
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
@@ -160,7 +160,14 @@ def build_where_metadatas(
 
             # If not using brand
             else:
-                where_metadatas = metadata_list_with_group[0]
+                # Where filter without view
+                # where_metadatas = metadata_list_with_group[0]
+                # Where filter with view
+                where_metadatas = {
+                    "$and": [
+                        *metadata_list_with_group,
+                    ],
+                }
 
     # If using soft-search
     # group must be equal and any or nothing of brand and params is equal
@@ -228,7 +235,14 @@ def build_where_metadatas(
 
             # If not using brand
             else:
-                where_metadatas = metadata_list_with_group[0]
+                # Where filter without view
+                # where_metadatas = metadata_list_with_group[0]
+                # Where filter with view
+                where_metadatas = {
+                    "$and": [
+                        *metadata_list_with_group,
+                    ],
+                }
 
     return where_metadatas
 
