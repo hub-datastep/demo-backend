@@ -72,7 +72,8 @@ def _get_nom_view(
 
         return nom_view
     except Exception as error:
-        logger.error(str(error))
+        logger.error(f"Error occured while getting nomenclature view: {error}")
+        print(error)
         time.sleep(60)
         return _get_nom_view(
             nom=nom,
