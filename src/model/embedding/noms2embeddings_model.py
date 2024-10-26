@@ -8,14 +8,27 @@ from scheme.embedding.embedding_scheme import CreateAndSaveEmbeddingsResult
 from scheme.task.task_scheme import JobIdRead
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
 
+NOMENCLATURE_COLUMNS_FOR_COLLECTION = [
+    "id",
+    "material_code",
+    "name",
+    "group_code",
+    "group",
+    "internal_group",
+    "view_code",
+    "view",
+]
+NOMENCLATURE_COLUMNS_AS_STRING = ", ".join(f'"{col}"' for col in NOMENCLATURE_COLUMNS_FOR_COLLECTION)
+
 
 def _fetch_all_noms(db_con_str: str, table_name: str) -> DataFrame:
     st = f"""
-        SELECT "id", "name", "internal_group", "group", "view"
+        SELECT {NOMENCLATURE_COLUMNS_AS_STRING}
         FROM {table_name}
         WHERE "is_group" = FALSE
         AND "is_deleted" = FALSE
      """
+    print(st)
 
     return read_sql(st, db_con_str)
 
