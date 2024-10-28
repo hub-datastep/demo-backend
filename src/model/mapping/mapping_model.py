@@ -33,7 +33,7 @@ tqdm.pandas()
 np.set_printoptions(threshold=np.inf)
 
 
-def get_nomenclatures_groups_old(
+def _get_nomenclatures_groups_old(
     noms: DataFrame,
     model_id: str,
     is_use_params: bool,
@@ -294,12 +294,19 @@ def map_on_nom(
 
     mapped_noms = []
     for i in range(len(response_ids)):
-        response_group = response_metadatas[i].get("group")
+        group = response_metadatas[i].get("group")
+        group_code = response_metadatas[i].get("group_code")
+        view_code = response_metadatas[i].get("view_code")
+        material_code = response_metadatas[i].get("material_code")
+
         mapped_noms.append(
             MappingOneTargetRead(
                 nomenclature_guid=response_ids[i],
                 nomenclature=response_documents[i],
-                group=response_group,
+                group=group,
+                group_code=group_code,
+                view_code=view_code,
+                material_code=material_code,
                 similarity_score=response_distances[i],
             )
         )
@@ -307,15 +314,22 @@ def map_on_nom(
     return mapped_noms
 
 
-def _get_mappings_group(mappings: list[MappingOneTargetRead]) -> str | None:
-    mappings_group = None
+# param arg can be: group, group_code, view_code, material_code
+def _get_mappings_param(param: str, mappings_list: list[MappingOneTargetRead]) -> str:
+    param_values = []
 
-    for mapping_nom in mappings:
-        if mapping_nom is not None:
-            mappings_group = mapping_nom.group
-            break
+    for mapping in mappings_list:
+        if param == "group":
+            param_values.append(mapping.group)
+        if param == "group_code":
+            param_values.append(mapping.group_code)
+        if param == "view_code":
+            param_values.append(mapping.view_code)
+        if param == "material_code":
+            param_values.append(mapping.material_code)
 
-    return mappings_group
+    param_values_as_str = "\n".join(param_values)
+    return param_values_as_str
 
 
 def convert_nomenclatures_to_df(nomenclatures: list[MappingOneNomenclatureUpload]) -> DataFrame:
@@ -495,6 +509,9 @@ def _map_nomenclatures_chunk(
 
     # Init noms result params
     noms['group'] = None
+    noms['group_code'] = None
+    noms['view_code'] = None
+    noms['material_code'] = None
     noms['nomenclature_params'] = None
     noms['mappings'] = None
     noms['similar_mappings'] = None
@@ -538,7 +555,10 @@ def _map_nomenclatures_chunk(
 
             # Extract NSI group
             if mappings is not None:
-                nom['group'] = _get_mappings_group(mappings)
+                nom['group'] = _get_mappings_param("group", mappings)
+                nom['group_code'] = _get_mappings_param("group_code", mappings)
+                nom['view_code'] = _get_mappings_param("view_code", mappings)
+                nom['material_code'] = _get_mappings_param("material_code", mappings)
 
             # Map similar nomenclatures if nom's params is not valid
             if mappings is None:
@@ -558,7 +578,10 @@ def _map_nomenclatures_chunk(
 
                 # Extract NSI group
                 if similar_mappings is not None:
-                    nom['group'] = _get_mappings_group(similar_mappings)
+                    nom['group'] = _get_mappings_param("group", similar_mappings)
+                    nom['group_code'] = _get_mappings_param("group_code", similar_mappings)
+                    nom['view_code'] = _get_mappings_param("view_code", similar_mappings)
+                    nom['material_code'] = _get_mappings_param("material_code", similar_mappings)
 
         noms.loc[i] = nom
         job.meta['ready_count'] += 1

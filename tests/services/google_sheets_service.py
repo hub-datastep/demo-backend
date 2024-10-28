@@ -20,12 +20,14 @@ assert TESTS_MAPPING_TEST_CASES_TABLE_NAME, "TESTS_MAPPING_TEST_CASES_TABLE_NAME
 CREDENTIALS_PATH = f"{DATA_FOLDER_PATH}/datastep-excel-for-classifier-66a610dc9ff6.json"
 
 TEST_CASES_TABLE_HEADERS = [
-    'Тест-Кейс ID',
-    'Шаг алгоритма',
-    'Тип ошибки',
-    'Номенклатура поставщика',
-    'Ожидание группа',
-    'Ожидание номенклатура',
+    "Тест-Кейс ID",
+    "Шаг алгоритма",
+    "Тип ошибки",
+    "Номенклатура на Вход",
+    "Ожидание Внутренняя Группа",
+    "Ожидание Группа",
+    "Ожидание Вид",
+    "Ожидание Номенклатура",
 ]
 
 
