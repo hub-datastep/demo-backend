@@ -49,6 +49,7 @@ TEST_CASES_TABLE_HEADERS = [
 
 
 def get_google_sheets_client():
+    logger.debug(f"Credentials path: {CREDENTIALS_PATH}")
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     # Авторизация
     creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_PATH, scope)

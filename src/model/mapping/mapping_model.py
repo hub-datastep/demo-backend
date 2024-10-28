@@ -208,6 +208,11 @@ def build_where_metadatas(
                     where_metadatas = {
                         "$or": [
                             *metadata_list_with_group,
+                            # {
+                            #     "$and": [
+                            #         *metadata_list_with_group,
+                            #     ],
+                            # },
                             {
                                 "$and": [
                                     *metadata_list_with_group,
@@ -224,6 +229,11 @@ def build_where_metadatas(
                 where_metadatas = {
                     "$or": [
                         *metadata_list_with_group,
+                        # {
+                        #     "$and": [
+                        #         *metadata_list_with_group,
+                        #     ],
+                        # },
                         {
                             "$and": [
                                 *metadata_list_with_group,

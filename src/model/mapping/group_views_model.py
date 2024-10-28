@@ -18,15 +18,10 @@ tqdm.pandas()
 """
 
 GROUP_VIEWS_TABLE_PATH = f"{DATA_FOLDER_PATH}/levelgroup-group-views.xlsx"
+GROUP_VIEWS_SHEET_NAME = "Group-Group-Views"
 
 
 def get_group_views(group: str, groups_view_df: DataFrame) -> str:
-    # Проверяем, что файл с группами и их Видами существует локально
-    if not Path(GROUP_VIEWS_TABLE_PATH).exists():
-        raise Exception("Excel table with groups and views does not exists locally")
-
-    # df = read_excel(GROUP_VIEWS_TABLE_PATH)
-
     # Ищем строки с Видами для нужной группы
     filtered_df = groups_view_df[groups_view_df['Внутренняя Группа'] == group]
     count_of_rows_with_views = len(filtered_df)
@@ -71,7 +66,7 @@ def _get_nom_view(
 
         return nom_view
     except Exception as error:
-        logger.error(f"Error occured while getting nomenclature view: {error}")
+        logger.error(f"Error occurred while getting nomenclature view: {error}")
         print(error)
         time.sleep(60)
         return _get_nom_view(
@@ -82,8 +77,12 @@ def _get_nom_view(
 
 
 def get_nomenclatures_views(nomenclatures: DataFrame):
+    # Проверяем, что файл с группами и их Видами существует локально
+    if not Path(GROUP_VIEWS_TABLE_PATH).exists():
+        raise Exception("Excel table with groups and views does not exists locally")
+
+    groups_view_df = read_excel(GROUP_VIEWS_TABLE_PATH, sheet_name=GROUP_VIEWS_SHEET_NAME)
     views_chain = get_chain()
-    groups_view_df = read_excel(GROUP_VIEWS_TABLE_PATH)
 
     nomenclatures['view'] = nomenclatures.progress_apply(
         lambda nom: _get_nom_view(
