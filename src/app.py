@@ -25,6 +25,7 @@ from controller.task import task_controller
 from controller.tenant import tenant_controller
 from controller.used_token import used_token_controller
 from controller.user import user_controller
+from controller.solution_imitation import solution_imitation_controller
 from util.healthcheck.redis_connection import check_redis_connection
 
 app = FastAPI()
@@ -77,6 +78,9 @@ app.include_router(ksr_controller.router, tags=["ksr"], prefix="/ksr")
 
 # Emergency Class
 app.include_router(emergency_class_controller.router, tags=["emergency_class"], prefix="/emergency_class")
+
+# Solution Imitation
+app.include_router(solution_imitation_controller.router, tags=["Solution Imitation"], prefix="/solution_imitation")
 
 
 @app.get("/healthcheck")
