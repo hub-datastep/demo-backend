@@ -1,5 +1,5 @@
 from sqlmodel import Session, select
-from src.scheme.solution_imitation.solution_imitation_config_scheme import (
+from scheme.solution_imitation.solution_imitation_config_scheme import (
     SolutionImitationConfig,
 )
 

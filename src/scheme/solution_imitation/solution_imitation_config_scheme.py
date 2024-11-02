@@ -1,5 +1,6 @@
+from sqlalchemy import Column
 from sqlmodel import SQLModel, Field, Relationship
-from sqlmodel.sql.sqltypes import ARRAY, String
+from sqlmodel import ARRAY, String
 
 
 class SolutionImitationConfigBase(SQLModel):
@@ -7,7 +8,7 @@ class SolutionImitationConfigBase(SQLModel):
     type: str | None = Field(default=None)
     input_variables: list[str] | None = Field(
         default=None,
-        sa_column=Field(sa_column_type=ARRAY(String)),
+        sa_column=Column(sa_column_type=ARRAY(String)),
     )
 
 

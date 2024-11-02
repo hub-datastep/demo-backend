@@ -6,7 +6,7 @@ from infra.database import get_session
 from model.auth.auth_model import get_current_user
 from model.solution_imitation import solution_imitation_model
 from scheme.user.user_scheme import UserRead
-from src.scheme.solution_imitation.solution_imitation_scheme import (
+from scheme.solution_imitation.solution_imitation_scheme import (
     SolutionImitationRequest,
 )
 
