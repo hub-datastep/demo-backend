@@ -1,5 +1,9 @@
 from fastapi import HTTPException, status, UploadFile
 from sqlmodel import Session
+from scheme.solution_imitation.solution_imitation_llm_output_scheme import (
+    LLMOutput,
+    LLMOutputTable,
+)
 from scheme.user.user_scheme import UserRead
 from repository.solution_imitation.solution_imitation_config_repository import (
     get_config_by_type_and_user_id,
@@ -20,8 +24,6 @@ class SolutionType:
     IFC = "ifc"
 
 
-# TODO - поменять аутпут с list[str] на массив обеъктов с айдишниками и строками (айдишники нужны для упрощения работы LLM и вывода строк в таблицу)
-# Так чтобы совпадало со схемой llm output
 def parse_input_file(type: str, file_object: UploadFile) -> list[str] | None:
     parsing_model = None
 
@@ -51,13 +53,18 @@ def imitate_solution(
     current_user: UserRead,
     file_object: UploadFile,
     body: SolutionImitationRequest,
-):
+) -> list[LLMOutputTable]:
     # Get Input Data from Input File
     solution_type = body.type
     parsed_data = parse_input_file(
         type=solution_type,
         file_object=file_object,
     )
+    # Convert Input Data with IDs
+    parsed_data = [
+        {"id": i + 1, "input_item": item} for i, item in enumerate(parsed_data)
+    ]
+    # logger.debug(f"Parsed Data: {parsed_data}")
 
     # LLM solution Config
     user_id = current_user.id
@@ -102,20 +109,28 @@ def imitate_solution(
         input_variables=input_variables,
     )
     chain = get_solution_imitation_chain(prompt=llm_prompt)
-    response = chain.run(input_data=parsed_data, return_json=True)
-
-    # TODO: set "JSON response only" for LLM - тут вроде сделал, осталось только вызов модели прописать
-    # TODO: convert LLM response to needed format and return - конвертацию в нужный формат модель сама должна сделать
+    response = chain.run(
+        input_scheme='{"id": <index as int>, "input_item": <str>}',
+        input_data=parsed_data,
+        # output_scheme=f"list[{LLMOutputTable().dict()}]",
+        output_scheme=f"list[{LLMOutput().dict()}]",
+    )
 
     # осторожно - не запутаться бы в версиях langchain
-    # У нас стоит 1 версия, дока по струкрутрному аутпуту такая https://python.langchain.com/v0.1/docs/modules/model_io/output_parsers/types/json/
-    # Думаю что когда была первая версия лэнгчейна в мире еще не было json мода, поэтому они написали свой парсер текста в виде json который отдавала модель тогда
-    # Но после 2 версии langchain появилась прям в нем встроенная поддержка режимов работы LLM
+    # У нас стоит 1 версия, дока по струкрутрному аутпуту такая
+    # https://python.langchain.com/v0.1/docs/modules/model_io/output_parsers/types/json/
+
+    # Думаю что когда была первая версия лэнгчейна в мире еще не было json мода,
+    # поэтому они написали свой парсер текста в виде json который отдавала модель тогда
+    # Но после 2 версии langchain появилась прям в нем
+    # встроенная поддержка режимов работы LLM
     # Вот гайд https://medium.com/@harshitdy/how-to-get-only-json-response-from-any-llm-using-langchain-ed53bc2df50f
-    # Я попробовал написать по этому гайду - ошибок нет + нужные свойства есть в классах - поэтому думаю может прокатить
-    # 
-    # Но по хорошему нам надо мигрировать на 2 или 3 версию langchain а то мы упираемся в базовый фукнционал LLM уже, когда весь мир дальше идет
+    # Я попробовал написать по этому гайду - ошибок нет
+    # + нужные свойства есть в классах - поэтому думаю может прокатить
+
+    # Но по хорошему нам надо мигрировать на 2 или 3 версию langchain
+    # а то мы упираемся в базовый фукнционал LLM уже, когда весь мир дальше идет
 
     # осталось попробовать вернуть response :)
 
-    return 
+    return response

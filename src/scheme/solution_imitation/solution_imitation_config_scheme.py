@@ -1,6 +1,5 @@
-from sqlalchemy import Column
+from sqlalchemy import Column, ARRAY, String
 from sqlmodel import SQLModel, Field, Relationship
-from sqlmodel import ARRAY, String
 
 
 class SolutionImitationConfigBase(SQLModel):
@@ -8,7 +7,7 @@ class SolutionImitationConfigBase(SQLModel):
     type: str | None = Field(default=None)
     input_variables: list[str] | None = Field(
         default=None,
-        sa_column=Column(sa_column_type=ARRAY(String)),
+        sa_column=Column(ARRAY(String)),
     )
 
 
@@ -18,7 +17,7 @@ class SolutionImitationConfig(SolutionImitationConfigBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
 
-    user: "User" = Relationship(back_populates="solution_imitation_config")
+    user: "User" = Relationship(back_populates="solution_imitation_configs")
 
 
 from scheme.user.user_scheme import User

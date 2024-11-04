@@ -61,6 +61,8 @@ from scheme.role.role_scheme import Role
 from scheme.emergency_class.emergency_classification_history_scheme import EmergencyClassificationRecord
 # noinspection PyUnresolvedReferences
 from scheme.emergency_class.emergency_classification_config_scheme import EmergencyClassificationConfig
+# noinspection PyUnresolvedReferences
+from scheme.solution_imitation.solution_imitation_config_scheme import SolutionImitationConfig
 
 # target_metadata = mymodel.Base.metadata
 target_metadata = SQLModel.metadata
