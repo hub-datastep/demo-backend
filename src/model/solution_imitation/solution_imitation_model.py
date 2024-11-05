@@ -15,7 +15,7 @@ from datastep.chains.solution_imitation_chain import (
 from scheme.solution_imitation.solution_imitation_scheme import (
     SolutionImitationRequest,
 )
-from model.file import utd_file_model, spec_file_model
+from model.file import txt_file_model, utd_file_model, spec_file_model
 
 
 class SolutionType:
@@ -37,11 +37,14 @@ def parse_input_file(type: str, file_object: UploadFile) -> list[str] | None:
 
     # Parse IFC file
     elif type == SolutionType.IFC:
-        return
+        parsing_model = txt_file_model
 
     # Check if can parse file
     if parsing_model is None:
-        return None
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Relevant parsing model for type '{type}' not found",
+        )
 
     parsed_data = parsing_model.extract_noms(file_object)
 
@@ -60,11 +63,13 @@ def imitate_solution(
         type=solution_type,
         file_object=file_object,
     )
+    # logger.debug(f"Initial Parsed Data: {parsed_data}")
+
     # Convert Input Data with IDs
     parsed_data = [
         {"id": i + 1, "input_item": item} for i, item in enumerate(parsed_data)
     ]
-    # logger.debug(f"Parsed Data: {parsed_data}")
+    # logger.debug(f"Parsed Data with IDs: {parsed_data}")
 
     # LLM solution Config
     user_id = current_user.id
