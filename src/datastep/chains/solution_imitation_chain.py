@@ -18,8 +18,7 @@ def _get_solution_imitation_structured_llm() -> AzureChatOpenAI:
     )
     return llm
     # structured_llm = llm.with_structured_output(
-    #     schema=LLMOutputTable,
-    #     # schema=list[LLMOutputTableItem],
+    #     schema=LLMOutput,
     #     method="json_mode",
     # )
     # return structured_llm

@@ -118,7 +118,7 @@ def imitate_solution(
         input_scheme='{"id": <index as int>, "input_item": <str>}',
         input_data=parsed_data,
         # output_scheme=f"list[{LLMOutputTable().dict()}]",
-        output_scheme=f"list[{LLMOutput().dict()}]",
+        output_scheme=f"{LLMOutput().dict()}",
     )
 
     # осторожно - не запутаться бы в версиях langchain
@@ -137,5 +137,7 @@ def imitate_solution(
     # а то мы упираемся в базовый фукнционал LLM уже, когда весь мир дальше идет
 
     # осталось попробовать вернуть response :)
+
+    # logger.debug(f"LLM response: {response}")
 
     return response

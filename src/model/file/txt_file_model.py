@@ -34,7 +34,8 @@ def extract_noms(file_object: UploadFile) -> list[str]:
 
     # Read Saved File
     with open(file_path) as f:
-        rows_list = f.readlines()
+        # rows_list = f.readlines()
+        rows_list = f.read().strip().split("\n")
 
     parsed_noms = [_clean_text(row) for row in rows_list]
 
