@@ -31,9 +31,9 @@ class SummaryTitle:
 
 
 class OrderSummary(SQLModel):
-    type: str
-    title: str
-    value: str
+    type: str | None
+    title: str | None
+    value: str | None
 
 
 class Order(SQLModel):

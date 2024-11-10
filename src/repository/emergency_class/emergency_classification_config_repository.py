@@ -4,12 +4,17 @@ from infra.database import engine
 from scheme.emergency_class.emergency_classification_config_scheme import EmergencyClassificationConfig
 
 # ID of empty user
-DEFAULT_CONFIG_USER_ID = 0
+DEFAULT_CONFIG_USER_ID = 8
 
 
 def get_default_config() -> EmergencyClassificationConfig | None:
     with Session(engine) as session:
-        config = session.get(EmergencyClassificationConfig, DEFAULT_CONFIG_USER_ID)
+        # config = session.get(EmergencyClassificationConfig, DEFAULT_CONFIG_USER_ID)
+        st = select(EmergencyClassificationConfig)
+        st = st.where(EmergencyClassificationConfig.user_id == DEFAULT_CONFIG_USER_ID)
+
+        config = session.exec(st).first()
+
         return config
 
 

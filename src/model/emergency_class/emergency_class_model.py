@@ -8,7 +8,8 @@ from datastep.chains.emergency_class_chain import get_emergency_class_chain
 from infra.env import DOMYLAND_AUTH_EMAIL, DOMYLAND_AUTH_PASSWORD, DOMYLAND_AUTH_TENANT_NAME
 from infra.vysota_uds_list import UDS_LIST
 from model.emergency_class.emergency_classification_history_model import save_emergency_classification_record
-from repository.emergency_class.emergency_classification_config_repository import get_default_config
+from repository.emergency_class.emergency_classification_config_repository import get_default_config, \
+    DEFAULT_CONFIG_USER_ID
 from scheme.emergency_class.emergency_class_scheme import (AlertTypeID, EmergencyClassRequest, OrderDetails,
                                                            OrderFormUpdate, SummaryTitle, SummaryType)
 from scheme.emergency_class.emergency_classification_history_scheme import EmergencyClassificationRecord
@@ -191,7 +192,10 @@ def get_emergency_class(
     alert_timestamp = body.timestamp
 
     order_id = body.data.orderId
+    # TODO: replace with 2 ("В работе")
     order_status_id = body.data.orderStatusId
+
+    # TODO: accept only orders with status 1 ("Ожидание") to prevent duplicates
 
     # Init emergency classification history record to save later
     history_record = EmergencyClassificationRecord(
@@ -208,7 +212,7 @@ def get_emergency_class(
         if emergency_classification_config is None:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Default emergency classification config (for user with ID 0) not found",
+                detail=f"Default emergency classification config (for user with ID {DEFAULT_CONFIG_USER_ID}) not found",
             )
 
         user_id = emergency_classification_config.user_id
@@ -240,6 +244,7 @@ def get_emergency_class(
 
         history_record.order_query = order_query
 
+        normalized_query: str | None = None
         # Check if resident comment exists and not empty if enabled
         if is_use_emergency_classification:
             is_order_query_exists = order_query is not None
@@ -271,12 +276,13 @@ def get_emergency_class(
                     detail=f"В заявке {order_id} отсутствует адрес для определения ответственного ЕДС.",
                 )
 
-        # Normalize order query for LLM chain
-        normalized_query = _normalize_resident_request_string(order_query)
-        history_record.order_normalized_query = normalized_query
-
-        # Get order emergency
+        # Run LLM to classify order
         if is_use_emergency_classification:
+            # Normalize order query for LLM chain
+            normalized_query = _normalize_resident_request_string(order_query)
+            history_record.order_normalized_query = normalized_query
+
+            # Get order emergency
             chain = get_emergency_class_chain()
             order_emergency: str = chain.run(query=normalized_query)
         else:
@@ -370,17 +376,22 @@ def get_emergency_class(
 if __name__ == "__main__":
     # Test order id - 3196509
     # Real order id - 3191519
-    order_id = 3196509
+    order_id = 3246009
 
-    # Test UDS mapping
     order_details = _get_order_details_by_id(order_id)
     # logger.debug(f"Order {order_id} details: {order_details}")
 
-    order_address = None
-    for summary in order_details.order.summary:
-        if summary.title == SummaryTitle.OBJECT:
-            order_address = summary.value
-    logger.debug(f"Order {order_id} address: {order_address}")
+    order_query: str | None = None
+    for order_form in order_details.service.orderForm:
+        if order_form.type == SummaryType.TEXT and order_form.title == SummaryTitle.COMMENT:
+            order_query = order_form.value
+    print(f"Order query: {order_query}")
 
-    users_ids_list = _get_responsible_users_ids_by_order_address(order_address)
-    logger.debug(f"Responsible users IDs: {users_ids_list}")
+    # order_address = None
+    # for summary in order_details.order.summary:
+    #     if summary.title == SummaryTitle.OBJECT:
+    #         order_address = summary.value
+    # logger.debug(f"Order {order_id} address: {order_address}")
+    #
+    # users_ids_list = _get_responsible_users_ids_by_order_address(order_address)
+    # logger.debug(f"Responsible users IDs: {users_ids_list}")
