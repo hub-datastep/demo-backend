@@ -215,7 +215,7 @@ def get_emergency_class(
     if order_status_id != OrderStatusID.PENDING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Order with ID {order_id} is already in progress (status: 'В работе')",
+            detail=f"Order with ID {order_id} is not in pending status ('Ожидание')",
         )
 
     # Init emergency classification history record to save later
@@ -351,7 +351,8 @@ def get_emergency_class(
                 response, request_body = _update_responsible_user(
                     order_id=order_id,
                     responsible_dept_id=RESPONSIBLE_DEPT_ID,
-                    order_status_id=order_status_id,
+                    # Update order status to "В работе"
+                    order_status_id=OrderStatusID.IN_PROGRESS,
                     responsible_users_ids=responsible_users_ids,
                 )
             else:
