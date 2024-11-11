@@ -5,14 +5,31 @@ from fastapi import HTTPException, status
 from loguru import logger
 
 from datastep.chains.emergency_class_chain import get_emergency_class_chain
-from infra.env import DOMYLAND_AUTH_EMAIL, DOMYLAND_AUTH_PASSWORD, DOMYLAND_AUTH_TENANT_NAME
+from infra.env import (
+    DOMYLAND_AUTH_EMAIL,
+    DOMYLAND_AUTH_PASSWORD,
+    DOMYLAND_AUTH_TENANT_NAME,
+)
 from infra.vysota_uds_list import UDS_LIST
-from model.emergency_class.emergency_classification_history_model import save_emergency_classification_record
-from repository.emergency_class.emergency_classification_config_repository import get_default_config, \
-    DEFAULT_CONFIG_USER_ID
-from scheme.emergency_class.emergency_class_scheme import (AlertTypeID, EmergencyClassRequest, OrderDetails,
-                                                           OrderFormUpdate, SummaryTitle, SummaryType)
-from scheme.emergency_class.emergency_classification_history_scheme import EmergencyClassificationRecord
+from model.emergency_class.emergency_classification_history_model import (
+    save_emergency_classification_record,
+)
+from repository.emergency_class.emergency_classification_config_repository import (
+    get_default_config,
+    DEFAULT_CONFIG_USER_ID,
+)
+from scheme.emergency_class.emergency_class_scheme import (
+    AlertTypeID,
+    EmergencyClassRequest,
+    OrderDetails,
+    OrderFormUpdate,
+    OrderStatusID,
+    SummaryTitle,
+    SummaryType,
+)
+from scheme.emergency_class.emergency_classification_history_scheme import (
+    EmergencyClassificationRecord,
+)
 from scheme.emergency_class.uds_scheme import UDS
 
 DOMYLAND_API_BASE_URL = "https://sud-api.domyland.ru"
@@ -50,7 +67,7 @@ def _get_auth_token() -> str:
         },
         headers={
             "AppName": DOMYLAND_APP_NAME,
-        }
+        },
     )
 
     if not response.ok:
@@ -59,7 +76,7 @@ def _get_auth_token() -> str:
             detail=response.text,
         )
 
-    auth_token = response.json()['token']
+    auth_token = response.json()["token"]
     return auth_token
 
 
@@ -82,7 +99,7 @@ def _get_order_details_by_id(order_id: int) -> OrderDetails:
     # Update order status
     response = requests.get(
         url=f"{DOMYLAND_API_BASE_URL}/initial-data/dispatcher/order-info/{order_id}",
-        headers=_get_domyland_headers(auth_token)
+        headers=_get_domyland_headers(auth_token),
     )
     response_data = response.json()
     # logger.debug(f"Order {order_id} details:\n{response_data}")
@@ -124,7 +141,7 @@ def _update_order_emergency_status(
     response = requests.put(
         url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}",
         json=req_body,
-        headers=_get_domyland_headers(auth_token)
+        headers=_get_domyland_headers(auth_token),
     )
     response_data = response.json()
 
@@ -171,7 +188,7 @@ def _update_responsible_user(
     response = requests.put(
         url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}/status",
         json=req_body,
-        headers=_get_domyland_headers(auth_token)
+        headers=_get_domyland_headers(auth_token),
     )
     response_data = response.json()
 
@@ -192,10 +209,14 @@ def get_emergency_class(
     alert_timestamp = body.timestamp
 
     order_id = body.data.orderId
-    # TODO: replace with 2 ("В работе")
     order_status_id = body.data.orderStatusId
 
-    # TODO: accept only orders with status 1 ("Ожидание") to prevent duplicates
+    # Check if order status is not "in progress"
+    if order_status_id != OrderStatusID.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Order with ID {order_id} is already in progress (status: 'В работе')",
+        )
 
     # Init emergency classification history record to save later
     history_record = EmergencyClassificationRecord(
@@ -217,12 +238,19 @@ def get_emergency_class(
 
         user_id = emergency_classification_config.user_id
         # Is need to classify order emergency
-        is_use_emergency_classification = emergency_classification_config.is_use_emergency_classification
+        is_use_emergency_classification = (
+            emergency_classification_config.is_use_emergency_classification
+        )
         # Is need to update order emergency in Domyland (blocked by is_use_emergency_classification)
-        is_use_order_updating = emergency_classification_config.is_use_order_updating and is_use_emergency_classification
+        is_use_order_updating = (
+            emergency_classification_config.is_use_order_updating
+            and is_use_emergency_classification
+        )
 
         # Message for response fields disabled by config
-        disabled_field_msg = f"skipped by emergency classification config of user with ID {user_id}"
+        disabled_field_msg = (
+            f"skipped by emergency classification config of user with ID {user_id}"
+        )
 
         # Check if order is new (created)
         if is_use_emergency_classification:
@@ -239,7 +267,10 @@ def get_emergency_class(
         # Get resident comment
         order_query: str | None = None
         for order_form in order_details.service.orderForm:
-            if order_form.type == SummaryType.TEXT and order_form.title == SummaryTitle.COMMENT:
+            if (
+                order_form.type == SummaryType.TEXT
+                and order_form.title == SummaryTitle.COMMENT
+            ):
                 order_query = order_form.value
 
         history_record.order_query = order_query
@@ -248,7 +279,9 @@ def get_emergency_class(
         # Check if resident comment exists and not empty if enabled
         if is_use_emergency_classification:
             is_order_query_exists = order_query is not None
-            is_order_query_empty = is_order_query_exists and not bool(order_query.strip())
+            is_order_query_empty = is_order_query_exists and not bool(
+                order_query.strip()
+            )
 
             if not is_order_query_exists or is_order_query_empty:
                 raise HTTPException(
@@ -268,7 +301,9 @@ def get_emergency_class(
         # Check if resident address exists and not empty if enabled
         if is_use_emergency_classification:
             is_order_address_exists = order_address is not None
-            is_order_address_empty = is_order_address_exists and not bool(order_address.strip())
+            is_order_address_empty = is_order_address_exists and not bool(
+                order_address.strip()
+            )
 
             if not is_order_address_exists or is_order_address_empty:
                 raise HTTPException(
@@ -299,7 +334,9 @@ def get_emergency_class(
         # update_order_response_data = None
         if is_emergency and is_use_emergency_classification:
             # Get responsible UDS user id
-            responsible_users_ids = _get_responsible_users_ids_by_order_address(order_address)
+            responsible_users_ids = _get_responsible_users_ids_by_order_address(
+                order_address=order_address,
+            )
             # Convert list to str
             history_record.uds_id = str(responsible_users_ids)
 
@@ -378,14 +415,17 @@ if __name__ == "__main__":
     # Real order id - 3191519
     order_id = 3246009
 
-    order_details = _get_order_details_by_id(order_id)
+    # order_details = _get_order_details_by_id(order_id)
     # logger.debug(f"Order {order_id} details: {order_details}")
 
-    order_query: str | None = None
-    for order_form in order_details.service.orderForm:
-        if order_form.type == SummaryType.TEXT and order_form.title == SummaryTitle.COMMENT:
-            order_query = order_form.value
-    print(f"Order query: {order_query}")
+    # order_query: str | None = None
+    # for order_form in order_details.service.orderForm:
+    #     if (
+    #         order_form.type == SummaryType.TEXT
+    #         and order_form.title == SummaryTitle.COMMENT
+    #     ):
+    #         order_query = order_form.value
+    # print(f"Order query: {order_query}")
 
     # order_address = None
     # for summary in order_details.order.summary:

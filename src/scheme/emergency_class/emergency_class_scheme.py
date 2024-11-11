@@ -12,6 +12,11 @@ class AlertTypeID:
     UPDATE_ORDER_STATUS = 13
 
 
+class OrderStatusID:
+    PENDING = 1
+    IN_PROGRESS = 2
+
+
 class SummaryType:
     STRING = "string"
     RADIO = "radio"
@@ -80,6 +85,7 @@ class EmergencyClassRequest(SQLModel):
     alertTypeId: int
     timestamp: int | None
     data: OrderData
+
 
 # class OrderUpdate(SQLModel):
 #     isAccident: bool
