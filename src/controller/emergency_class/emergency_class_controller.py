@@ -14,6 +14,7 @@ from scheme.user.user_scheme import UserRead
 router = APIRouter()
 
 
+# TODO: change route path to classification/<название клиента>/<название ивента на которое работает вебхук>
 @router.get("/config/{user_id}", response_model=EmergencyClassificationConfig)
 @version(1)
 def get_emergency_classification_config_by_user_id(
