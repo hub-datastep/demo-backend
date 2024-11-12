@@ -40,6 +40,12 @@ RESPONSIBLE_UDS_LIST = [UDS(**uds_data) for uds_data in UDS_LIST]
 # "Администрация" - DEPT ID 38
 RESPONSIBLE_DEPT_ID = 38
 
+# DataStep AI User ID - 15698
+AI_USER_ID = 15698
+
+# Message to mark AI processed orders (in internal chat)
+ORDER_PROCESSED_BY_AI_MESSAGE = "DataStep ИИ классифицировал эту заявку как аварийную"
+
 
 def _normalize_resident_request_string(query: str) -> str:
     # Remove \n symbols
@@ -57,17 +63,29 @@ def _normalize_resident_request_string(query: str) -> str:
     return fixed_spaces_query
 
 
+def _get_domyland_headers(auth_token: str | None = None):
+    if auth_token is None:
+        return {
+            "AppName": DOMYLAND_APP_NAME,
+        }
+
+    return {
+        "AppName": DOMYLAND_APP_NAME,
+        "Authorization": auth_token,
+    }
+
+
 def _get_auth_token() -> str:
+    req_body = {
+        "email": DOMYLAND_AUTH_EMAIL,
+        "password": DOMYLAND_AUTH_PASSWORD,
+        "tenantName": DOMYLAND_AUTH_TENANT_NAME,
+    }
+
     response = requests.post(
         url=f"{DOMYLAND_API_BASE_URL}/auth",
-        json={
-            "email": DOMYLAND_AUTH_EMAIL,
-            "password": DOMYLAND_AUTH_PASSWORD,
-            "tenantName": DOMYLAND_AUTH_TENANT_NAME,
-        },
-        headers={
-            "AppName": DOMYLAND_APP_NAME,
-        },
+        json=req_body,
+        headers=_get_domyland_headers(),
     )
 
     if not response.ok:
@@ -78,18 +96,6 @@ def _get_auth_token() -> str:
 
     auth_token = response.json()["token"]
     return auth_token
-
-
-def _get_domyland_headers(auth_token: str | None):
-    if auth_token is None:
-        return {
-            "AppName": DOMYLAND_APP_NAME,
-        }
-
-    return {
-        "AppName": DOMYLAND_APP_NAME,
-        "Authorization": auth_token,
-    }
 
 
 def _get_order_details_by_id(order_id: int) -> OrderDetails:
@@ -169,19 +175,47 @@ def _get_responsible_users_ids_by_order_address(order_address: str) -> list[int]
     return None
 
 
-def _update_responsible_user(
+def _get_order_status_details(order_id: int) -> dict:
+    # Authorize in Domyland API
+    auth_token = _get_auth_token()
+
+    # Update responsible user
+    response = requests.get(
+        url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}/status",
+        headers=_get_domyland_headers(auth_token),
+    )
+    response_data = response.json()
+
+    if not response.ok:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Order status GET: {response_data}",
+        )
+
+    return response_data
+
+
+def _update_order_status_details(
     order_id: int,
     responsible_dept_id: int,
     order_status_id: int,
     responsible_users_ids: list[int],
-) -> tuple[dict, dict] | None:
+    inspector_users_ids: list[int],
+) -> tuple[dict, dict]:
+    # Just save prev params in order status details
+    prev_order_status_details = _get_order_status_details(order_id)
+
     # Authorize in Domyland API
     auth_token = _get_auth_token()
 
     req_body = {
+        # Save all prev params from order status details (not needed to update)
+        **prev_order_status_details,
+        # Update necessary params
         "responsibleDeptId": responsible_dept_id,
         "orderStatusId": order_status_id,
         "responsibleUserIds": responsible_users_ids,
+        "inspectorIds": inspector_users_ids,
     }
 
     # Update responsible user
@@ -201,9 +235,34 @@ def _update_responsible_user(
     return response_data, req_body
 
 
-def get_emergency_class(
-    body: EmergencyClassRequest,
-) -> EmergencyClassificationRecord:
+def _send_message_to_internal_chat(order_id: int, message: str) -> tuple[dict, dict]:
+    # Authorize in Domyland API
+    auth_token = _get_auth_token()
+
+    req_body = {
+        "orderId": order_id,
+        "text": message,
+        "isImportant": False
+    }
+
+    # Send message to internal chat
+    response = requests.put(
+        url=f"{DOMYLAND_API_BASE_URL}/order-comments",
+        json=req_body,
+        headers=_get_domyland_headers(auth_token),
+    )
+    response_data = response.json()
+
+    if not response.ok:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Order internal chat POST: {response_data}",
+        )
+
+    return response_data, req_body
+
+
+def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassificationRecord:
     alert_id = body.alertId
     alert_type_id = body.alertTypeId
     alert_timestamp = body.timestamp
@@ -275,7 +334,6 @@ def get_emergency_class(
 
         history_record.order_query = order_query
 
-        normalized_query: str | None = None
         # Check if resident comment exists and not empty if enabled
         if is_use_emergency_classification:
             is_order_query_exists = order_query is not None
@@ -348,12 +406,20 @@ def get_emergency_class(
 
             # Update order responsible user is enabled
             if is_use_order_updating:
-                response, request_body = _update_responsible_user(
+                response, request_body = _update_order_status_details(
                     order_id=order_id,
                     responsible_dept_id=RESPONSIBLE_DEPT_ID,
                     # Update order status to "В работе"
                     order_status_id=OrderStatusID.IN_PROGRESS,
                     responsible_users_ids=responsible_users_ids,
+                    # Update order inspector to AI Account
+                    inspector_users_ids=[AI_USER_ID],
+                )
+
+                # Mark order as processed by AI
+                _send_message_to_internal_chat(
+                    order_id=order_id,
+                    message=ORDER_PROCESSED_BY_AI_MESSAGE,
                 )
             else:
                 request_body = {"result": disabled_field_msg}
@@ -404,17 +470,10 @@ def get_emergency_class(
     return history_record
 
 
-# [
-#     'Поле \"serviceId\" обязательно для заполнения',
-#     'Поле \"Объект\" обязательно для заполнения',
-#     'Поле \"eventId\" обязательно для заполнения',
-#     'Поле \"orderData\" обязательно для заполнения'
-# ]
-
 if __name__ == "__main__":
     # Test order id - 3196509
     # Real order id - 3191519
-    order_id = 3246009
+    order_id = 3197122
 
     # order_details = _get_order_details_by_id(order_id)
     # logger.debug(f"Order {order_id} details: {order_details}")
