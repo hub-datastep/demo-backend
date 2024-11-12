@@ -44,7 +44,7 @@ RESPONSIBLE_DEPT_ID = 38
 AI_USER_ID = 15698
 
 # Message to mark AI processed orders (in internal chat)
-ORDER_PROCESSED_BY_AI_MESSAGE = "DataStep ИИ классифицировал эту заявку как аварийную"
+ORDER_PROCESSED_BY_AI_MESSAGE = "ИИ классифицировал эту заявку как аварийную"
 
 
 def _normalize_resident_request_string(query: str) -> str:
