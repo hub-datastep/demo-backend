@@ -202,15 +202,15 @@ def _update_order_status_details(
     responsible_users_ids: list[int],
     inspector_users_ids: list[int],
 ) -> tuple[dict, dict]:
-    # Just save prev params in order status details
-    prev_order_status_details = _get_order_status_details(order_id)
+    # # Just save prev params in order status details
+    # prev_order_status_details = _get_order_status_details(order_id)
 
     # Authorize in Domyland API
     auth_token = _get_auth_token()
 
     req_body = {
-        # Save all prev params from order status details (not needed to update)
-        **prev_order_status_details,
+        # # Save all prev params from order status details (not needed to update)
+        # **prev_order_status_details,
         # Update necessary params
         "responsibleDeptId": responsible_dept_id,
         "orderStatusId": order_status_id,
@@ -246,7 +246,7 @@ def _send_message_to_internal_chat(order_id: int, message: str) -> tuple[dict, d
     }
 
     # Send message to internal chat
-    response = requests.put(
+    response = requests.post(
         url=f"{DOMYLAND_API_BASE_URL}/order-comments",
         json=req_body,
         headers=_get_domyland_headers(auth_token),
@@ -270,13 +270,6 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassificationR
     order_id = body.data.orderId
     order_status_id = body.data.orderStatusId
 
-    # Check if order status is not "in progress"
-    if order_status_id != OrderStatusID.PENDING:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Order with ID {order_id} is not in pending status ('Ожидание')",
-        )
-
     # Init emergency classification history record to save later
     history_record = EmergencyClassificationRecord(
         alert_id=alert_id,
@@ -287,6 +280,13 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassificationR
     )
 
     try:
+        # Check if order status is not "in progress"
+        if order_status_id != OrderStatusID.PENDING:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Order with ID {order_id} has status ID {order_status_id}, but status ID {OrderStatusID.PENDING} ('Ожидание') required",
+            )
+
         emergency_classification_config = get_default_config()
         # Check if default config exists
         if emergency_classification_config is None:
