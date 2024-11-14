@@ -26,7 +26,7 @@ class User(UserBase, table=True):
     classifier_config: "ClassifierConfig" = Relationship(
         back_populates="user",
     )
-    emergency_classification_config: "EmergencyClassificationConfig" = Relationship(
+    order_classification_config: "OrderClassificationConfig" = Relationship(
         back_populates="user",
     )
     solution_imitation_configs: list["SolutionImitationConfig"] = Relationship(
@@ -57,13 +57,12 @@ from scheme.classifier.classifier_config_scheme import ClassifierConfig
 from scheme.prediction.database_prediction_config_scheme import DatabasePredictionConfig
 from scheme.tenant.tenant_scheme import Tenant, TenantRead
 from scheme.role.role_scheme import Role
-from scheme.emergency_class.emergency_classification_config_scheme import (
-    EmergencyClassificationConfig,
+from scheme.order_classification.order_classification_config_scheme import (
+    OrderClassificationConfig,
 )
 from scheme.solution_imitation.solution_imitation_config_scheme import (
     SolutionImitationConfig,
 )
-
 
 User.update_forward_refs()
 UserRead.update_forward_refs()

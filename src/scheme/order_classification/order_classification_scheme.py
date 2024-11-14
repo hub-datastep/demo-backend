@@ -80,13 +80,8 @@ class OrderData(SQLModel):
     orderStatusId: int
 
 
-class EmergencyClassRequest(SQLModel):
+class OrderClassificationRequest(SQLModel):
     alertId: str | None
     alertTypeId: int
     timestamp: int | None
     data: OrderData
-
-
-# class OrderUpdate(SQLModel):
-#     isAccident: bool
-#     orderStatusId: int

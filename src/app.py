@@ -12,20 +12,21 @@ from controller.chat import message_controller, chat_controller
 from controller.chroma_collection import chroma_collection_controller
 from controller.classifier import classifier_config_controller, classifier_controller
 from controller.embedding import embedding_controller
-from controller.emergency_class import emergency_class_controller
 from controller.file import file_controller
 from controller.ksr import ksr_controller
 from controller.mapping import mapping_controller
 from controller.mode import mode_controller
 from controller.ner import brand_model_controller
+from controller.order_classification.vysota import \
+    order_classification_controller as vysota_order_classification_controller
 from controller.prediction import prediction_controller
 from controller.prompt import prompt_controller
 from controller.role import role_controller
+from controller.solution_imitation import solution_imitation_controller
 from controller.task import task_controller
 from controller.tenant import tenant_controller
 from controller.used_token import used_token_controller
 from controller.user import user_controller
-from controller.solution_imitation import solution_imitation_controller
 from util.healthcheck.redis_connection import check_redis_connection
 
 app = FastAPI()
@@ -77,7 +78,12 @@ app.include_router(task_controller.router, tags=["task"], prefix="/task")
 app.include_router(ksr_controller.router, tags=["ksr"], prefix="/ksr")
 
 # Emergency Class
-app.include_router(emergency_class_controller.router, tags=["emergency_class"], prefix="/emergency_class")
+# Vysota Service
+app.include_router(
+    vysota_order_classification_controller.router,
+    tags=["Orders Classification"],
+    prefix="/classification/orders",
+)
 
 # Solution Imitation
 app.include_router(solution_imitation_controller.router, tags=["Solution Imitation"], prefix="/solution_imitation")

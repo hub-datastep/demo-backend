@@ -4,33 +4,33 @@ import requests
 from fastapi import HTTPException, status
 from loguru import logger
 
-from datastep.chains.emergency_class_chain import get_emergency_class_chain
+from datastep.chains.order_classification_chain import get_order_classification_chain
 from infra.env import (
     DOMYLAND_AUTH_EMAIL,
     DOMYLAND_AUTH_PASSWORD,
     DOMYLAND_AUTH_TENANT_NAME,
 )
 from infra.vysota_uds_list import UDS_LIST
-from model.emergency_class.emergency_classification_history_model import (
+from model.order_classification.order_classification_history_model import (
     save_emergency_classification_record,
 )
-from repository.emergency_class.emergency_classification_config_repository import (
+from repository.order_classification.order_classification_config_repository import (
     get_default_config,
     DEFAULT_CONFIG_USER_ID,
 )
-from scheme.emergency_class.emergency_class_scheme import (
+from scheme.order_classification.order_classification_history_scheme import (
+    OrderClassificationRecord,
+)
+from scheme.order_classification.order_classification_scheme import (
     AlertTypeID,
-    EmergencyClassRequest,
+    OrderClassificationRequest,
     OrderDetails,
     OrderFormUpdate,
     OrderStatusID,
     SummaryTitle,
     SummaryType,
 )
-from scheme.emergency_class.emergency_classification_history_scheme import (
-    EmergencyClassificationRecord,
-)
-from scheme.emergency_class.uds_scheme import UDS
+from scheme.order_classification.uds_scheme import UDS
 
 DOMYLAND_API_BASE_URL = "https://sud-api.domyland.ru"
 DOMYLAND_APP_NAME = "Datastep"
@@ -91,7 +91,7 @@ def _get_auth_token() -> str:
     if not response.ok:
         raise HTTPException(
             status_code=response.status_code,
-            detail=response.text,
+            detail=f"Domyland Auth: {response.text}",
         )
 
     auth_token = response.json()["token"]
@@ -262,7 +262,10 @@ def _send_message_to_internal_chat(order_id: int, message: str) -> tuple[dict, d
     return response_data, req_body
 
 
-def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassificationRecord:
+def get_emergency_class(
+    body: OrderClassificationRequest,
+    client: str,
+) -> OrderClassificationRecord:
     alert_id = body.alertId
     alert_type_id = body.alertTypeId
     alert_timestamp = body.timestamp
@@ -271,7 +274,7 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassificationR
     order_status_id = body.data.orderStatusId
 
     # Init emergency classification history record to save later
-    history_record = EmergencyClassificationRecord(
+    history_record = OrderClassificationRecord(
         alert_id=alert_id,
         alert_type_id=alert_type_id,
         alert_timestamp=alert_timestamp,
@@ -284,25 +287,27 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassificationR
         if order_status_id != OrderStatusID.PENDING:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Order with ID {order_id} has status ID {order_status_id}, but status ID {OrderStatusID.PENDING} ('Ожидание') required",
+                detail=f"Order with ID {order_id} has status ID {order_status_id}, but status ID {OrderStatusID.PENDING} required",
             )
 
-        emergency_classification_config = get_default_config()
+        order_classification_config = get_default_config(
+            client=client,
+        )
         # Check if default config exists
-        if emergency_classification_config is None:
+        if order_classification_config is None:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Default emergency classification config (for user with ID {DEFAULT_CONFIG_USER_ID}) not found",
+                detail=f"Default order classification config (for user with ID {DEFAULT_CONFIG_USER_ID} and client {client}) not found",
             )
 
-        user_id = emergency_classification_config.user_id
+        user_id = order_classification_config.user_id
         # Is need to classify order emergency
         is_use_emergency_classification = (
-            emergency_classification_config.is_use_emergency_classification
+            order_classification_config.is_use_emergency_classification
         )
         # Is need to update order emergency in Domyland (blocked by is_use_emergency_classification)
         is_use_order_updating = (
-            emergency_classification_config.is_use_order_updating
+            order_classification_config.is_use_order_updating
             and is_use_emergency_classification
         )
 
@@ -316,7 +321,7 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassificationR
             if body.alertTypeId != AlertTypeID.NEW_ORDER:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Неверный ID типа уведомления ({body.alertTypeId})",
+                    detail=f"Order with ID {order_id} has alert type ID {body.alertTypeId}, but status ID {AlertTypeID.NEW_ORDER} required",
                 )
 
         # Get order details
@@ -344,7 +349,7 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassificationR
             if not is_order_query_exists or is_order_query_empty:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"В заявке {order_id} отсутствует комментарий для определения её аварийности.",
+                    detail=f"Order with ID {order_id} has no comment, cannot classify emergency",
                 )
 
         # Get resident address
@@ -366,7 +371,7 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassificationR
             if not is_order_address_exists or is_order_address_empty:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"В заявке {order_id} отсутствует адрес для определения ответственного ЕДС.",
+                    detail=f"Order with ID {order_id} has no address, cannot find responsible UDS",
                 )
 
         # Run LLM to classify order
@@ -376,7 +381,10 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassificationR
             history_record.order_normalized_query = normalized_query
 
             # Get order emergency
-            chain = get_emergency_class_chain()
+            prompt = order_classification_config.emergency_prompt
+            chain = get_order_classification_chain(
+                prompt_template=prompt,
+            )
             order_emergency: str = chain.run(query=normalized_query)
         else:
             order_emergency = disabled_field_msg
@@ -401,7 +409,7 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassificationR
             if responsible_users_ids is None:
                 raise HTTPException(
                     status_code=status.HTTP_501_NOT_IMPLEMENTED,
-                    detail=f"Не получилось найти ответственный ЕДС для заявки {order_id}",
+                    detail=f"Cannot find responsible UDS for order with ID {order_id} and address '{order_address}'",
                 )
 
             # Update order responsible user is enabled
@@ -465,7 +473,10 @@ def get_emergency_class(body: EmergencyClassRequest) -> EmergencyClassificationR
         logger.error(comment)
 
     # logger.debug(f"History record:\n{history_record}")
-    history_record = save_emergency_classification_record(history_record)
+    history_record = save_emergency_classification_record(
+        record=history_record,
+        client=client,
+    )
 
     return history_record
 

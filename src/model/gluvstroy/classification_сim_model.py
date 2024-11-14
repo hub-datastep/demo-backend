@@ -38,4 +38,4 @@ materials = [
 ]
 
 for material in materials:
-    print(f"{determine_material_type(material)}")
+    print(f"{determine_model_type(material)}")
