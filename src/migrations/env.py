@@ -58,9 +58,7 @@ from scheme.used_token.used_token_scheme import UsedToken
 # noinspection PyUnresolvedReferences
 from scheme.role.role_scheme import Role
 # noinspection PyUnresolvedReferences
-from scheme.emergency_class.emergency_classification_history_scheme import EmergencyClassificationRecord
-# noinspection PyUnresolvedReferences
-from scheme.emergency_class.emergency_classification_config_scheme import EmergencyClassificationConfig
+from scheme.order_classification.order_classification_config_scheme import OrderClassificationConfig
 # noinspection PyUnresolvedReferences
 from scheme.solution_imitation.solution_imitation_config_scheme import SolutionImitationConfig
 

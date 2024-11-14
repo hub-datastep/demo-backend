@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import SQLModel, Field
 
 
-class EmergencyClassificationRecordBase(SQLModel):
+class OrderClassificationRecordBase(SQLModel):
     is_error: bool = False
     # Webhook alert data
     alert_id: str | None = None
@@ -30,8 +30,8 @@ class EmergencyClassificationRecordBase(SQLModel):
     comment: str | None = None
 
 
-class EmergencyClassificationRecord(EmergencyClassificationRecordBase, table=True):
-    __tablename__ = "emergency_classification_history"
+class OrderClassificationRecord(OrderClassificationRecordBase, table=True):
+    __tablename__ = "order_classification_history"
 
     id: int | None = Field(default=None, primary_key=True)
     created_at: datetime | None = Field(default_factory=datetime.utcnow)

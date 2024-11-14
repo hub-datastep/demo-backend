@@ -1,14 +1,14 @@
 from fastapi import HTTPException, status
 from sqlmodel import Session
 
-from repository.emergency_class.emergency_classification_config_repository import get_config_by_user_id
-from scheme.emergency_class.emergency_classification_config_scheme import EmergencyClassificationConfig
+from repository.order_classification.order_classification_config_repository import get_config_by_user_id
+from scheme.order_classification.order_classification_config_scheme import OrderClassificationConfig
 
 
 def get_emergency_classification_config_by_user_id(
     session: Session,
     user_id: int,
-) -> EmergencyClassificationConfig:
+) -> OrderClassificationConfig:
     config = get_config_by_user_id(session, user_id)
 
     if config is None:

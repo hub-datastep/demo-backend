@@ -4,15 +4,33 @@ import requests
 from fastapi import HTTPException, status
 from loguru import logger
 
-from datastep.chains.emergency_class_chain import get_emergency_class_chain
-from infra.env import DOMYLAND_AUTH_EMAIL, DOMYLAND_AUTH_PASSWORD, DOMYLAND_AUTH_TENANT_NAME
+from datastep.chains.order_classification_chain import get_order_classification_chain
+from infra.env import (
+    DOMYLAND_AUTH_EMAIL,
+    DOMYLAND_AUTH_PASSWORD,
+    DOMYLAND_AUTH_TENANT_NAME,
+)
 from infra.vysota_uds_list import UDS_LIST
-from model.emergency_class.emergency_classification_history_model import save_emergency_classification_record
-from repository.emergency_class.emergency_classification_config_repository import get_default_config
-from scheme.emergency_class.emergency_class_scheme import (AlertTypeID, EmergencyClassRequest, OrderDetails,
-                                                           OrderFormUpdate, SummaryTitle, SummaryType)
-from scheme.emergency_class.emergency_classification_history_scheme import EmergencyClassificationRecord
-from scheme.emergency_class.uds_scheme import UDS
+from model.order_classification.order_classification_history_model import (
+    save_emergency_classification_record,
+)
+from repository.order_classification.order_classification_config_repository import (
+    get_default_config,
+    DEFAULT_CONFIG_USER_ID,
+)
+from scheme.order_classification.order_classification_history_scheme import (
+    OrderClassificationRecord,
+)
+from scheme.order_classification.order_classification_scheme import (
+    AlertTypeID,
+    OrderClassificationRequest,
+    OrderDetails,
+    OrderFormUpdate,
+    OrderStatusID,
+    SummaryTitle,
+    SummaryType,
+)
+from scheme.order_classification.uds_scheme import UDS
 
 DOMYLAND_API_BASE_URL = "https://sud-api.domyland.ru"
 DOMYLAND_APP_NAME = "Datastep"
@@ -21,6 +39,12 @@ RESPONSIBLE_UDS_LIST = [UDS(**uds_data) for uds_data in UDS_LIST]
 
 # "Администрация" - DEPT ID 38
 RESPONSIBLE_DEPT_ID = 38
+
+# DataStep AI User ID - 15698
+AI_USER_ID = 15698
+
+# Message to mark AI processed orders (in internal chat)
+ORDER_PROCESSED_BY_AI_MESSAGE = "ИИ классифицировал эту заявку как аварийную"
 
 
 def _normalize_resident_request_string(query: str) -> str:
@@ -39,30 +63,7 @@ def _normalize_resident_request_string(query: str) -> str:
     return fixed_spaces_query
 
 
-def _get_auth_token() -> str:
-    response = requests.post(
-        url=f"{DOMYLAND_API_BASE_URL}/auth",
-        json={
-            "email": DOMYLAND_AUTH_EMAIL,
-            "password": DOMYLAND_AUTH_PASSWORD,
-            "tenantName": DOMYLAND_AUTH_TENANT_NAME,
-        },
-        headers={
-            "AppName": DOMYLAND_APP_NAME,
-        }
-    )
-
-    if not response.ok:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=response.text,
-        )
-
-    auth_token = response.json()['token']
-    return auth_token
-
-
-def _get_domyland_headers(auth_token: str | None):
+def _get_domyland_headers(auth_token: str | None = None):
     if auth_token is None:
         return {
             "AppName": DOMYLAND_APP_NAME,
@@ -74,6 +75,29 @@ def _get_domyland_headers(auth_token: str | None):
     }
 
 
+def _get_auth_token() -> str:
+    req_body = {
+        "email": DOMYLAND_AUTH_EMAIL,
+        "password": DOMYLAND_AUTH_PASSWORD,
+        "tenantName": DOMYLAND_AUTH_TENANT_NAME,
+    }
+
+    response = requests.post(
+        url=f"{DOMYLAND_API_BASE_URL}/auth",
+        json=req_body,
+        headers=_get_domyland_headers(),
+    )
+
+    if not response.ok:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Domyland Auth: {response.text}",
+        )
+
+    auth_token = response.json()["token"]
+    return auth_token
+
+
 def _get_order_details_by_id(order_id: int) -> OrderDetails:
     # Authorize in Domyland API
     auth_token = _get_auth_token()
@@ -81,7 +105,7 @@ def _get_order_details_by_id(order_id: int) -> OrderDetails:
     # Update order status
     response = requests.get(
         url=f"{DOMYLAND_API_BASE_URL}/initial-data/dispatcher/order-info/{order_id}",
-        headers=_get_domyland_headers(auth_token)
+        headers=_get_domyland_headers(auth_token),
     )
     response_data = response.json()
     # logger.debug(f"Order {order_id} details:\n{response_data}")
@@ -123,7 +147,7 @@ def _update_order_emergency_status(
     response = requests.put(
         url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}",
         json=req_body,
-        headers=_get_domyland_headers(auth_token)
+        headers=_get_domyland_headers(auth_token),
     )
     response_data = response.json()
 
@@ -151,26 +175,54 @@ def _get_responsible_users_ids_by_order_address(order_address: str) -> list[int]
     return None
 
 
-def _update_responsible_user(
+def _get_order_status_details(order_id: int) -> dict:
+    # Authorize in Domyland API
+    auth_token = _get_auth_token()
+
+    # Update responsible user
+    response = requests.get(
+        url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}/status",
+        headers=_get_domyland_headers(auth_token),
+    )
+    response_data = response.json()
+
+    if not response.ok:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Order status GET: {response_data}",
+        )
+
+    return response_data
+
+
+def _update_order_status_details(
     order_id: int,
     responsible_dept_id: int,
     order_status_id: int,
     responsible_users_ids: list[int],
-) -> tuple[dict, dict] | None:
+    inspector_users_ids: list[int],
+) -> tuple[dict, dict]:
+    # # Just save prev params in order status details
+    # prev_order_status_details = _get_order_status_details(order_id)
+
     # Authorize in Domyland API
     auth_token = _get_auth_token()
 
     req_body = {
+        # # Save all prev params from order status details (not needed to update)
+        # **prev_order_status_details,
+        # Update necessary params
         "responsibleDeptId": responsible_dept_id,
         "orderStatusId": order_status_id,
         "responsibleUserIds": responsible_users_ids,
+        "inspectorIds": inspector_users_ids,
     }
 
     # Update responsible user
     response = requests.put(
         url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}/status",
         json=req_body,
-        headers=_get_domyland_headers(auth_token)
+        headers=_get_domyland_headers(auth_token),
     )
     response_data = response.json()
 
@@ -183,9 +235,37 @@ def _update_responsible_user(
     return response_data, req_body
 
 
+def _send_message_to_internal_chat(order_id: int, message: str) -> tuple[dict, dict]:
+    # Authorize in Domyland API
+    auth_token = _get_auth_token()
+
+    req_body = {
+        "orderId": order_id,
+        "text": message,
+        "isImportant": False
+    }
+
+    # Send message to internal chat
+    response = requests.post(
+        url=f"{DOMYLAND_API_BASE_URL}/order-comments",
+        json=req_body,
+        headers=_get_domyland_headers(auth_token),
+    )
+    response_data = response.json()
+
+    if not response.ok:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Order internal chat POST: {response_data}",
+        )
+
+    return response_data, req_body
+
+
 def get_emergency_class(
-    body: EmergencyClassRequest,
-) -> EmergencyClassificationRecord:
+    body: OrderClassificationRequest,
+    client: str,
+) -> OrderClassificationRecord:
     alert_id = body.alertId
     alert_type_id = body.alertTypeId
     alert_timestamp = body.timestamp
@@ -194,7 +274,7 @@ def get_emergency_class(
     order_status_id = body.data.orderStatusId
 
     # Init emergency classification history record to save later
-    history_record = EmergencyClassificationRecord(
+    history_record = OrderClassificationRecord(
         alert_id=alert_id,
         alert_type_id=alert_type_id,
         alert_timestamp=alert_timestamp,
@@ -203,29 +283,45 @@ def get_emergency_class(
     )
 
     try:
-        emergency_classification_config = get_default_config()
-        # Check if default config exists
-        if emergency_classification_config is None:
+        # Check if order status is not "in progress"
+        if order_status_id != OrderStatusID.PENDING:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Default emergency classification config (for user with ID 0) not found",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Order with ID {order_id} has status ID {order_status_id}, but status ID {OrderStatusID.PENDING} required",
             )
 
-        user_id = emergency_classification_config.user_id
+        order_classification_config = get_default_config(
+            client=client,
+        )
+        # Check if default config exists
+        if order_classification_config is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Default order classification config (for user with ID {DEFAULT_CONFIG_USER_ID} and client {client}) not found",
+            )
+
+        user_id = order_classification_config.user_id
         # Is need to classify order emergency
-        is_use_emergency_classification = emergency_classification_config.is_use_emergency_classification
+        is_use_emergency_classification = (
+            order_classification_config.is_use_emergency_classification
+        )
         # Is need to update order emergency in Domyland (blocked by is_use_emergency_classification)
-        is_use_order_updating = emergency_classification_config.is_use_order_updating and is_use_emergency_classification
+        is_use_order_updating = (
+            order_classification_config.is_use_order_updating
+            and is_use_emergency_classification
+        )
 
         # Message for response fields disabled by config
-        disabled_field_msg = f"skipped by emergency classification config of user with ID {user_id}"
+        disabled_field_msg = (
+            f"skipped by emergency classification config of user with ID {user_id}"
+        )
 
         # Check if order is new (created)
         if is_use_emergency_classification:
             if body.alertTypeId != AlertTypeID.NEW_ORDER:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Неверный ID типа уведомления ({body.alertTypeId})",
+                    detail=f"Order with ID {order_id} has alert type ID {body.alertTypeId}, but status ID {AlertTypeID.NEW_ORDER} required",
                 )
 
         # Get order details
@@ -235,7 +331,10 @@ def get_emergency_class(
         # Get resident comment
         order_query: str | None = None
         for order_form in order_details.service.orderForm:
-            if order_form.type == SummaryType.TEXT and order_form.title == SummaryTitle.COMMENT:
+            if (
+                order_form.type == SummaryType.TEXT
+                and order_form.title == SummaryTitle.COMMENT
+            ):
                 order_query = order_form.value
 
         history_record.order_query = order_query
@@ -243,12 +342,14 @@ def get_emergency_class(
         # Check if resident comment exists and not empty if enabled
         if is_use_emergency_classification:
             is_order_query_exists = order_query is not None
-            is_order_query_empty = is_order_query_exists and not bool(order_query.strip())
+            is_order_query_empty = is_order_query_exists and not bool(
+                order_query.strip()
+            )
 
             if not is_order_query_exists or is_order_query_empty:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"В заявке {order_id} отсутствует комментарий для определения её аварийности.",
+                    detail=f"Order with ID {order_id} has no comment, cannot classify emergency",
                 )
 
         # Get resident address
@@ -263,21 +364,27 @@ def get_emergency_class(
         # Check if resident address exists and not empty if enabled
         if is_use_emergency_classification:
             is_order_address_exists = order_address is not None
-            is_order_address_empty = is_order_address_exists and not bool(order_address.strip())
+            is_order_address_empty = is_order_address_exists and not bool(
+                order_address.strip()
+            )
 
             if not is_order_address_exists or is_order_address_empty:
                 raise HTTPException(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"В заявке {order_id} отсутствует адрес для определения ответственного ЕДС.",
+                    detail=f"Order with ID {order_id} has no address, cannot find responsible UDS",
                 )
 
-        # Normalize order query for LLM chain
-        normalized_query = _normalize_resident_request_string(order_query)
-        history_record.order_normalized_query = normalized_query
-
-        # Get order emergency
+        # Run LLM to classify order
         if is_use_emergency_classification:
-            chain = get_emergency_class_chain()
+            # Normalize order query for LLM chain
+            normalized_query = _normalize_resident_request_string(order_query)
+            history_record.order_normalized_query = normalized_query
+
+            # Get order emergency
+            prompt = order_classification_config.emergency_prompt
+            chain = get_order_classification_chain(
+                prompt_template=prompt,
+            )
             order_emergency: str = chain.run(query=normalized_query)
         else:
             order_emergency = disabled_field_msg
@@ -293,23 +400,34 @@ def get_emergency_class(
         # update_order_response_data = None
         if is_emergency and is_use_emergency_classification:
             # Get responsible UDS user id
-            responsible_users_ids = _get_responsible_users_ids_by_order_address(order_address)
+            responsible_users_ids = _get_responsible_users_ids_by_order_address(
+                order_address=order_address,
+            )
             # Convert list to str
             history_record.uds_id = str(responsible_users_ids)
 
             if responsible_users_ids is None:
                 raise HTTPException(
                     status_code=status.HTTP_501_NOT_IMPLEMENTED,
-                    detail=f"Не получилось найти ответственный ЕДС для заявки {order_id}",
+                    detail=f"Cannot find responsible UDS for order with ID {order_id} and address '{order_address}'",
                 )
 
             # Update order responsible user is enabled
             if is_use_order_updating:
-                response, request_body = _update_responsible_user(
+                response, request_body = _update_order_status_details(
                     order_id=order_id,
                     responsible_dept_id=RESPONSIBLE_DEPT_ID,
-                    order_status_id=order_status_id,
+                    # Update order status to "В работе"
+                    order_status_id=OrderStatusID.IN_PROGRESS,
                     responsible_users_ids=responsible_users_ids,
+                    # Update order inspector to AI Account
+                    inspector_users_ids=[AI_USER_ID],
+                )
+
+                # Mark order as processed by AI
+                _send_message_to_internal_chat(
+                    order_id=order_id,
+                    message=ORDER_PROCESSED_BY_AI_MESSAGE,
                 )
             else:
                 request_body = {"result": disabled_field_msg}
@@ -355,32 +473,36 @@ def get_emergency_class(
         logger.error(comment)
 
     # logger.debug(f"History record:\n{history_record}")
-    history_record = save_emergency_classification_record(history_record)
+    history_record = save_emergency_classification_record(
+        record=history_record,
+        client=client,
+    )
 
     return history_record
 
 
-# [
-#     'Поле \"serviceId\" обязательно для заполнения',
-#     'Поле \"Объект\" обязательно для заполнения',
-#     'Поле \"eventId\" обязательно для заполнения',
-#     'Поле \"orderData\" обязательно для заполнения'
-# ]
-
 if __name__ == "__main__":
     # Test order id - 3196509
     # Real order id - 3191519
-    order_id = 3196509
+    order_id = 3197122
 
-    # Test UDS mapping
-    order_details = _get_order_details_by_id(order_id)
+    # order_details = _get_order_details_by_id(order_id)
     # logger.debug(f"Order {order_id} details: {order_details}")
 
-    order_address = None
-    for summary in order_details.order.summary:
-        if summary.title == SummaryTitle.OBJECT:
-            order_address = summary.value
-    logger.debug(f"Order {order_id} address: {order_address}")
+    # order_query: str | None = None
+    # for order_form in order_details.service.orderForm:
+    #     if (
+    #         order_form.type == SummaryType.TEXT
+    #         and order_form.title == SummaryTitle.COMMENT
+    #     ):
+    #         order_query = order_form.value
+    # print(f"Order query: {order_query}")
 
-    users_ids_list = _get_responsible_users_ids_by_order_address(order_address)
-    logger.debug(f"Responsible users IDs: {users_ids_list}")
+    # order_address = None
+    # for summary in order_details.order.summary:
+    #     if summary.title == SummaryTitle.OBJECT:
+    #         order_address = summary.value
+    # logger.debug(f"Order {order_id} address: {order_address}")
+    #
+    # users_ids_list = _get_responsible_users_ids_by_order_address(order_address)
+    # logger.debug(f"Responsible users IDs: {users_ids_list}")
