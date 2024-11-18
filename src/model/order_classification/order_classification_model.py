@@ -384,6 +384,7 @@ def get_emergency_class(
             prompt = order_classification_config.emergency_prompt
             chain = get_order_classification_chain(
                 prompt_template=prompt,
+                client=client,
             )
             order_emergency: str = chain.run(query=normalized_query)
         else:
