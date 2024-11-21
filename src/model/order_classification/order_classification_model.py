@@ -1,5 +1,7 @@
 import re
+import time
 
+from openai import RateLimitError
 import requests
 from fastapi import HTTPException, status
 from loguru import logger
@@ -46,6 +48,9 @@ AI_USER_ID = 15698
 
 # Message to mark AI processed orders (in internal chat)
 ORDER_PROCESSED_BY_AI_MESSAGE = "ИИ классифицировал эту заявку как аварийную"
+
+# Timeout for Rate Limit Error (TPM)
+WAIT_TIME_IN_SEC = 60
 
 
 def _normalize_resident_request_string(query: str) -> str:
@@ -263,6 +268,32 @@ def _send_message_to_internal_chat(order_id: int, message: str) -> tuple[dict, d
     return response_data, req_body
 
 
+def _get_order_emergency(
+    prompt: str,
+    client: str,
+    query: str,
+) -> str:
+    try:
+        chain = get_order_classification_chain(
+            prompt_template=prompt,
+            client=client,
+        )
+        order_emergency: str = chain.run(query=query)
+        return order_emergency
+    except RateLimitError:
+        logger.info(f"Wait {WAIT_TIME_IN_SEC} seconds and try again")
+        time.sleep(WAIT_TIME_IN_SEC)
+        logger.info(
+            f"Timeout passed, try to classify order '{query}' of '{client}' again"
+        )
+
+        return _get_order_emergency(
+            prompt=prompt,
+            client=client,
+            query=query,
+        )
+
+
 def get_emergency_class(
     body: OrderClassificationRequest,
     client: str,
@@ -395,11 +426,11 @@ def get_emergency_class(
 
             # Get order emergency
             prompt = order_classification_config.emergency_prompt
-            chain = get_order_classification_chain(
-                prompt_template=prompt,
+            order_emergency = _get_order_emergency(
+                prompt=prompt,
                 client=client,
+                query=normalized_query,
             )
-            order_emergency: str = chain.run(query=normalized_query)
         else:
             order_emergency = disabled_field_msg
         history_record.order_emergency = order_emergency
