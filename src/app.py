@@ -124,7 +124,8 @@ app = VersionedFastAPI(
 
 
 # Built docs dir
-app.mount("/mkdocs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True), name="mkdocs")
+# app.mount("/mkdocs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True), name="mkdocs")
+
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"), name="static")
 
 if __name__ == "__main__":
