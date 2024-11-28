@@ -4,12 +4,12 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from upd import upd
+from upd import download_pdf
 
 app = FastAPI()
 
 # Auth
-app.include_router(upd.router, tags=["upd"], prefix="/upd")
+app.include_router(download_pdf.router, tags=["upd"], prefix="/upd")
 
 
 
