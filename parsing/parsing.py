@@ -13,15 +13,6 @@ class Document(BaseModel):
     idn_link: str
     idn_file_name: str
 
-class UploadCardRequest(BaseModel):
-    guid: UUID4
-    idn_datetime: datetime
-    responsible_user_email: EmailStr
-    operation_kind: str
-    building_guid: UUID4
-    contractor_guid: UUID4
-    documents: List[Document]
-
 class Material(BaseModel):
     number: int
     material_guid: UUID4
@@ -31,36 +22,15 @@ class Material(BaseModel):
     vat_rate: float
     vat_amount: float
 
-# Модели для выходных данных
-class UploadCardResponse(BaseModel):
-    guid: UUID4
-    contractor_guid: UUID4
-    responsible_user_email: EmailStr
-    operation_kind: str
-    building_guid: UUID4
-    documents: List[Document]
-    materials: Optional[List[Material]] = None
-    idn_guid: UUID4
-    organization_inn: Optional[str] = None
-    supplier_inn: Optional[str] = None
-    idn_number: Optional[str] = None
-    idn_date: Optional[str] = None
-    correction_idn_number: Optional[str] = None
-    correction_idn_date: Optional[str] = None
-    contract_name: Optional[str] = None
-    contract_number: Optional[str] = None
-    contract_date: Optional[str] = None
-    status: str
-    error_message: Optional[str] = None
 
 
-@router.post("/manager/")
-async def create_upload_card(request: UploadCardRequest):
+@router.post("/parsing/")
+async def create_upload_card(request: Document):
     try:
         # Здесь будет логика обработки данных (например, распознавание, извлечение информации из файла)
 
         # Допустим, распознано всё, кроме некоторых данных
-        response = UploadCardResponse(
+        response = Material(
             guid=request.guid,
             contractor_guid=request.contractor_guid,
             responsible_user_email=request.responsible_user_email,
