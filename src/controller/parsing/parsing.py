@@ -1,36 +1,30 @@
-import pdfplumber
-from fastapi import APIRouter, File, UploadFile, HTTPException
+from parsing_sheme import UploadCardRequest, UploadCardResponse, Material
+from parsing_upd import parsing_upd_file
+
+from fastapi import APIRouter
+from fastapi_versioning import version
 
 router = APIRouter()
 
-from pydantic import BaseModel, EmailStr, UUID4
-from typing import List, Optional
-from datetime import datetime
-
-# Модели данных для валидации входящих данных
-class Document(BaseModel):
-    idn_file_guid: UUID4
-    idn_link: str
-    idn_file_name: str
-
-class Material(BaseModel):
-    number: int
-    material_guid: UUID4
-    quantity: float
-    price: float
-    cost: float
-    vat_rate: float
-    vat_amount: float
 
 
 
-@router.post("/parsing/")
-async def create_upload_card(request: Document):
+
+# Не знаю, как правильно юзать Depends и главное для чего
+@router.post("") #, response_model=UploadCardRequest) 
+@version(1)
+def create_upload_card(request: UploadCardRequest):
     try:
-        # Здесь будет логика обработки данных (например, распознавание, извлечение информации из файла)
+        # Извлекаю номенклатуры из pdf файла по ссылке
+        link_pdf_file = request.documents[0]
+        uuid = request.guid
+        nomenclatures = parsing_upd_file(link=link_pdf_file, uuid=uuid)
+
+        # Тут должна быть логика маппинга
+
 
         # Допустим, распознано всё, кроме некоторых данных
-        response = Material(
+        response = UploadCardResponse(
             guid=request.guid,
             contractor_guid=request.contractor_guid,
             responsible_user_email=request.responsible_user_email,

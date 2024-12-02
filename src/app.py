@@ -27,6 +27,7 @@ from controller.task import task_controller
 from controller.tenant import tenant_controller
 from controller.used_token import used_token_controller
 from controller.user import user_controller
+from controller.parsing import parsing
 from util.healthcheck.redis_connection import check_redis_connection
 
 app = FastAPI()
@@ -76,6 +77,9 @@ app.include_router(task_controller.router, tags=["task"], prefix="/task")
 
 # Ksr Nomenclature
 app.include_router(ksr_controller.router, tags=["ksr"], prefix="/ksr")
+
+# Parsing PDF files
+app.include_router(ksr_controller.router, tags=["parsing"], prefix="/parsing")
 
 # Emergency Class
 # Vysota Service
