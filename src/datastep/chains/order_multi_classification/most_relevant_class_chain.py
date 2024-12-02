@@ -49,10 +49,12 @@ def get_most_relevant_class(
     chain: LLMChain,
     order_query: str,
     scores: str,
-) -> dict:
+) -> MostRelevantClassLLMResponse:
     # TODO: add RateLimitError handling
-    order_class: dict = chain.run(
+    order_class_response: dict = chain.run(
         query=order_query,
         scores=scores,
     )
+    order_class = MostRelevantClassLLMResponse(**order_class_response)
+
     return order_class
