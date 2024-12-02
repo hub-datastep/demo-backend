@@ -85,3 +85,8 @@ class OrderClassificationRequest(SQLModel):
     alertTypeId: int
     timestamp: int | None
     data: OrderData
+
+
+class MostRelevantClassLLMResponse(SQLModel):
+    order_class: str
+    comment: str
