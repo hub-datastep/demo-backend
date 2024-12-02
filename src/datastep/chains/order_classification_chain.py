@@ -25,9 +25,9 @@ def _get_client_credentials(client: str) -> ClientCredentials:
     return credentials
 
 
-def get_llm_by_client_credentials(client: str) -> AzureChatOpenAI:
+def get_llm_by_client_credentials(client: str | None = None) -> AzureChatOpenAI:
     # Create LLM with client Azure OpenAI credentials
-    if not IS_DEV_ENV:
+    if not IS_DEV_ENV or client is not None:
         client_credentials = _get_client_credentials(client)
 
         llm = AzureChatOpenAI(
