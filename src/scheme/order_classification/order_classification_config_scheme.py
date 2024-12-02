@@ -1,3 +1,5 @@
+from sqlalchemy import Column
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import SQLModel, Field, Relationship
 
 
@@ -6,9 +8,9 @@ class OrderClassificationClient:
 
 
 class OrderClassificationConfigBase(SQLModel):
-    emergency_prompt: str | None = Field(default=None)
+    rules_by_classes: dict | None = Field(default=None, sa_column=Column(JSONB))
     client: str | None = Field(default=None)
-    is_use_emergency_classification: bool = Field(default=False)
+    is_use_order_classification: bool = Field(default=False)
     is_use_order_updating: bool = Field(default=False)
 
 
