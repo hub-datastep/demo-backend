@@ -10,26 +10,26 @@ def download_pdf(url) -> BytesIO:
         
         # Проверяем успешность запроса
         if response.status_code != 200 and response.status_code != 206:
-            raise HTTPException(status_code=400, detail=f"Failed to download file, status code: {response.status_code}")
+            return f"Failed to download file, status code: {response.status_code}"
 
         # Проверяем, что файл является PDF по заголовкам
         content_type = response.headers.get('Content-Type', '').lower()
         if 'pdf' not in content_type:
-            raise HTTPException(status_code=400, detail="The downloaded file is not a PDF.")
+            return "The downloaded file is not a PDF."
 
         # Проверяем, что файл начинается с %PDF
         if not response.content.startswith(b'%PDF'):
-            raise HTTPException(status_code=400, detail="The downloaded file does not appear to be a valid PDF.")
+            return "The downloaded file does not appear to be a valid PDF."
 
         # Загружаем полный файл
         full_response = requests.get(url)
         if full_response.status_code == 200:
             return BytesIO(full_response.content)
         else:
-            raise HTTPException(status_code=400, detail=f"Failed to download full PDF, status code: {full_response.status_code}")
+            return f"Failed to download full PDF, status code: {full_response.status_code}"
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error in function download_pdf: {str(e)}")
+        return f"Error in function download_pdf: {str(e)}"
 
 
 if __name__ == '__main__':
