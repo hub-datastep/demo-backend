@@ -1,27 +1,20 @@
-from parsing_sheme import UploadCardRequest, UploadCardResponse, Material
-from parsing_upd import parsing_upd_file
-
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi_versioning import version
+from scheme.parsing.parsing_scheme import UploadCardRequest, UploadCardResponse, Material
+from controller.parsing.parsing_utd import parsing_utd_file
 
 router = APIRouter()
 
-
-
-
-
-# Не знаю, как правильно юзать Depends и главное для чего
-@router.post("") #, response_model=UploadCardRequest) 
+@router.post("")  # , response_model=UploadCardRequest)
 @version(1)
 def create_upload_card(request: UploadCardRequest):
     try:
         # Извлекаю номенклатуры из pdf файла по ссылке
         link_pdf_file = request.documents[0]
         uuid = request.guid
-        nomenclatures = parsing_upd_file(link=link_pdf_file, uuid=uuid)
-
+        nomenclatures = parsing_utd_file(link=link_pdf_file, uuid=uuid)
+        print(nomenclatures)
         # Тут должна быть логика маппинга
-
 
         # Допустим, распознано всё, кроме некоторых данных
         response = UploadCardResponse(
@@ -57,9 +50,15 @@ def create_upload_card(request: UploadCardRequest):
         )
 
         return response
-
+    except HTTPException as e:
+        return HTTPException(status_code=405, detail=e.detail)
     except Exception as e:
-        # В случае ошибки, возвращаем ошибку распознавания
+        # Возвращаем только тип ошибки и код из ошибки
+        error_type = type(e).__name__
+        error_code = str(e)
+        print(error_type)
+        print(error_code)
+
         response = UploadCardResponse(
             guid=request.guid,
             contractor_guid=request.contractor_guid,
@@ -79,7 +78,6 @@ def create_upload_card(request: UploadCardRequest):
             contract_number=None,
             contract_date=None,
             status="ERROR",
-            error_message=f"Ошибка распознавания: {str(e)}"
+            error_message=f"{error_type}: {error_code}"  # Только тип ошибки и её описание
         )
         return response
-

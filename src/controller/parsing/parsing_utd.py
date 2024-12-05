@@ -1,5 +1,6 @@
+from fastapi import HTTPException
 import pdfplumber
-from download_pdf import download_pdf
+from controller.parsing.download_pdf import download_pdf
 
 def clean_column_name(column_name):
     """Функция для очистки названий колонок от лишних пробелов и символов перевода строки."""
@@ -13,7 +14,7 @@ nomenclature_keywords = [
     ]
 
 
-def parsing_upd_file(link:str, uuid:str) -> list:
+def parsing_utd_file(link:str, uuid:str) -> list:
     file = download_pdf(link) # получает файл в формате BytesIO
 
     unique_nomenclature = set()  # Множество для уникальных номенклатур
@@ -66,11 +67,11 @@ def parsing_upd_file(link:str, uuid:str) -> list:
 
 
                 if not f:
-                    return f'Мы не можем читать файл ({uuid}) данного содержания'
+                     raise HTTPException(status_code=400, detail=f'Мы не можем читать файл ({uuid}) данного содержания')
             else:
-                print(f"Файл ({uuid}) - скан")
+                 raise HTTPException(status_code=400, detail=f"Файл ({uuid}) - скан")
     
     except Exception as e:
-        return f"Ошибка при обработке файла ({uuid}): {e}"
+         raise HTTPException(status_code=500, detail=f"Ошибка при обработке файла ({uuid}): {e}")
     
     return list(unique_nomenclature) 
