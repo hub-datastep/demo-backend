@@ -8,6 +8,7 @@ from infra.order_classification_clients_credentials import (
     ORDER_CLASSIFICATION_CLIENTS_CREDENTIALS,
 )
 from scheme.order_classification.client_credentials_scheme import ClientCredentials
+from scheme.order_classification.order_classification_config_scheme import OrderClassificationClient
 
 
 def _get_client_credentials(client: str) -> ClientCredentials:
@@ -24,12 +25,9 @@ def _get_client_credentials(client: str) -> ClientCredentials:
     return credentials
 
 
-def get_order_classification_chain(
-    prompt_template: str,
-    client: str,
-) -> LLMChain:
+def get_llm_by_client_credentials(client: str | None = None) -> AzureChatOpenAI:
     # Create LLM with client Azure OpenAI credentials
-    if not IS_DEV_ENV:
+    if not IS_DEV_ENV or client is not None:
         client_credentials = _get_client_credentials(client)
 
         llm = AzureChatOpenAI(
@@ -39,7 +37,7 @@ def get_order_classification_chain(
             temperature=0,
             verbose=False,
         )
-    # Create LLM with our Azure OpenAI credentials
+    # Create LLM with development Azure OpenAI credentials
     else:
         llm = AzureChatOpenAI(
             deployment_name=AZURE_DEPLOYMENT_NAME_ORDER_CLASSIFICATION,
@@ -47,11 +45,26 @@ def get_order_classification_chain(
             verbose=False,
         )
 
-    prompt = PromptTemplate(template=prompt_template, input_variables=["query"])
+    return llm
 
-    return LLMChain(llm=llm, prompt=prompt)
+
+def get_order_classification_chain(
+    prompt_template: str,
+    client: str,
+) -> LLMChain:
+    llm = get_llm_by_client_credentials(client=client)
+
+    prompt = PromptTemplate(
+        template=prompt_template,
+        input_variables=["query"],
+    )
+
+    return LLMChain(
+        llm=llm,
+        prompt=prompt,
+    )
 
 
 if __name__ == "__main__":
-    a = _get_client_credentials("vysota")
+    a = _get_client_credentials(OrderClassificationClient.VYSOTA)
     print(a)
