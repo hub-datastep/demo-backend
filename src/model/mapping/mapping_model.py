@@ -361,8 +361,63 @@ def start_mapping(
 
     return JobIdRead(job_id=last_job_id)
 
+# Маппинг без создания job, это для kafka
+def start_mapping(
+    nomenclatures: list[MappingOneNomenclatureUpload],
+    most_similar_count: int,
 
-def _map_nomenclatures_chunk(
+    classifier_config: ClassifierConfig | None,
+    tenant_id: int = 10,
+    chunk_size: int = 100,
+) -> JobIdRead:
+    # Check if collection name exists in user's classifier config
+    collection_name = classifier_config.chroma_collection_name
+    is_collection_name_exists_in_config = bool(collection_name)
+    if not is_collection_name_exists_in_config:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Collection name is not set in classifier config.",
+        )
+
+    # Check if collection exists in vectorstore
+    collections_list = get_all_collections()
+    is_collection_exists_in_vectorstore = collection_name in collections_list
+    if not is_collection_exists_in_vectorstore:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Collection {collection_name} is not exists in vectorstore.",
+        )
+
+    # Check if classifier version id exists in user's classifier config
+    model_id = classifier_config.model_id
+    is_model_id_exists_in_config = bool(model_id)
+    if not is_model_id_exists_in_config:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Classifier version {model_id} is not exists.",
+        )
+
+    # Split nomenclatures to chunks
+    segments = split_nomenclatures_by_chunks(
+        nomenclatures=nomenclatures,
+        chunk_size=chunk_size,
+    )
+    last_job_id = None
+    for segment in segments:
+        job = create_mapping_job(
+            nomenclatures=segment,
+            previous_job_id=last_job_id,
+            most_similar_count=most_similar_count,
+            classifier_config=classifier_config,
+            tenant_id=tenant_id,
+        )
+        last_job_id = job.job_id
+
+    return JobIdRead(job_id=last_job_id)
+
+
+
+def _map_nomenclatures_chunk( #ff
     nomenclatures: list[MappingOneNomenclatureUpload],
     most_similar_count: int,
     classifier_config: ClassifierConfig | None,

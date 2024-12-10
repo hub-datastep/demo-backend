@@ -8,7 +8,6 @@ services:
     restart: always
     command: bash -c "
       cd /app/src
-      && python -m alembic upgrade head
       && python3 /app/src/app.py"
     ports:
       - "8090:8080"
@@ -68,41 +67,6 @@ services:
       - RQ_DASHBOARD_REDIS_URL=redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}
     depends_on:
       - redis-server
-
-  db:
-    image: postgres
-    restart: always
-    ports:
-      - "5442:5432"
-    volumes:
-      - datastep-db:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-
-  dbeaver:
-    image: dbeaver/cloudbeaver
-    restart: always
-    volumes:
-      - datastep-dbeaver:/opt/cloudbeaver/workspace
-    ports:
-      - "8988:8978"
-
-  volumes-viewer:
-    image: filebrowser/filebrowser
-    ports:
-      - "9080:80"
-    volumes:
-      - server:/srv
-
-  chroma-db:
-    image: chromadb/chroma
-    restart: always
-    environment:
-      - IS_PERSISTENT=TRUE
-    volumes:
-      - chroma-data:/chroma/chroma/
-    ports:
-      - "8011:8000"
 
 volumes:
   server:

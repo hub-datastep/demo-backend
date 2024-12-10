@@ -49,12 +49,12 @@ def start_nomenclature_mapping(
     )
 
 
-@router.get("/{job_id}", response_model=list[MappingNomenclaturesResultRead])
+@router.get("/{job_id}", response_model=list[MappingNomenclaturesResultRead]) # response_model - ответ со строгой типизацией
 @version(1)
 @modes_required([TenantMode.CLASSIFIER])
 def get_nomenclature_mapping_result(
     job_id: str,
-    current_user: UserRead = Depends(get_current_user),
+    current_user: UserRead = Depends(get_current_user), # ручка требует авторизации
 ):
     """
     Получает результат сопоставления номенклатур через указанный идентификатор задачи.
