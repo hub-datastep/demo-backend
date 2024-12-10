@@ -6,12 +6,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TESTS_API_URL = "45.8.98.160:8080"
-TEST_MAPPING_USERNAME = ''
-TEST_MAPPING_PASSWORD = os.getenv('TEST_MAPPING_PASSWORD')
+TESTS_API_URL = "http://45.8.98.160:8090/api/v1"
+TEST_MAPPING_USERNAME = 'unistroy_user'
+TEST_MAPPING_PASSWORD = 'unistroy_user'
 
 # URL для авторизации и API
-AUTH_URL = f"{TESTS_API_URL}/auth/sign_in"
+AUTH_URL = f"{TESTS_API_URL}/auth/sign_in/"
 API_URL = f"{TESTS_API_URL}/mapping"
 
 # Данные для авторизации
@@ -46,10 +46,11 @@ def start_nomenclature_mapping(test_cases, token: str):
         "nomenclatures": [
             {
                 "row_number": idx,
-                "nomenclature": case['Номенклатура поставщика']
+                "nomenclature": case
             } for idx, case in enumerate(test_cases)
         ]
     }
+    print(payload)
 
     response = requests.post(API_URL, json=payload, headers=headers)
 
@@ -95,3 +96,14 @@ def wait_for_job_completion(job_id: str, token: str, interval: int = 5):
             elif job_info.get('general_status') == 'failed':
                 raise Exception("Job failed")
         time.sleep(interval)
+
+if __name__ == "__main__":
+    token = authenticate()
+    noms = '''Труба ПЭ100 SDR11 - 200х18,2 питьевая (12м)
+Лестничный марш ЛМФ 30-11-14,5'''.split('\n')
+    print(noms)
+    job_id = start_nomenclature_mapping(noms, token)
+    print(job_id)
+    wait_for_job_completion(job_id, token, interval=3)
+    print(get_nomenclature_mappings(job_id, token))
+    print(token)
