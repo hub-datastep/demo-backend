@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TESTS_API_URL = os.getenv('TESTS_API_URL')
-TEST_MAPPING_USERNAME = os.getenv('TEST_MAPPING_USERNAME')
+TESTS_API_URL = "45.8.98.160:8080"
+TEST_MAPPING_USERNAME = ''
 TEST_MAPPING_PASSWORD = os.getenv('TEST_MAPPING_PASSWORD')
 
 # URL для авторизации и API

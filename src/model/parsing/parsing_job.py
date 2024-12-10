@@ -21,7 +21,7 @@ def parsing_job(request: UploadCardRequest):
         
         print(nomenclatures)
         # Тут должна быть логика маппинга
-
+        
         # Допустим, распознано всё, кроме некоторых данных
         response = UploadCardResponse(
             guid=request.guid,
