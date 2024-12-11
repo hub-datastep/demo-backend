@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from scheme.parsing.parsing_scheme import UploadCardRequest, UploadCardResponse, Material
 from model.parsing.parsing_utd import parsing_utd_file
 from model.parsing.download_pdf import download_pdf
-from model.parsing.webhook import kafka_request
+from mapping_execute import Mapping
 
 
 def ParsingException(request:UploadCardRequest, text:str):
@@ -44,7 +44,8 @@ def parsing_job(request: UploadCardRequest) -> bool:
         
         print(nomenclatures)
         # Тут должна быть логика маппинга
-
+        answer = Mapping(nomenclatures).execute()
+        print(answer)
 
         # Допустим, распознано всё, кроме некоторых данных
         response = UploadCardResponse(
