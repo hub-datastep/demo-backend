@@ -22,3 +22,5 @@ data/datastep-excel-for-classifier-66a610dc9ff6.json
 
 # Classifier files
 data/model_*
+
+ca-cert.pem
