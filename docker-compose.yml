@@ -23,7 +23,7 @@ services:
     restart: always
     command: bash -c "
       cd /app/src
-      && sleep 10
+      && /app/wait-for-it.sh kafka:9092 -t 10
       && faststream run --reload --host kafka:app"
     volumes:
       - ./src:/app/src
