@@ -7,6 +7,8 @@ from scheme.order_classification.order_classification_config_scheme import (
 
 # ID of empty user
 DEFAULT_CONFIG_USER_ID = 0
+
+
 # For tests
 # DEFAULT_CONFIG_USER_ID = 8
 
@@ -22,6 +24,14 @@ def get_default_config(
         config = session.exec(st).first()
 
         return config
+
+
+def get_config_by_id(
+    session: Session,
+    config_id: int,
+) -> OrderClassificationConfig | None:
+    config = session.get(OrderClassificationConfig, config_id)
+    return config
 
 
 def get_config_by_user_id(
