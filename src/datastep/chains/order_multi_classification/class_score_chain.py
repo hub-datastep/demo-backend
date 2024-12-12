@@ -1,6 +1,12 @@
+import time
+
 from langchain.chains.llm import LLMChain
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
+from loguru import logger
+from openai import RateLimitError
+
+from infra.order_classification import WAIT_TIME_IN_SEC
 
 _PROMPT_TEMPLATE = """
 На основе правил оцени на сколько по шкале от 0 до 10 эта заявка относится к этому классу? 
@@ -45,11 +51,27 @@ def get_class_score(
     order_query: str,
     class_name: str,
     rules: list[str],
+    client: str | None = None,
 ) -> str:
-    # TODO: add RateLimitError handling
-    score: str = chain.run(
-        query=order_query,
-        class_name=class_name,
-        rules="\n".join(rules),
-    )
-    return score
+    try:
+        score: str = chain.run(
+            query=order_query,
+            class_name=class_name,
+            rules="\n".join(rules),
+        )
+        return score
+    except RateLimitError as e:
+        logger.error(f"RateLimit error occurred: {str(e)}")
+        logger.info(f"Wait {WAIT_TIME_IN_SEC} seconds and try again")
+        time.sleep(WAIT_TIME_IN_SEC)
+        logger.info(
+            f"Timeout passed, try to classify order '{order_query}' of client '{client}' again"
+        )
+
+        return get_class_score(
+            chain=chain,
+            order_query=order_query,
+            class_name=class_name,
+            rules=rules,
+            client=client,
+        )

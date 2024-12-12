@@ -1,9 +1,16 @@
+import time
+
 from langchain.chains.llm import LLMChain
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
+from loguru import logger
+from openai import RateLimitError
 
-from scheme.order_classification.order_classification_scheme import MostRelevantClassLLMResponse
+from infra.order_classification import WAIT_TIME_IN_SEC
+from scheme.order_classification.order_classification_scheme import (
+    MostRelevantClassLLMResponse,
+)
 
 _PROMPT_TEMPLATE = """
 Заявка: "{query}"
@@ -49,12 +56,27 @@ def get_most_relevant_class(
     chain: LLMChain,
     order_query: str,
     scores: str,
+    client: str | None = None,
 ) -> MostRelevantClassLLMResponse:
-    # TODO: add RateLimitError handling
-    order_class_response: dict = chain.run(
-        query=order_query,
-        scores=scores,
-    )
-    order_class = MostRelevantClassLLMResponse(**order_class_response)
+    try:
+        order_class_response: dict = chain.run(
+            query=order_query,
+            scores=scores,
+        )
+        order_class = MostRelevantClassLLMResponse(**order_class_response)
 
-    return order_class
+        return order_class
+    except RateLimitError as e:
+        logger.error(f"RateLimit error occurred: {str(e)}")
+        logger.info(f"Wait {WAIT_TIME_IN_SEC} seconds and try again")
+        time.sleep(WAIT_TIME_IN_SEC)
+        logger.info(
+            f"Timeout passed, try to classify order '{order_query}' of client '{client}' again"
+        )
+
+        return get_most_relevant_class(
+            chain=chain,
+            order_query=order_query,
+            scores=scores,
+            client=client,
+        )
