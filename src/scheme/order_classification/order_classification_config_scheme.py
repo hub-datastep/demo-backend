@@ -18,7 +18,7 @@ class OrderClassificationConfig(OrderClassificationConfigBase, table=True):
     __tablename__ = "order_classification_config"
 
     id: int | None = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="user.id")
+    user_id: int | None = Field(foreign_key="user.id")
 
     user: "User" = Relationship(back_populates="order_classification_config")
 

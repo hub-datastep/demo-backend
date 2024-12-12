@@ -50,6 +50,13 @@ def upgrade() -> None:
         'order_classification_config',
         'is_use_emergency_classification',
     )
+
+    op.alter_column(
+        'order_classification_config',
+        'user_id',
+        existing_type=sa.INTEGER(),
+        nullable=True,
+    )
     # ### end Alembic commands ###
 
 
@@ -86,5 +93,12 @@ def downgrade() -> None:
     op.drop_column(
         'order_classification_config',
         'rules_by_classes',
+    )
+
+    op.alter_column(
+        'order_classification_config',
+        'user_id',
+        existing_type=sa.INTEGER(),
+        nullable=False,
     )
     # ### end Alembic commands ###
