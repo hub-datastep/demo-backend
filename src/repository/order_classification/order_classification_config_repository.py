@@ -11,7 +11,9 @@ DEFAULT_CONFIG_USER_ID = 0
 # DEFAULT_CONFIG_USER_ID = 8
 
 
-def get_default_config(client: str) -> OrderClassificationConfig | None:
+def get_default_config(
+    client: str | None = None,
+) -> OrderClassificationConfig | None:
     with Session(engine) as session:
         st = select(OrderClassificationConfig)
         st = st.where(OrderClassificationConfig.user_id == DEFAULT_CONFIG_USER_ID)

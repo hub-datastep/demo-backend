@@ -10,8 +10,8 @@ class OrderClassificationClient:
 class OrderClassificationConfigBase(SQLModel):
     rules_by_classes: dict | None = Field(default=None, sa_column=Column(JSONB))
     client: str | None = Field(default=None)
-    is_use_order_classification: bool = Field(default=False)
-    is_use_order_updating: bool = Field(default=False)
+    is_use_order_classification: bool | None = Field(default=False)
+    is_use_order_updating: bool | None = Field(default=False)
 
 
 class OrderClassificationConfig(OrderClassificationConfigBase, table=True):
@@ -21,6 +21,12 @@ class OrderClassificationConfig(OrderClassificationConfigBase, table=True):
     user_id: int = Field(foreign_key="user.id")
 
     user: "User" = Relationship(back_populates="order_classification_config")
+
+
+class RulesWithParams(SQLModel):
+    rules: list[str]
+    is_use_classification: bool | None = None
+    is_use_order_updating: bool | None = None
 
 
 from scheme.user.user_scheme import User

@@ -21,7 +21,7 @@ TESTS_ORDER_CLASSIFICATION_TABLE_NAME = os.getenv(
     "TESTS_ORDER_CLASSIFICATION_TABLE_NAME"
 )
 
-RULES_BY_CLASS = {
+RULES_BY_CLASSES = {
     "Клининг": [
         "Требуется уборка пола (включая лифты и коридоры)",
         "Требуется уборка стен и других поверхностей (включая стены лифтов)",
@@ -121,7 +121,7 @@ if __name__ == "__main__":
         if correct_class != "Другое":
             order_class_response = get_order_class(
                 order_query=_normalize_resident_request_string(order_query),
-                rules_by_class=RULES_BY_CLASS,
+                rules_by_classes=RULES_BY_CLASSES,
                 # verbose=True,
             )
             predicted_class = order_class_response.order_class
