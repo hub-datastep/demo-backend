@@ -14,7 +14,7 @@ from scheme.user.user_scheme import UserRead
 router = APIRouter()
 
 
-@router.get("/config/{config_id}", response_model=OrderClassificationConfig)
+@router.get("/config/id/{config_id}", response_model=OrderClassificationConfig)
 @version(1)
 def get_classification_config_by_id(
     config_id: int,
@@ -29,7 +29,7 @@ def get_classification_config_by_id(
     )
 
 
-@router.get("/config/{user_id}", response_model=OrderClassificationConfig)
+@router.get("/config/user_id/{user_id}", response_model=OrderClassificationConfig)
 @version(1)
 def get_classification_config_by_user_id(
     user_id: int,
