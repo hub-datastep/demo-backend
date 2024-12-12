@@ -19,7 +19,7 @@ from model.order_classification.order_classification_history_model import (
 )
 from repository.order_classification.order_classification_config_repository import (
     get_default_config,
-    DEFAULT_CONFIG_USER_ID,
+    DEFAULT_CONFIG_ID,
 )
 from scheme.order_classification.order_classification_config_scheme import RulesWithParams
 from scheme.order_classification.order_classification_history_scheme import (
@@ -351,7 +351,7 @@ def classify_order(
         if config is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Default order classification config (for user with ID {DEFAULT_CONFIG_USER_ID} and client '{client}') not found",
+                detail=f"Default order classification config (with ID {DEFAULT_CONFIG_ID} and client '{client}') not found",
             )
 
         user_id = config.user_id
@@ -444,12 +444,16 @@ def classify_order(
                     detail=f"Rules for classes in config with ID {config.id} not found"
                 )
 
-            order_class = get_order_class(
+            llm_response = get_order_class(
                 order_query=normalized_query,
                 rules_by_classes=rules_by_classes,
                 client=client,
                 # verbose=True,
             )
+            order_class = llm_response.order_class
+
+            # Save LLM comment
+            history_record.llm_response = llm_response.dict()
         else:
             order_class = disabled_field_msg
         history_record.order_class = order_class
@@ -458,7 +462,7 @@ def classify_order(
         is_emergency = None
         if is_use_order_classification:
             is_emergency = order_class.lower().strip() != "обычная"
-        history_record.is_emergency = is_emergency
+        # history_record.is_emergency = is_emergency
 
         # TODO: update 'is_emergency' param usage
 

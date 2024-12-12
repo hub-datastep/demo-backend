@@ -11,7 +11,7 @@ from scheme.order_classification.order_classification_scheme import OrderStatusI
 
 def _create_schema_and_table(
     session: Session,
-    client: str,
+    client: str | None = None,
 ):
     # Set table schema
     OrderClassificationRecord.__table__.schema = client
@@ -31,7 +31,7 @@ def _create_schema_and_table(
 
 def get_history_record_by_order_id(
     order_id: int,
-    client: str,
+    client: str | None = None,
 ) -> OrderClassificationRecord | None:
     with Session(engine) as session:
         # Create schema and table if not exists
@@ -58,8 +58,8 @@ def get_history_record_by_order_id(
             )
         )
         # Order emergency is fully exists
-        st = st.where(OrderClassificationRecord.order_emergency.is_not(None))
-        st = st.where(OrderClassificationRecord.is_emergency.is_not(None))
+        st = st.where(OrderClassificationRecord.order_class.is_not(None))
+        # st = st.where(OrderClassificationRecord.is_emergency.is_not(None))
 
         result = session.exec(st).first()
 
@@ -68,7 +68,7 @@ def get_history_record_by_order_id(
 
 def save_history_record(
     record: OrderClassificationRecord,
-    client: str,
+    client: str | None = None,
 ) -> OrderClassificationRecord:
     # Set schema to save record in specified history table
     record.__table__.schema = client
