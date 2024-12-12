@@ -19,6 +19,7 @@ class OrderClassificationRecordBase(SQLModel):
     order_details: dict | None = Field(default=None, sa_column=Column(JSONB))
     # LLM response
     order_class: str | None = None
+    # is_emergency: bool | None = None
     # UDS mapping data
     order_address: str | None = None
     uds_id: str | None = None
