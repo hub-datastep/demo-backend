@@ -16,7 +16,7 @@ router = APIRouter()
 
 @router.get("/config/{config_id}", response_model=OrderClassificationConfig)
 @version(1)
-def get_classification_config_by_user_id(
+def get_classification_config_by_id(
     config_id: int,
     session: Session = Depends(get_session),
     current_user: UserRead = Depends(get_current_user),
