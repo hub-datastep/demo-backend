@@ -115,7 +115,7 @@ services:
       - ./logs-viewer-users.yml:/data/users.yml
     environment:
       DOZZLE_AUTH_PROVIDER: simple
-      DOZZLE_ENABLE_ACTIONS: true
+      DOZZLE_ENABLE_ACTIONS: "true"
 
 
 volumes:
