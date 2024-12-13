@@ -1,6 +1,3 @@
-import uvicorn
-from fastapi import FastAPI
-from controller.parsing import parsing
 from pathlib import Path
 
 import uvicorn
@@ -12,13 +9,25 @@ from starlette.middleware.cors import CORSMiddleware
 
 from controller.auth import auth_controller
 from controller.chat import message_controller, chat_controller
+from controller.chroma_collection import chroma_collection_controller
+from controller.classifier import classifier_config_controller, classifier_controller
+from controller.embedding import embedding_controller
 from controller.file import file_controller
+from controller.ksr import ksr_controller
+from controller.mapping import mapping_controller
 from controller.mode import mode_controller
+from controller.ner import brand_model_controller
+from controller.order_classification.vysota import \
+    order_classification_controller as vysota_order_classification_controller
 from controller.prediction import prediction_controller
 from controller.prompt import prompt_controller
 from controller.role import role_controller
+from controller.solution_imitation import solution_imitation_controller
+from controller.task import task_controller
 from controller.tenant import tenant_controller
+from controller.used_token import used_token_controller
 from controller.user import user_controller
+from controller.parsing import parsing
 from util.healthcheck.redis_connection import check_redis_connection
 
 app = FastAPI()
@@ -51,8 +60,39 @@ app.include_router(message_controller.router, tags=["message"], prefix="/message
 app.include_router(prediction_controller.router, tags=["prediction"])
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
 
-# Parsing PDF files
+# Nomenclature
+app.include_router(classifier_config_controller.router, tags=["classifier_config"], prefix="/classifier_config")
+app.include_router(mapping_controller.router, tags=["mapping"], prefix="/mapping")
+app.include_router(embedding_controller.router, tags=["embedding"], prefix="/embedding")
+# app.include_router(synchronize_controller.router, tags=["synchronize"], prefix="/synchronize")
+app.include_router(chroma_collection_controller.router, tags=["chroma_collection"], prefix="/collection")
+app.include_router(classifier_controller.router, tags=["classifier"], prefix="/classifier")
+app.include_router(brand_model_controller.router, tags=["ner_brand"], prefix="/ner_brand")
+
+# Used Tokens
+app.include_router(used_token_controller.router, tags=["used_token"], prefix="/used_token")
+
+# Other
+app.include_router(task_controller.router, tags=["task"], prefix="/task")
+
+# Ksr Nomenclature
+app.include_router(ksr_controller.router, tags=["ksr"], prefix="/ksr")
+
+# Emergency Class
+# Vysota Service
+app.include_router(
+    vysota_order_classification_controller.router,
+    tags=["Orders Classification"],
+    prefix="/classification/orders",
+)
+
+# Solution Imitation
+app.include_router(solution_imitation_controller.router, tags=["Solution Imitation"], prefix="/solution_imitation")
+
+# Parsing utd
+
 app.include_router(parsing.router, tags=["parsing"], prefix="/parsing")
+
 
 @app.get("/healthcheck")
 def healthcheck():

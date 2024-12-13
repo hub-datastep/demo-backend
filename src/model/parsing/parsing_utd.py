@@ -1,6 +1,4 @@
-from fastapi import HTTPException
 import pdfplumber
-from model.parsing.download_pdf import download_pdf
 from io import BytesIO
 
 def clean_column_name(column_name):

@@ -34,7 +34,7 @@ class UploadCardResponse(BaseModel):
     operation_kind: str
     building_guid: UUID4
     documents: List[Document]
-    materials: Optional[List[Material]] = None
+    materials: Optional[List] = None
     idn_guid: UUID4
     organization_inn: Optional[str] = None
     supplier_inn: Optional[str] = None

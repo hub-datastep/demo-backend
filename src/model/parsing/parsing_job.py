@@ -1,11 +1,34 @@
-from fastapi import HTTPException
 from scheme.parsing.parsing_scheme import UploadCardRequest, UploadCardResponse, Material
 from model.parsing.parsing_utd import parsing_utd_file
 from model.parsing.download_pdf import download_pdf
-from model.parsing.webhook import kafka_request
+from model.parsing.mapping_execute import Mapping
+from model.parsing.get_answer_json import get_materials_into_mapping
 
 
-def parsing_job(request: UploadCardRequest):
+def parsing_exception(request:UploadCardRequest, text:str):
+    return  UploadCardResponse(
+        guid=request.guid,
+        contractor_guid=request.contractor_guid,
+        responsible_user_email=request.responsible_user_email,
+        operation_kind=request.operation_kind,
+        building_guid=request.building_guid,
+        documents=request.documents,
+        materials=None,
+        idn_guid=request.guid,
+        organization_inn=None,
+        supplier_inn=None,
+        idn_number=None,
+        idn_date=None,
+        correction_idn_number=None,
+        correction_idn_date=None,
+        contract_name=None,
+        contract_number=None,
+        contract_date=None,
+        status="ERROR",
+        error_message= text
+    ).json(dumps_kwargs=4)
+
+def parsing_job(request: UploadCardRequest) -> bool:
     try:
         # Извлекаю номенклатуры из pdf файла по ссылке
         link_pdf_file = request.documents[0].idn_link
@@ -13,15 +36,17 @@ def parsing_job(request: UploadCardRequest):
 
         file = download_pdf(link_pdf_file)
         if type(file)==str:
-            kafka_request(file)
+            return parsing_exception(request, file)
         
         nomenclatures = parsing_utd_file(file=file, uuid=uuid)
         if type(nomenclatures)==str:
-            kafka_request(nomenclatures)
+            return parsing_exception(request, nomenclatures)
         
         print(nomenclatures)
         # Тут должна быть логика маппинга
-        
+        answer = Mapping(nomenclatures).execute()
+        print(answer)
+
         # Допустим, распознано всё, кроме некоторых данных
         response = UploadCardResponse(
             guid=request.guid,
@@ -30,17 +55,7 @@ def parsing_job(request: UploadCardRequest):
             operation_kind=request.operation_kind,
             building_guid=request.building_guid,
             documents=request.documents,
-            materials=[  # Пример распознанных материалов
-                Material(
-                    number=1,
-                    material_guid="d7a4b91d-a025-4e69-9872-06fc67f0c762",
-                    quantity=16.25,
-                    price=100.00,
-                    cost=1625.00,
-                    vat_rate=20.00,
-                    vat_amount=1946.40,
-                )
-            ],
+            materials=get_materials_into_mapping(answer),
             idn_guid=request.guid,  # Используем тот же guid для сущности УПД
             organization_inn="3305061878",  # Пример распознанного ИНН организации
             supplier_inn="4629044850",  # Пример распознанного ИНН поставщика
@@ -56,34 +71,8 @@ def parsing_job(request: UploadCardRequest):
         )
 
         return response
-    except HTTPException as e:
-        return HTTPException(status_code=405, detail=e.detail)
     except Exception as e:
         # Возвращаем только тип ошибки и код из ошибки
         error_type = type(e).__name__
         error_code = str(e)
-        print(error_type)
-        print(error_code)
-
-        response = UploadCardResponse(
-            guid=request.guid,
-            contractor_guid=request.contractor_guid,
-            responsible_user_email=request.responsible_user_email,
-            operation_kind=request.operation_kind,
-            building_guid=request.building_guid,
-            documents=request.documents,
-            materials=None,
-            idn_guid=request.guid,
-            organization_inn=None,
-            supplier_inn=None,
-            idn_number=None,
-            idn_date=None,
-            correction_idn_number=None,
-            correction_idn_date=None,
-            contract_name=None,
-            contract_number=None,
-            contract_date=None,
-            status="ERROR",
-            error_message=f"{error_type}: {error_code}"  # Только тип ошибки и её описание
-        )
-        return response
+        return parsing_exception(request, f"{error_type}: {error_code}")
