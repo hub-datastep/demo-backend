@@ -1,21 +1,22 @@
 from faststream import FastStream
 
-from infra.kafka import broker
+from infra.env import KAFKA_CONSUMER_GROUP, TGBOT_DELIVERY_NOTE_TOPIC
+from infra.kafka import kafka_broker
 
-import infra.env as settings
-
-app = FastStream(broker)
+app = FastStream(kafka_broker)
 
 KAFKA_DEFAULT_BATCH_SETTINGS = {
-    "batch": False,  # NOTE: Получать 1 сообщение (False) или несколько сразу (True)
-    "max_records": 1,  # NOTE: кол-во обрабатываемых сообщений за раз
+    # Получать 1 сообщение (False) или несколько сразу (True)
+    "batch": False,
+    # Кол-во обрабатываемых сообщений за раз
+    "max_records": 1,
     "auto_offset_reset": "earliest",
 }
 
 
-@broker.subscriber(
-    settings.TGBOT_DELIVERY_NOTE_TOPIC,
-    group_id=settings.KAFKA_CONSUMER_GROUP,
+@kafka_broker.subscriber(
+    TGBOT_DELIVERY_NOTE_TOPIC,
+    group_id=KAFKA_CONSUMER_GROUP,
     **KAFKA_DEFAULT_BATCH_SETTINGS,
 )
 async def example_consumer(body):
