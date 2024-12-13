@@ -59,7 +59,6 @@ def get_history_record_by_order_id(
         )
         # Order emergency is fully exists
         st = st.where(OrderClassificationRecord.order_class.is_not(None))
-        # st = st.where(OrderClassificationRecord.is_emergency.is_not(None))
 
         result = session.exec(st).first()
 
