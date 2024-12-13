@@ -89,6 +89,7 @@ services:
 
   volumes-viewer:
     image: filebrowser/filebrowser
+    restart: always
     ports:
       - "9080:80"
     volumes:
@@ -103,6 +104,19 @@ services:
       - chroma-data:/chroma/chroma/
     ports:
       - "8011:8000"
+
+  logs-viewer:
+    image: amir20/dozzle
+    restart: always
+    ports:
+      - "8070:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./logs-viewer-users.yml:/data/users.yml
+    environment:
+      DOZZLE_AUTH_PROVIDER: simple
+      DOZZLE_ENABLE_ACTIONS: true
+
 
 volumes:
   server:
