@@ -8,9 +8,11 @@ RUN apt-get install -y redis
 
 WORKDIR /app
 
-COPY . /app/
+COPY poetry.lock pyproject.toml /app/
 
 RUN poetry config virtualenvs.create false
 RUN poetry install --no-root
+
+COPY . /app/
 
 RUN mkdocs build

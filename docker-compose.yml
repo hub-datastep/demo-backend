@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
+    image: backend
     restart: always
     command: bash -c "
       cd /app/src
@@ -16,6 +17,21 @@ services:
       - ./src:/app/src
       - ./.env:/app/.env
       - server:${DATA_FOLDER_PATH}
+
+  faststream:
+    image: backend
+    restart: always
+    command: bash -c "
+      cd /app/src
+      && /app/wait-for-it.sh kafka:9092 -t 10
+      && faststream run --reload --host kafka:app"
+    volumes:
+      - ./src:/app/src
+      - ./.env:/app/.env
+      - server:${DATA_FOLDER_PATH}
+    depends_on:
+      - backend
+      - kafka
 
   redis-server:
     image: redis/redis-stack-server
@@ -104,6 +120,23 @@ services:
       - chroma-data:/chroma/chroma/
     ports:
       - "8011:8000"
+
+  kafka:
+    image: bitnami/kafka:3.5.0
+    restart: always
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    ports:
+      - "9092:9092"
 
   logs-viewer:
     image: amir20/dozzle

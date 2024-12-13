@@ -27,6 +27,7 @@ from controller.task import task_controller
 from controller.tenant import tenant_controller
 from controller.used_token import used_token_controller
 from controller.user import user_controller
+from controller.kafka_example import kafka_example_controller
 from util.healthcheck.redis_connection import check_redis_connection
 
 app = FastAPI()
@@ -88,6 +89,8 @@ app.include_router(
 # Solution Imitation
 app.include_router(solution_imitation_controller.router, tags=["Solution Imitation"], prefix="/solution_imitation")
 
+# Kafka Example
+app.include_router(kafka_example_controller.router, tags=["Kafka Example"], prefix="/kafka_example")
 
 @app.get("/healthcheck")
 def healthcheck():
