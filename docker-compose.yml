@@ -5,7 +5,6 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
-    image: backend
     restart: always
     command: bash -c "
       cd /app/src
@@ -19,7 +18,7 @@ services:
       - server:${DATA_FOLDER_PATH}
 
   faststream:
-    image: backend
+    image: datastep_backend
     restart: always
     command: bash -c "
       cd /app/src
@@ -74,6 +73,7 @@ services:
       - ./.env:/app/.env
       - server:${DATA_FOLDER_PATH}
     depends_on:
+      - backend
       - redis-server
 
   rq-dashboard:
