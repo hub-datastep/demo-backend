@@ -28,6 +28,7 @@ from controller.task import task_controller
 from controller.tenant import tenant_controller
 from controller.used_token import used_token_controller
 from controller.user import user_controller
+from controller.parsing import parsing
 from util.healthcheck.redis_connection import check_redis_connection
 
 app = FastAPI()
@@ -91,6 +92,10 @@ app.include_router(
 
 # Unistroy Kafka Mapping
 app.include_router(kafka_mapping_controller.router, tags=["Kafka Mapping"], prefix="/kafka/mapping")
+
+# Parsing utd
+
+app.include_router(parsing.router, tags=["parsing"], prefix="/parsing")
 
 
 @app.get("/healthcheck")
