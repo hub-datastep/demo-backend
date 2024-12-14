@@ -1,4 +1,4 @@
-from model.file.utd_parsing.parsing_job import MappingWithParsingStatus
+from model.file.utd.parsing_job import MappingWithParsingStatus
 from scheme.parsing.parsing_scheme import UTDCardOutputMessage, UTDCardInputMessage
 
 
