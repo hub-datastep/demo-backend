@@ -12,7 +12,7 @@ from infra.env import DATA_FOLDER_PATH
 
 load_dotenv()
 
-CREDENTIALS_PATH = f"datastep-excel-for-classifier-66a610dc9ff6.json"
+CREDENTIALS_PATH = f"{DATA_FOLDER_PATH}/datastep-excel-for-classifier-66a610dc9ff6.json"
 
 TEST_CASES_TABLE_HEADERS = [
     'Тест-Кейс ID',

@@ -18,10 +18,11 @@ site/
 data/fastembed/.locks
 data/fastembed/models--qdrant--multilingual-e5-large-onnx
 
+# Google Credentials
 data/datastep-excel-for-classifier-66a610dc9ff6.json
 
 # Classifier files
 data/model_*
 
 # SSL Certs
-ca-cert.pem
+*.pem

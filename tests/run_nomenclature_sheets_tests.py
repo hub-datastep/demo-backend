@@ -15,8 +15,7 @@ def run_tests():
         logging.info("Получение тест кейсов.")
         # TODO: return all tests results, not only first 100
         test_cases = get_test_cases()
-        print(test_cases)
-        return
+
         logging.info("Авторизация в API.")
         token = authenticate()
 
