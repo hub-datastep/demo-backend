@@ -1,14 +1,14 @@
 from fastapi import HTTPException
 from loguru import logger
+from model.file.utd.get_answer_json import add_parsed_data_to_mappings
 from rq.job import JobStatus
 
 from exception.utd_card_processing_exception import raise_utd_card_processing_exception
 from model.file.utd.download_pdf_model import download_file
-from model.file.utd.get_answer_json import get_materials_into_mapping
 from model.file.utd.pdf_parsing_model import extract_noms
 from model.mapping.mapping_execute_model import get_noms_with_indexes, start_mapping_and_wait_results
 from model.user import user_model
-from scheme.parsing.parsing_scheme import UTDCardInputMessage, UTDCardOutputMessage
+from scheme.file.utd_card_message_scheme import UTDCardInputMessage, UTDCardOutputMessage
 from util.uuid import generate_uuid
 
 UNISTROY_USER_ID = 56
@@ -44,6 +44,12 @@ def parse_and_map_utd_card(body: UTDCardInputMessage) -> UTDCardOutputMessage:
         )
         logger.debug(f"Mapping Results:\n{mapping_results}")
 
+        mapped_materials = add_parsed_data_to_mappings(
+            mapping_results=mapping_results,
+            # TODO: pass materials data from UTD
+            # parsed_materials_data=parsed_materials_data,
+        )
+
         output_message = UTDCardOutputMessage(
             **body.dict(),
             idn_guid=body.guid,
@@ -61,7 +67,7 @@ def parse_and_map_utd_card(body: UTDCardInputMessage) -> UTDCardOutputMessage:
             # contract_number=,
             # contract_date=,
             # Mapping Data
-            materials=get_materials_into_mapping(mapping_results),
+            materials=mapped_materials,
         )
 
         return output_message
