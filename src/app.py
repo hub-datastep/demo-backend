@@ -13,6 +13,7 @@ from controller.chroma_collection import chroma_collection_controller
 from controller.classifier import classifier_config_controller, classifier_controller
 from controller.embedding import embedding_controller
 from controller.file import file_controller
+from controller.kafka import kafka_mapping_controller
 from controller.ksr import ksr_controller
 from controller.mapping import mapping_controller
 from controller.mode import mode_controller
@@ -78,6 +79,9 @@ app.include_router(task_controller.router, tags=["task"], prefix="/task")
 # Ksr Nomenclature
 app.include_router(ksr_controller.router, tags=["ksr"], prefix="/ksr")
 
+# Solution Imitation
+app.include_router(solution_imitation_controller.router, tags=["Solution Imitation"], prefix="/solution_imitation")
+
 # Emergency Class
 # Vysota Service
 app.include_router(
@@ -86,8 +90,8 @@ app.include_router(
     prefix="/classification/orders",
 )
 
-# Solution Imitation
-app.include_router(solution_imitation_controller.router, tags=["Solution Imitation"], prefix="/solution_imitation")
+# Unistroy Kafka Mapping
+app.include_router(kafka_mapping_controller.router, tags=["Kafka Mapping"], prefix="/kafka/mapping")
 
 # Parsing utd
 

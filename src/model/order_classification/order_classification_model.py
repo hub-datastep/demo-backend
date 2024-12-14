@@ -1,5 +1,7 @@
 import re
+import time
 
+from openai import RateLimitError
 import requests
 from fastapi import HTTPException, status
 from loguru import logger
@@ -12,7 +14,8 @@ from infra.env import (
 )
 from infra.vysota_uds_list import UDS_LIST
 from model.order_classification.order_classification_history_model import (
-    save_emergency_classification_record,
+    get_saved_record_by_order_id,
+    save_order_classification_record,
 )
 from repository.order_classification.order_classification_config_repository import (
     get_default_config,
@@ -45,6 +48,9 @@ AI_USER_ID = 15698
 
 # Message to mark AI processed orders (in internal chat)
 ORDER_PROCESSED_BY_AI_MESSAGE = "ИИ классифицировал эту заявку как аварийную"
+
+# Timeout for Rate Limit Error (TPM)
+WAIT_TIME_IN_SEC = 60
 
 
 def _normalize_resident_request_string(query: str) -> str:
@@ -242,7 +248,7 @@ def _send_message_to_internal_chat(order_id: int, message: str) -> tuple[dict, d
     req_body = {
         "orderId": order_id,
         "text": message,
-        "isImportant": False
+        "isImportant": False,
     }
 
     # Send message to internal chat
@@ -262,6 +268,32 @@ def _send_message_to_internal_chat(order_id: int, message: str) -> tuple[dict, d
     return response_data, req_body
 
 
+def _get_order_emergency(
+    prompt: str,
+    client: str,
+    query: str,
+) -> str:
+    try:
+        chain = get_order_classification_chain(
+            prompt_template=prompt,
+            client=client,
+        )
+        order_emergency: str = chain.run(query=query)
+        return order_emergency
+    except RateLimitError:
+        logger.info(f"Wait {WAIT_TIME_IN_SEC} seconds and try again")
+        time.sleep(WAIT_TIME_IN_SEC)
+        logger.info(
+            f"Timeout passed, try to classify order '{query}' of '{client}' again"
+        )
+
+        return _get_order_emergency(
+            prompt=prompt,
+            client=client,
+            query=query,
+        )
+
+
 def get_emergency_class(
     body: OrderClassificationRequest,
     client: str,
@@ -273,7 +305,7 @@ def get_emergency_class(
     order_id = body.data.orderId
     order_status_id = body.data.orderStatusId
 
-    # Init emergency classification history record to save later
+    # Init order classification history record to save later
     history_record = OrderClassificationRecord(
         alert_id=alert_id,
         alert_type_id=alert_type_id,
@@ -283,6 +315,18 @@ def get_emergency_class(
     )
 
     try:
+        # Check if order was already classified
+        saved_record = get_saved_record_by_order_id(
+            order_id=order_id,
+            client=client,
+        )
+        is_saved_record_exists = saved_record is not None
+        if is_saved_record_exists:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Order with ID {order_id} was already classified, history record ID {saved_record.id}",
+            )
+
         # Check if order status is not "in progress"
         if order_status_id != OrderStatusID.PENDING:
             raise HTTPException(
@@ -382,11 +426,11 @@ def get_emergency_class(
 
             # Get order emergency
             prompt = order_classification_config.emergency_prompt
-            chain = get_order_classification_chain(
-                prompt_template=prompt,
+            order_emergency = _get_order_emergency(
+                prompt=prompt,
                 client=client,
+                query=normalized_query,
             )
-            order_emergency: str = chain.run(query=normalized_query)
         else:
             order_emergency = disabled_field_msg
         history_record.order_emergency = order_emergency
@@ -474,7 +518,7 @@ def get_emergency_class(
         logger.error(comment)
 
     # logger.debug(f"History record:\n{history_record}")
-    history_record = save_emergency_classification_record(
+    history_record = save_order_classification_record(
         record=history_record,
         client=client,
     )
