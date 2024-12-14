@@ -1,11 +1,13 @@
 from fastapi import APIRouter
 from fastapi_versioning import version
-from scheme.parsing.parsing_scheme import UploadCardRequest
-from model.parsing.parsing_job import parsing_job
+
+from model.file.utd_parsing.parsing_job import parsing_job
+from scheme.parsing.parsing_scheme import UTDCardInputMessage, UTDCardOutputMessage
 
 router = APIRouter()
 
-@router.post("")  # , response_model=UploadCardRequest) # response_model - ответ со строгой типизацией
+
+@router.post("/utd", response_model=UTDCardOutputMessage)
 @version(1)
-def create_upload_card(request: UploadCardRequest):
-    return parsing_job(request=request)
+def parse_and_map_utd_card(body: UTDCardInputMessage):
+    return parsing_job(body=body)

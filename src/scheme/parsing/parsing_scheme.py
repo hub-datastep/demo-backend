@@ -72,12 +72,14 @@ class UTDCardOutputMessage(SQLModel):
     idn_guid: str
 
     credit_slip_data: CreditSlipData
-    document: UTDDocument
+    documents: list[UTDDocument]
 
     materials: list[MappedMaterial] | None = None
 
     # guid сущности УПД (создается и присваивается в нейросети)
     guid: str
+    # Статус распознавания
+    status: str
     # ИНН организации (покупатель со стороны Унистрой)
     organization_inn: str | None = None
     # ИНН поставщика
@@ -92,11 +94,9 @@ class UTDCardOutputMessage(SQLModel):
     correction_idn_date: date | None = None
     # Наименование договора поставки
     contract_name: str | None = None
-    # номер договора поставки
+    # Номер договора поставки
     contract_number: str | None = None
-    # дата договора поставки
+    # Дата договора поставки
     contract_date: date | None = None
-    # статус распознавания
-    status: str
-    # сообщение об ошибке
+    # Сообщение об ошибке
     error_message: str | None = None
