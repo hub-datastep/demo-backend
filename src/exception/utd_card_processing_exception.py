@@ -1,4 +1,5 @@
-from model.file.utd.parsing_job import MappingWithParsingStatus
+from rq.job import JobStatus
+
 from scheme.parsing.parsing_scheme import UTDCardOutputMessage, UTDCardInputMessage
 
 
@@ -8,6 +9,6 @@ def raise_utd_card_processing_exception(
 ):
     return UTDCardOutputMessage(
         **body.dict(),
-        status=MappingWithParsingStatus.ERROR,
+        status=JobStatus.FAILED,
         error_message=text,
     )

@@ -2,6 +2,10 @@ from datetime import date, datetime
 
 from sqlmodel import SQLModel
 
+"""
+Все параметры, которые могут быть 'None' - парсятся из УПД PDF файла
+"""
+
 
 class CreditSlipData(SQLModel):
     # Дата и время создания карточки УПД в тг боте
@@ -55,15 +59,15 @@ class MappedMaterial(SQLModel):
     # Если material_guid is not null, тогда передаем
     similar_mappings: MappedSimilarMaterial | None = None
     # Количество полученного материала
-    quantity: float
+    quantity: float | None = None
     # Цена материала за единицу
-    price: float
+    price: float | None = None
     # Сумма материала за весь объем
-    cost: float
+    cost: float | None = None
     # Ставка НДС (0.00 - если без НДС)
-    vat_rate: float
+    vat_rate: float | None = None
     # Сумма НДС
-    vat_amount: float
+    vat_amount: float | None = None
 
 
 # Модели для выходных данных

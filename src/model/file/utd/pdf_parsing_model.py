@@ -21,7 +21,7 @@ def _clean_column_name(column_name):
 def extract_noms(
     pdf_file_content: BytesIO,
     idn_file_guid: str,
-) -> list:
+) -> list[str]:
     # Множество для уникальных номенклатур
     unique_nomenclatures = set()
 
