@@ -16,6 +16,7 @@ from controller.file import file_controller
 from controller.kafka import kafka_mapping_controller
 from controller.ksr import ksr_controller
 from controller.mapping import mapping_controller
+from controller.mapping import mapping_with_parsing_controller
 from controller.mode import mode_controller
 from controller.ner import brand_model_controller
 from controller.order_classification.vysota import \
@@ -28,7 +29,6 @@ from controller.task import task_controller
 from controller.tenant import tenant_controller
 from controller.used_token import used_token_controller
 from controller.user import user_controller
-from controller.parsing import parsing
 from util.healthcheck.redis_connection import check_redis_connection
 
 app = FastAPI()
@@ -61,7 +61,7 @@ app.include_router(message_controller.router, tags=["message"], prefix="/message
 app.include_router(prediction_controller.router, tags=["prediction"])
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
 
-# Nomenclature
+# Mapping
 app.include_router(classifier_config_controller.router, tags=["classifier_config"], prefix="/classifier_config")
 app.include_router(mapping_controller.router, tags=["mapping"], prefix="/mapping")
 app.include_router(embedding_controller.router, tags=["embedding"], prefix="/embedding")
@@ -93,9 +93,12 @@ app.include_router(
 # Unistroy Kafka Mapping
 app.include_router(kafka_mapping_controller.router, tags=["Kafka Mapping"], prefix="/kafka/mapping")
 
-# Parsing utd
-
-app.include_router(parsing.router, tags=["parsing"], prefix="/parsing")
+# Mapping with Parsing
+app.include_router(
+    mapping_with_parsing_controller.router,
+    tags=["Mapping with Parsing"],
+    prefix="/mapping/with_parsing",
+)
 
 
 @app.get("/healthcheck")

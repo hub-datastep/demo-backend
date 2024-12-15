@@ -1,6 +1,6 @@
 from rq.job import JobStatus
 
-from scheme.parsing.parsing_scheme import UTDCardOutputMessage, UTDCardInputMessage
+from scheme.file.utd_card_message_scheme import UTDCardOutputMessage, UTDCardInputMessage
 
 
 def raise_utd_card_processing_exception(

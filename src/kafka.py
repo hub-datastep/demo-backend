@@ -19,5 +19,6 @@ KAFKA_DEFAULT_BATCH_SETTINGS = {
     group_id=KAFKA_CONSUMER_GROUP,
     **KAFKA_DEFAULT_BATCH_SETTINGS,
 )
-async def example_consumer(body):
+async def unistroy_parsing_with_mapping_consumer(body):
+    # TODO: run parsing with mapping
     print(body)

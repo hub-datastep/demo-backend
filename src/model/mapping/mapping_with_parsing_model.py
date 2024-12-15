@@ -1,10 +1,10 @@
 from fastapi import HTTPException
 from loguru import logger
-from model.file.utd.get_answer_json import add_parsed_data_to_mappings
 from rq.job import JobStatus
 
 from exception.utd_card_processing_exception import raise_utd_card_processing_exception
 from model.file.utd.download_pdf_model import download_file
+from model.file.utd.mappings_with_parsed_data_model import add_parsed_data_to_mappings
 from model.file.utd.pdf_parsing_model import extract_noms
 from model.mapping.mapping_execute_model import get_noms_with_indexes, start_mapping_and_wait_results
 from model.user import user_model

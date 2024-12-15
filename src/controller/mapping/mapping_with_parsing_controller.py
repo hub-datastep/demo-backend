@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from fastapi_versioning import version
 
 from model.mapping import mapping_with_parsing_model
-from scheme.parsing.parsing_scheme import UTDCardInputMessage, UTDCardOutputMessage
+from scheme.file.utd_card_message_scheme import UTDCardInputMessage, UTDCardOutputMessage
 
 router = APIRouter()
 
