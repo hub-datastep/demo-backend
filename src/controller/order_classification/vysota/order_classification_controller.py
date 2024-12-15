@@ -56,14 +56,14 @@ def classify_order(
     """
     Вебхук для обновления аварийности заявки в Домиленд.
     """
-    emergency_classification_response = order_classification_model.classify_order(
+    order_classification_response = order_classification_model.classify_order(
         body=body,
         client=client,
     )
 
     response_status = status.HTTP_200_OK
-    if emergency_classification_response.is_error:
+    if order_classification_response.is_error:
         response_status = status.HTTP_400_BAD_REQUEST
 
     response.status_code = response_status
-    return emergency_classification_response
+    return order_classification_response

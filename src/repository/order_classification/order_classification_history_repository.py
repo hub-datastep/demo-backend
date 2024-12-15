@@ -50,7 +50,7 @@ def get_history_record_by_order_id(
         st = st.where(
             OrderClassificationRecord.order_status_id == OrderStatusID.PENDING
         )
-        # Order resident query is exists and not empty
+        # Order resident query exists and not empty
         st = st.where(
             and_(
                 OrderClassificationRecord.order_query.is_not(None),
