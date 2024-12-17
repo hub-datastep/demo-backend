@@ -1,17 +1,19 @@
 import re
 import time
 
-from openai import RateLimitError
 import requests
 from fastapi import HTTPException, status
 from loguru import logger
 
-from datastep.chains.order_classification_chain import get_order_classification_chain
+from datastep.chains.order_multi_classification.order_multi_classification_chain import (
+    get_order_class,
+)
 from infra.env import (
     DOMYLAND_AUTH_EMAIL,
     DOMYLAND_AUTH_PASSWORD,
     DOMYLAND_AUTH_TENANT_NAME,
 )
+from infra.order_classification import WAIT_TIME_IN_SEC
 from infra.vysota_uds_list import UDS_LIST
 from model.order_classification.order_classification_history_model import (
     get_saved_record_by_order_id,
@@ -19,8 +21,9 @@ from model.order_classification.order_classification_history_model import (
 )
 from repository.order_classification.order_classification_config_repository import (
     get_default_config,
-    DEFAULT_CONFIG_USER_ID,
+    DEFAULT_CONFIG_ID,
 )
+from scheme.order_classification.order_classification_config_scheme import RulesWithParams
 from scheme.order_classification.order_classification_history_scheme import (
     OrderClassificationRecord,
 )
@@ -28,7 +31,6 @@ from scheme.order_classification.order_classification_scheme import (
     AlertTypeID,
     OrderClassificationRequest,
     OrderDetails,
-    OrderFormUpdate,
     OrderStatusID,
     SummaryTitle,
     SummaryType,
@@ -48,9 +50,6 @@ AI_USER_ID = 15698
 
 # Message to mark AI processed orders (in internal chat)
 ORDER_PROCESSED_BY_AI_MESSAGE = "ИИ классифицировал эту заявку как аварийную"
-
-# Timeout for Rate Limit Error (TPM)
-WAIT_TIME_IN_SEC = 60
 
 
 def _normalize_resident_request_string(query: str) -> str:
@@ -126,44 +125,44 @@ def _get_order_details_by_id(order_id: int) -> OrderDetails:
     return order_details
 
 
-def _update_order_emergency_status(
-    order_id: int,
-    customer_id: int,
-    place_id: int,
-    event_id: int,
-    building_id: int,
-    order_data: list[OrderFormUpdate],
-):
-    # Authorize in Domyland API
-    auth_token = _get_auth_token()
-
-    order_data_dict = [data.dict() for data in order_data]
-
-    req_body = {
-        "customerId": customer_id,
-        "placeId": place_id,
-        "eventId": event_id,
-        "buildingId": building_id,
-        "orderData": order_data_dict,
-        # serviceTypeId == 1 is Аварийная заявка
-        "serviceTypeId": 1,
-    }
-
-    # Update order status
-    response = requests.put(
-        url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}",
-        json=req_body,
-        headers=_get_domyland_headers(auth_token),
-    )
-    response_data = response.json()
-
-    if not response.ok:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=f"Order UPDATE: {response_data}",
-        )
-
-    return response_data, req_body
+# def _update_order_status(
+#     order_id: int,
+#     customer_id: int,
+#     place_id: int,
+#     event_id: int,
+#     building_id: int,
+#     order_data: list[OrderFormUpdate],
+# ):
+#     # Authorize in Domyland API
+#     auth_token = _get_auth_token()
+#
+#     order_data_dict = [data.dict() for data in order_data]
+#
+#     req_body = {
+#         "customerId": customer_id,
+#         "placeId": place_id,
+#         "eventId": event_id,
+#         "buildingId": building_id,
+#         "orderData": order_data_dict,
+#         # serviceTypeId == 1 is Аварийная заявка
+#         "serviceTypeId": 1,
+#     }
+#
+#     # Update order status
+#     response = requests.put(
+#         url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}",
+#         json=req_body,
+#         headers=_get_domyland_headers(auth_token),
+#     )
+#     response_data = response.json()
+#
+#     if not response.ok:
+#         raise HTTPException(
+#             status_code=response.status_code,
+#             detail=f"Order UPDATE: {response_data}",
+#         )
+#
+#     return response_data, req_body
 
 
 def _get_responsible_users_ids_by_order_address(order_address: str) -> list[int] | None:
@@ -181,24 +180,37 @@ def _get_responsible_users_ids_by_order_address(order_address: str) -> list[int]
     return None
 
 
-def _get_order_status_details(order_id: int) -> dict:
-    # Authorize in Domyland API
-    auth_token = _get_auth_token()
+# def _get_order_status_details(order_id: int) -> dict:
+#     # Authorize in Domyland API
+#     auth_token = _get_auth_token()
+#
+#     # Update responsible user
+#     response = requests.get(
+#         url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}/status",
+#         headers=_get_domyland_headers(auth_token),
+#     )
+#     response_data = response.json()
+#
+#     if not response.ok:
+#         raise HTTPException(
+#             status_code=response.status_code,
+#             detail=f"Order status GET: {response_data}",
+#         )
+#
+#     return response_data
 
-    # Update responsible user
-    response = requests.get(
-        url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}/status",
-        headers=_get_domyland_headers(auth_token),
-    )
-    response_data = response.json()
+def _get_class_params(
+    rules_by_classes: dict,
+    class_name_to_find: str,
+) -> RulesWithParams | None:
+    for class_name, params in rules_by_classes.items():
+        class_name = class_name.lower().strip()
+        class_name_to_find = class_name_to_find.lower().strip()
 
-    if not response.ok:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=f"Order status GET: {response_data}",
-        )
+        if class_name == class_name_to_find:
+            return RulesWithParams(**params)
 
-    return response_data
+    return None
 
 
 def _update_order_status_details(
@@ -208,37 +220,53 @@ def _update_order_status_details(
     responsible_users_ids: list[int],
     inspector_users_ids: list[int],
 ) -> tuple[dict, dict]:
-    # # Just save prev params in order status details
-    # prev_order_status_details = _get_order_status_details(order_id)
+    try:
+        # # Just save prev params in order status details
+        # prev_order_status_details = _get_order_status_details(order_id)
 
-    # Authorize in Domyland API
-    auth_token = _get_auth_token()
+        # Authorize in Domyland API
+        auth_token = _get_auth_token()
 
-    req_body = {
-        # # Save all prev params from order status details (not needed to update)
-        # **prev_order_status_details,
-        # Update necessary params
-        "responsibleDeptId": responsible_dept_id,
-        "orderStatusId": order_status_id,
-        "responsibleUserIds": responsible_users_ids,
-        "inspectorIds": inspector_users_ids,
-    }
+        req_body = {
+            # # Save all prev params from order status details (not needed to update)
+            # **prev_order_status_details,
+            # Update necessary params
+            "responsibleDeptId": responsible_dept_id,
+            "orderStatusId": order_status_id,
+            "responsibleUserIds": responsible_users_ids,
+            "inspectorIds": inspector_users_ids,
+        }
 
-    # Update responsible user
-    response = requests.put(
-        url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}/status",
-        json=req_body,
-        headers=_get_domyland_headers(auth_token),
-    )
-    response_data = response.json()
-
-    if not response.ok:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=f"Order status UPDATE: {response_data}",
+        # Update responsible user
+        response = requests.put(
+            url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}/status",
+            json=req_body,
+            headers=_get_domyland_headers(auth_token),
         )
+        response_data = response.json()
 
-    return response_data, req_body
+        if not response.ok:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Order status UPDATE: {response_data}",
+            )
+
+        return response_data, req_body
+
+    except Exception as e:
+        error_str = str(e)
+        logger.error(f"Error occurred while updating order with ID {order_id}: {error_str}")
+        logger.error(f"Wait {WAIT_TIME_IN_SEC} sec and try again..")
+        time.sleep(WAIT_TIME_IN_SEC)
+
+        logger.error(f"Timeout passed, try update order with ID {order_id} again")
+        return _update_order_status_details(
+            order_id=order_id,
+            responsible_dept_id=responsible_dept_id,
+            order_status_id=order_status_id,
+            responsible_users_ids=responsible_users_ids,
+            inspector_users_ids=inspector_users_ids,
+        )
 
 
 def _send_message_to_internal_chat(order_id: int, message: str) -> tuple[dict, dict]:
@@ -268,35 +296,35 @@ def _send_message_to_internal_chat(order_id: int, message: str) -> tuple[dict, d
     return response_data, req_body
 
 
-def _get_order_emergency(
-    prompt: str,
-    client: str,
-    query: str,
-) -> str:
-    try:
-        chain = get_order_classification_chain(
-            prompt_template=prompt,
-            client=client,
-        )
-        order_emergency: str = chain.run(query=query)
-        return order_emergency
-    except RateLimitError:
-        logger.info(f"Wait {WAIT_TIME_IN_SEC} seconds and try again")
-        time.sleep(WAIT_TIME_IN_SEC)
-        logger.info(
-            f"Timeout passed, try to classify order '{query}' of '{client}' again"
-        )
+# def _get_order_emergency(
+#     prompt: str,
+#     client: str,
+#     query: str,
+# ) -> str:
+#     try:
+#         chain = get_order_classification_chain(
+#             prompt_template=prompt,
+#             client=client,
+#         )
+#         order_emergency: str = chain.run(query=query)
+#         return order_emergency
+#     except RateLimitError:
+#         logger.info(f"Wait {WAIT_TIME_IN_SEC} seconds and try again")
+#         time.sleep(WAIT_TIME_IN_SEC)
+#         logger.info(
+#             f"Timeout passed, try to classify order '{query}' of '{client}' again"
+#         )
 
-        return _get_order_emergency(
-            prompt=prompt,
-            client=client,
-            query=query,
-        )
+#         return _get_order_emergency(
+#             prompt=prompt,
+#             client=client,
+#             query=query,
+#         )
 
 
-def get_emergency_class(
+def classify_order(
     body: OrderClassificationRequest,
-    client: str,
+    client: str | None = None,
 ) -> OrderClassificationRecord:
     alert_id = body.alertId
     alert_type_id = body.alertTypeId
@@ -334,45 +362,42 @@ def get_emergency_class(
                 detail=f"Order with ID {order_id} has status ID {order_status_id}, but status ID {OrderStatusID.PENDING} required",
             )
 
-        order_classification_config = get_default_config(
-            client=client,
-        )
-        # Check if default config exists
-        if order_classification_config is None:
+        # Check if order is new (created)
+        if alert_type_id != AlertTypeID.NEW_ORDER:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Default order classification config (for user with ID {DEFAULT_CONFIG_USER_ID} and client {client}) not found",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Order with ID {order_id} has alert type ID {alert_type_id}, but status ID {AlertTypeID.NEW_ORDER} required",
             )
 
-        user_id = order_classification_config.user_id
-        # Is need to classify order emergency
-        is_use_emergency_classification = (
-            order_classification_config.is_use_emergency_classification
+        config = get_default_config(
+            client=client,
         )
-        # Is need to update order emergency in Domyland (blocked by is_use_emergency_classification)
-        is_use_order_updating = (
-            order_classification_config.is_use_order_updating
-            and is_use_emergency_classification
-        )
+
+        # Check if default config exists
+        if config is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Default order classification config (with ID {DEFAULT_CONFIG_ID} and client '{client}') not found",
+            )
+
+        config_id = config.id
+        user_id = config.user_id
+        # Is needed to classify order
+        is_use_order_classification = config.is_use_order_classification
+        # Is needed to update order in Domyland
+        # (blocked by is_use_order_classification)
+        is_use_order_updating = config.is_use_order_updating and is_use_order_classification
 
         # Message for response fields disabled by config
         disabled_field_msg = (
-            f"skipped by emergency classification config of user with ID {user_id}"
+            f"skipped by order classification config with ID {config_id}"
         )
-
-        # Check if order is new (created)
-        if is_use_emergency_classification:
-            if body.alertTypeId != AlertTypeID.NEW_ORDER:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Order with ID {order_id} has alert type ID {body.alertTypeId}, but status ID {AlertTypeID.NEW_ORDER} required",
-                )
 
         # Get order details
         order_details = _get_order_details_by_id(order_id)
         history_record.order_details = order_details.dict()
 
-        # Get resident comment
+        # Get resident query (comment)
         order_query: str | None = None
         for order_form in order_details.service.orderForm:
             if (
@@ -380,70 +405,76 @@ def get_emergency_class(
                 and order_form.title == SummaryTitle.COMMENT
             ):
                 order_query = order_form.value
-
+        # logger.debug(f"Order {order_id} query: '{order_query}'")
         history_record.order_query = order_query
 
         # Check if resident comment exists and not empty if enabled
-        if is_use_emergency_classification:
-            is_order_query_exists = order_query is not None
-            is_order_query_empty = is_order_query_exists and not bool(
-                order_query.strip()
+        is_order_query_exists = order_query is not None
+        is_order_query_empty = not bool(order_query.strip())
+
+        if not is_order_query_exists or is_order_query_empty:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Order with ID {order_id} has no comment, cannot classify order",
             )
 
-            if not is_order_query_exists or is_order_query_empty:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"Order with ID {order_id} has no comment, cannot classify emergency",
-                )
-
-        # Get resident address
+        # Get resident address (object)
         order_address: str | None = None
         for summary in order_details.order.summary:
             if summary.title == SummaryTitle.OBJECT:
-                order_address = summary.value
-        # logger.debug(f"Order {order_id} address: {order_address}")
-
+                order_address = summary.value.strip()
+        # logger.debug(f"Order {order_id} address: '{order_address}'")
         history_record.order_address = order_address
 
         # Check if resident address exists and not empty if enabled
-        if is_use_emergency_classification:
-            is_order_address_exists = order_address is not None
-            is_order_address_empty = is_order_address_exists and not bool(
-                order_address.strip()
+        is_order_address_exists = order_address is not None
+        is_order_address_empty = not bool(order_address.strip())
+
+        if not is_order_address_exists or is_order_address_empty:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Order with ID {order_id} has no address, cannot find responsible UDS",
             )
 
-            if not is_order_address_exists or is_order_address_empty:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=f"Order with ID {order_id} has no address, cannot find responsible UDS",
-                )
+        # Normalize order query for LLM chain
+        normalized_query = _normalize_resident_request_string(order_query)
+        history_record.order_normalized_query = normalized_query
+
+        # Get classes with rules from config
+        # And check if this param exists
+        rules_by_classes = config.rules_by_classes
+
+        if rules_by_classes is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Classes with rules and params in config with ID {config.id} not found"
+            )
 
         # Run LLM to classify order
-        if is_use_emergency_classification:
-            # Normalize order query for LLM chain
-            normalized_query = _normalize_resident_request_string(order_query)
-            history_record.order_normalized_query = normalized_query
-
-            # Get order emergency
-            prompt = order_classification_config.emergency_prompt
-            order_emergency = _get_order_emergency(
-                prompt=prompt,
+        if is_use_order_classification:
+            llm_response = get_order_class(
+                order_query=normalized_query,
+                rules_by_classes=rules_by_classes,
                 client=client,
-                query=normalized_query,
+                # verbose=True,
             )
-        else:
-            order_emergency = disabled_field_msg
-        history_record.order_emergency = order_emergency
+            order_class = llm_response.order_class
 
+            # Save full LLM response
+            history_record.llm_response = llm_response.dict()
+        else:
+            order_class = disabled_field_msg
+        history_record.order_class = order_class
+
+        # TODO: decide what to do with every class
         is_emergency = None
-        if is_use_emergency_classification:
-            is_emergency = order_emergency.lower().strip() == "аварийная"
-        history_record.is_emergency = is_emergency
+        if is_use_order_classification:
+            is_emergency = order_class.lower().strip() == "аварийная"
+
+        # TODO: update 'is_emergency' param usage
 
         # Update order emergency class in Domyland
-        # order_update_request = None
-        # update_order_response_data = None
-        if is_emergency and is_use_emergency_classification:
+        if is_emergency and is_use_order_classification:
             # Get responsible UDS user id
             responsible_users_ids = _get_responsible_users_ids_by_order_address(
                 order_address=order_address,
@@ -453,12 +484,22 @@ def get_emergency_class(
 
             if responsible_users_ids is None:
                 raise HTTPException(
-                    status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                    status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Cannot find responsible UDS for order with ID {order_id} and address '{order_address}'",
                 )
 
+            # Get order class params
+            class_params = _get_class_params(
+                rules_by_classes=rules_by_classes,
+                class_name_to_find=order_class,
+            )
+
+            is_use_order_with_this_class_updating = None
+            if class_params is not None:
+                is_use_order_with_this_class_updating = class_params.is_use_order_updating
+
             # Update order responsible user is enabled
-            if is_use_order_updating:
+            if is_use_order_updating and is_use_order_with_this_class_updating:
                 response, request_body = _update_order_status_details(
                     order_id=order_id,
                     responsible_dept_id=RESPONSIBLE_DEPT_ID,
@@ -478,30 +519,15 @@ def get_emergency_class(
                 request_body = {"result": disabled_field_msg}
                 response = {"result": disabled_field_msg}
 
+                # Message if skipped by class params
+                if not is_use_order_with_this_class_updating:
+                    updated_disabled_field_msg = f"{disabled_field_msg}; by params of class '{order_class}'"
+
+                    request_body = {"result": updated_disabled_field_msg}
+                    response = {"result": updated_disabled_field_msg}
+
             history_record.order_update_request = request_body
             history_record.order_update_response = response
-
-        # For changing emergency status
-        # customer_id = order.customerId
-        # place_id = order.placeId
-        # service_id = order.serviceId
-        # event_id = order.eventId
-        # building_id = order.buildingId
-
-        # order_data = [
-        #     OrderFormUpdate(**order_form.dict())
-        #     for order_form in order_details.service.orderForm
-        # ]
-
-        # update_order_response_data, order_update_request = _update_order_emergency_status(
-        #     order_id=order_id,
-        #     customer_id=customer_id,
-        #     place_id=place_id,
-        #     service_id=service_id,
-        #     event_id=event_id,
-        #     building_id=building_id,
-        #     order_data=order_data,
-        # )
 
     except (HTTPException, Exception) as error:
         history_record.is_error = True
