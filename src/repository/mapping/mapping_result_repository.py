@@ -6,8 +6,7 @@ from scheme.mapping.mapping_results_scheme import MappingResult, MappingResultUp
 
 def save_mapping_results_list(mapping_results: list[MappingResult]):
     with Session(engine) as session:
-        for result in mapping_results:
-            session.add(result)
+        session.add_all(mapping_results)
         session.commit()
 
 

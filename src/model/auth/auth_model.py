@@ -7,6 +7,7 @@ from jose import JWTError, jwt
 from sqlmodel import Session
 
 from infra.database import get_session
+from model.user import user_model
 from repository.user import user_repository
 from scheme.auth.token_scheme import TokenData, Token
 from scheme.user.user_scheme import User
@@ -17,7 +18,6 @@ from util.hashing import pwd_context
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
-
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/sign_in")
 
@@ -94,5 +94,5 @@ def get_current_user(
     token: str = Depends(oauth2_scheme)
 ) -> Type[User]:
     token_data = jwt_decode(token)
-    user_db = user_repository.get_user_by_id(session, token_data.user_id)
+    user_db = user_model.get_user_by_id(session, token_data.user_id)
     return user_db

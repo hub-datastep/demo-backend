@@ -31,9 +31,11 @@ def _fetch_items(db_con_str: str, table_name: str, query: str) -> DataFrame:
     return read_sql(st, db_con_str)
 
 
-def save_mapping_result(nomenclatures: list[MappingOneNomenclatureRead], user_id: int):
-    iteration_key = generate_iteration_key()
-
+def save_mapping_result(
+    nomenclatures: list[MappingOneNomenclatureRead],
+    user_id: int,
+    iteration_key: str,
+):
     mapping_results = []
     for nomenclature in nomenclatures:
         mapping_result_dict = nomenclature.dict()
