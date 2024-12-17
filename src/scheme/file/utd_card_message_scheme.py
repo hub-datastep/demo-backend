@@ -87,7 +87,7 @@ class UTDCardOutputMessage(SQLModel):
     # guid карточки подгрузки УПД (guid запроса)
     idn_card_guid: str
     # guid сущности УПД (создается и присваивается в нейросети)
-    guid: str
+    guid: str | None = None
     # Статус распознавания
     status: str
     # ИНН организации (покупатель со стороны Унистрой)

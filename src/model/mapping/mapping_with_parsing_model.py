@@ -56,7 +56,7 @@ def parse_and_map_utd_card(body: UTDCardInputMessage) -> UTDCardOutputMessage:
         )
 
         output_message = UTDCardOutputMessage(
-            **body.dict(),
+            **body.dict(exclude={"guid"}),
             idn_card_guid=body.guid,
             guid=iteration_key,
             status=UTDCardStatus.DONE,

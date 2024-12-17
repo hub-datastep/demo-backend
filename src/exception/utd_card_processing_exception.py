@@ -9,7 +9,8 @@ def raise_utd_card_processing_exception(
 ):
     logger.error(f"Error occurred while processing UTD Card: {error_message}")
     return UTDCardOutputMessage(
-        **body.dict(),
+        **body.dict(exclude={"guid"}),
+        idn_card_guid=body.guid,
         status=UTDCardStatus.ERROR,
         error_message=error_message,
     )
