@@ -24,10 +24,10 @@ def upgrade() -> None:
         'order_classification_config',
         sa.Column('emergency_prompt', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column('client', sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column('is_use_emergency_classification', sa.Boolean(), nullable=False),
-        sa.Column('is_use_order_updating', sa.Boolean(), nullable=False),
+        sa.Column('is_use_emergency_classification', sa.Boolean(), nullable=True),
+        sa.Column('is_use_order_updating', sa.Boolean(), nullable=True),
         sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('user_id', sa.Integer(), nullable=False),
+        sa.Column('user_id', sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
