@@ -70,10 +70,17 @@ app.include_router(chroma_collection_controller.router, tags=["chroma_collection
 app.include_router(classifier_controller.router, tags=["classifier"], prefix="/classifier")
 app.include_router(brand_model_controller.router, tags=["ner_brand"], prefix="/ner_brand")
 
+# Mapping with Parsing
+app.include_router(
+    mapping_with_parsing_controller.router,
+    tags=["Mapping with Parsing"],
+    prefix="/mapping/with_parsing",
+)
+
 # Used Tokens
 app.include_router(used_token_controller.router, tags=["used_token"], prefix="/used_token")
 
-# Other
+# Redis Tasks
 app.include_router(task_controller.router, tags=["task"], prefix="/task")
 
 # Ksr Nomenclature
@@ -92,13 +99,6 @@ app.include_router(
 
 # Unistroy Kafka Mapping
 app.include_router(kafka_mapping_controller.router, tags=["Kafka Mapping"], prefix="/kafka/mapping")
-
-# Mapping with Parsing
-app.include_router(
-    mapping_with_parsing_controller.router,
-    tags=["Mapping with Parsing"],
-    prefix="/mapping/with_parsing",
-)
 
 
 @app.get("/healthcheck")
