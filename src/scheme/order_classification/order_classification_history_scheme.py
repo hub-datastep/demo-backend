@@ -18,16 +18,16 @@ class OrderClassificationRecordBase(SQLModel):
     order_normalized_query: str | None = None
     order_details: dict | None = Field(default=None, sa_column=Column(JSONB))
     # LLM response
-    order_emergency: str | None = None
-    is_emergency: bool | None = None
+    order_class: str | None = None
     # UDS mapping data
     order_address: str | None = None
     uds_id: str | None = None
     # Response from Domyland API
     order_update_request: dict | None = Field(default=None, sa_column=Column(JSONB))
     order_update_response: dict | None = Field(default=None, sa_column=Column(JSONB))
-    # Just for errors msgs or our comments
+    # Just for errors messages or our comments
     comment: str | None = None
+    llm_response: dict | None = Field(default=None, sa_column=Column(JSONB))
 
 
 class OrderClassificationRecord(OrderClassificationRecordBase, table=True):
