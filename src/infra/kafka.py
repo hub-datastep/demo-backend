@@ -1,4 +1,5 @@
 from ssl import create_default_context, Purpose, CERT_REQUIRED
+from typing import Any
 
 from faststream.kafka import KafkaBroker, KafkaRouter
 from faststream.security import SASLPlaintext
@@ -38,3 +39,13 @@ def create_kafka_broker():
 
 
 kafka_broker = create_kafka_broker()
+
+
+async def send_message_to_kafka(
+    message_body: Any,
+    topic: str,
+):
+    await kafka_broker.publish(
+        message_body,
+        topic=topic,
+    )
