@@ -410,7 +410,7 @@ def classify_order(
 
         # Check if resident comment exists and not empty if enabled
         is_order_query_exists = order_query is not None
-        is_order_query_empty = not bool(order_query.strip())
+        is_order_query_empty = is_order_query_exists and not bool(order_query.strip())
 
         if not is_order_query_exists or is_order_query_empty:
             raise HTTPException(
@@ -422,13 +422,13 @@ def classify_order(
         order_address: str | None = None
         for summary in order_details.order.summary:
             if summary.title == SummaryTitle.OBJECT:
-                order_address = summary.value.strip()
+                order_address = summary.value
         # logger.debug(f"Order {order_id} address: '{order_address}'")
         history_record.order_address = order_address
 
         # Check if resident address exists and not empty if enabled
         is_order_address_exists = order_address is not None
-        is_order_address_empty = not bool(order_address.strip())
+        is_order_address_empty = is_order_address_exists and not bool(order_address.strip())
 
         if not is_order_address_exists or is_order_address_empty:
             raise HTTPException(
