@@ -36,12 +36,6 @@ def upgrade() -> None:
             nullable=True,
         ),
     )
-    op.alter_column(
-        'order_classification_config',
-        'is_use_order_updating',
-        existing_type=sa.BOOLEAN(),
-        nullable=True,
-    )
     op.drop_column(
         'order_classification_config',
         'emergency_prompt',
@@ -49,13 +43,6 @@ def upgrade() -> None:
     op.drop_column(
         'order_classification_config',
         'is_use_emergency_classification',
-    )
-
-    op.alter_column(
-        'order_classification_config',
-        'user_id',
-        existing_type=sa.INTEGER(),
-        nullable=True,
     )
     # ### end Alembic commands ###
 
@@ -68,7 +55,7 @@ def downgrade() -> None:
             'is_use_emergency_classification',
             sa.BOOLEAN(),
             autoincrement=False,
-            nullable=False,
+            nullable=True,
         ),
     )
     op.add_column(
@@ -80,12 +67,6 @@ def downgrade() -> None:
             nullable=True,
         ),
     )
-    op.alter_column(
-        'order_classification_config',
-        'is_use_order_updating',
-        existing_type=sa.BOOLEAN(),
-        nullable=False,
-    )
     op.drop_column(
         'order_classification_config',
         'is_use_order_classification',
@@ -93,12 +74,5 @@ def downgrade() -> None:
     op.drop_column(
         'order_classification_config',
         'rules_by_classes',
-    )
-
-    op.alter_column(
-        'order_classification_config',
-        'user_id',
-        existing_type=sa.INTEGER(),
-        nullable=False,
     )
     # ### end Alembic commands ###
