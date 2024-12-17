@@ -25,6 +25,7 @@ class OrderClassificationConfig(OrderClassificationConfigBase, table=True):
 
 class RulesWithParams(SQLModel):
     rules: list[str]
+    exclusion_rules: list[str] | None = None
     is_use_classification: bool | None = None
     is_use_order_updating: bool | None = None
 

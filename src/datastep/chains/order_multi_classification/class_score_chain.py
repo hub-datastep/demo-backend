@@ -7,20 +7,21 @@ from loguru import logger
 from openai import RateLimitError
 
 from infra.order_classification import WAIT_TIME_IN_SEC
+from util.order_classification_rules import format_rules_list
 
 _PROMPT_TEMPLATE = """
-На основе правил оцени на сколько по шкале от 0 до 10 эта заявка относится к этому классу? 
-Поясните свой ответ.
+На основе правил оцени на сколько по шкале от 0 до 10 эта заявка относится к этому классу?
+Поясни свой ответ.
 
 Заявка: "{query}"
 Класс: "{class_name}"
-Правила для определения относится ли эта заявка к этому классу:
+Правила, чтобы понять, что заявка относится к этому классу:
 {rules}
 
 Твой ответ должен быть в формате:
 Класс: <класс заявки>
-- Оценка: <твоя оценка от 0 до 10>
 - Обоснование: <твои пояснения>
+- Оценка: <твоя оценка от 0 до 10>
 """
 
 
@@ -51,13 +52,25 @@ def get_class_score(
     order_query: str,
     class_name: str,
     rules: list[str],
+    exclusion_rules: list[str] | None = None,
     client: str | None = None,
 ) -> str:
     try:
+        # Combine rules list to str
+        rules_str = format_rules_list(rules)
+
+        # If class has exclusion rules, add them to prompt
+        if exclusion_rules is not None:
+            exclusion_rules_str = format_rules_list(exclusion_rules)
+            rules_str += (
+                "Правила, по которым можно понять, что заявка точно не относится к этому классу:"
+                f"\n{exclusion_rules_str}"
+            )
+
         score: str = chain.run(
             query=order_query,
             class_name=class_name,
-            rules="\n".join(rules),
+            rules=rules_str,
         )
         return score
     except RateLimitError as e:

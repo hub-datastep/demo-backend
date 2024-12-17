@@ -29,12 +29,16 @@ def _get_scores_of_classes(
             logger.info(f"Class '{class_name}' was skipped by config of client '{client}'")
             continue
 
+        # Get rules from config
         rules = rules_with_params.rules
+        exclusion_rules = rules_with_params.exclusion_rules
+
         score = get_class_score(
             chain=score_chain,
             order_query=order_query,
             class_name=class_name,
             rules=rules,
+            exclusion_rules=exclusion_rules,
             client=client,
         )
         scores[class_name] = score
