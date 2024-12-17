@@ -13,7 +13,7 @@ from controller.chroma_collection import chroma_collection_controller
 from controller.classifier import classifier_config_controller, classifier_controller
 from controller.embedding import embedding_controller
 from controller.file import file_controller
-from controller.kafka import kafka_mapping_controller
+from controller.kafka import kafka_controller
 from controller.ksr import ksr_controller
 from controller.mapping import mapping_controller
 from controller.mapping import mapping_with_parsing_controller
@@ -98,7 +98,7 @@ app.include_router(
 )
 
 # Unistroy Kafka Mapping
-app.include_router(kafka_mapping_controller.router, tags=["Kafka Mapping"], prefix="/kafka/mapping")
+app.include_router(kafka_controller.router, tags=["Kafka"], prefix="/kafka")
 
 
 @app.get("/healthcheck")
