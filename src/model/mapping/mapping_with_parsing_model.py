@@ -36,11 +36,15 @@ def parse_and_map_utd_card(body: UTDCardInputMessage) -> UTDCardOutputMessage:
         classifier_config = user.classifier_config
         tenant_id = user.tenant_id
 
+        # Generate mapping iteration key (UTD guid)
+        iteration_key = generate_uuid()
+
         # Start mapping and wait results
         mapping_results = start_mapping_and_wait_results(
             nomenclatures_list=nomenclatures_with_indexes_list,
             classifier_config=classifier_config,
             tenant_id=tenant_id,
+            iteration_key=iteration_key,
         )
         logger.debug(f"Mapping Results:\n{mapping_results}")
 
@@ -53,7 +57,7 @@ def parse_and_map_utd_card(body: UTDCardInputMessage) -> UTDCardOutputMessage:
         output_message = UTDCardOutputMessage(
             **body.dict(),
             idn_guid=body.guid,
-            guid=generate_uuid(),
+            guid=iteration_key,
             status=JobStatus.FINISHED,
             # Parsed Data
             # TODO: set parsed params from UTD pdf file

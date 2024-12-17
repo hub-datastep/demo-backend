@@ -37,6 +37,7 @@ def start_mapping_and_wait_results(
     tenant_id: int,
     most_similar_count: int = 3,
     chunk_size: int = 100,
+    iteration_key: str | None = None,
 ) -> list[MappingNomenclaturesResultRead]:
     job = mapping_model.start_mapping(
         nomenclatures=nomenclatures_list,
@@ -44,6 +45,7 @@ def start_mapping_and_wait_results(
         chunk_size=chunk_size,
         classifier_config=classifier_config,
         tenant_id=tenant_id,
+        iteration_key=iteration_key,
     )
     job_id = job.job_id
 

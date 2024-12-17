@@ -23,6 +23,7 @@ from scheme.task.task_scheme import JobIdRead
 from util.extract_keyword import extract_keyword
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
 from util.normalize_name import normalize_name
+from util.uuid import generate_uuid
 
 tqdm.pandas()
 # noinspection PyTypeChecker
@@ -288,10 +289,11 @@ def split_nomenclatures_by_chunks(
 
 def create_mapping_job(
     nomenclatures: list[MappingOneNomenclatureUpload],
-    previous_job_id: str | None,
     most_similar_count: int,
-    classifier_config: ClassifierConfig | None,
+    classifier_config: ClassifierConfig,
     tenant_id: int,
+    iteration_key: str,
+    previous_job_id: str | None = None,
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.MAPPING)
     job = queue.enqueue(
@@ -300,6 +302,7 @@ def create_mapping_job(
         most_similar_count,
         classifier_config,
         tenant_id,
+        iteration_key,
         meta={
             "previous_nomenclature_id": previous_job_id
         },
@@ -315,6 +318,7 @@ def start_mapping(
     chunk_size: int,
     classifier_config: ClassifierConfig,
     tenant_id: int,
+    iteration_key: str | None = None,
 ) -> JobIdRead:
     # Check if collection name exists in user's classifier config
     collection_name = classifier_config.chroma_collection_name
@@ -343,6 +347,10 @@ def start_mapping(
             detail=f"Classifier version {model_id} is not exists.",
         )
 
+    # Generate UUID for iteration
+    if iteration_key is None:
+        iteration_key = generate_uuid()
+
     # Split nomenclatures to chunks
     segments = split_nomenclatures_by_chunks(
         nomenclatures=nomenclatures,
@@ -356,6 +364,7 @@ def start_mapping(
             most_similar_count=most_similar_count,
             classifier_config=classifier_config,
             tenant_id=tenant_id,
+            iteration_key=iteration_key,
         )
         last_job_id = job.job_id
 
@@ -365,8 +374,9 @@ def start_mapping(
 def _map_nomenclatures_chunk(
     nomenclatures: list[MappingOneNomenclatureUpload],
     most_similar_count: int,
-    classifier_config: ClassifierConfig | None,
+    classifier_config: ClassifierConfig,
     tenant_id: int,
+    iteration_key: str,
 ) -> list[MappingOneNomenclatureRead]:
     print(classifier_config)
     job = get_current_job()
@@ -507,6 +517,7 @@ def _map_nomenclatures_chunk(
     save_mapping_result(
         nomenclatures=result_nomenclatures,
         user_id=user_id,
+        iteration_key=iteration_key,
     )
 
     # Charge tenant used tokens for nomenclatures mapping
