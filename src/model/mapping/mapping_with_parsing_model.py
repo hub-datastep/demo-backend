@@ -52,7 +52,7 @@ def parse_and_map_utd_card(body: UTDCardInputMessage) -> UTDCardOutputMessage:
         mapped_materials = add_parsed_data_to_mappings(
             mapping_results=mapping_results,
             # TODO: pass materials data from UTD
-            # parsed_materials_data=parsed_materials_data,
+            parsed_materials_data=[],
         )
 
         output_message = UTDCardOutputMessage(
