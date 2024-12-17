@@ -7,6 +7,11 @@ from sqlmodel import SQLModel
 """
 
 
+class UTDCardStatus:
+    DONE = "DONE"
+    ERROR = "ERROR"
+
+
 class CreditSlipData(SQLModel):
     # Дата и время создания карточки УПД в тг боте
     idn_datetime: datetime
@@ -37,7 +42,7 @@ class UTDCardInputMessage(SQLModel):
     documents: list[UTDDocument]
 
 
-class MappedSimilarMaterial(SQLModel):
+class SimilarMapping(SQLModel):
     # guid материала НСИ
     nomenclature_guid: str
     # Наименование материала НСИ
@@ -57,7 +62,7 @@ class MappedMaterial(SQLModel):
     # Материалы НСИ, похожие на материал УПД
     # Если material_guid=null, тогда не передается
     # Если material_guid is not null, тогда передаем
-    similar_mappings: MappedSimilarMaterial | None = None
+    similar_mappings: SimilarMapping | None = None
     # Количество полученного материала
     quantity: float | None = None
     # Цена материала за единицу
@@ -72,14 +77,15 @@ class MappedMaterial(SQLModel):
 
 # Модели для выходных данных
 class UTDCardOutputMessage(SQLModel):
-    # guid карточки подгрузки УПД (guid запроса)
-    idn_guid: str
-
+    # Data from Input Message
     credit_slip_data: CreditSlipData
     documents: list[UTDDocument]
 
+    # Mapped data
     materials: list[MappedMaterial] | None = None
 
+    # guid карточки подгрузки УПД (guid запроса)
+    idn_card_guid: str
     # guid сущности УПД (создается и присваивается в нейросети)
     guid: str
     # Статус распознавания

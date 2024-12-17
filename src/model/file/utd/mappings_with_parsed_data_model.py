@@ -11,25 +11,29 @@ def add_parsed_data_to_mappings(
 ):
     output_materials: list[MappedMaterial] = []
 
-    for result, parsed_material in zip(mapping_results, parsed_materials_data):
+    for result, parsed_data in zip(mapping_results, parsed_materials_data):
         result: MappingNomenclaturesResultRead
-        # TODO: fix 'parsed_material' type
-        parsed_material: Any
+        # TODO: fix 'parsed_data' type
+        parsed_data: Any
 
         for nom in result.nomenclatures:
+            nomenclature_guid = None
+            if len(nom.mappings) > 0:
+                nomenclature_guid = nom.mappings[0].nomenclature_guid
+
             output_materials.append(
                 MappedMaterial(
                     number=nom.row_number,
-                    # TODO: replace 'nomenclature_guid' from vectorstore to guid from НСИ
-                    material_guid=nom.mappings[0].nomenclature_guid,
+                    material_guid=nomenclature_guid,
+                    idn_material_name=nom.nomenclature,
                     similar_mappings=nom.similar_mappings,
-                    # TODO: set parsed material data
-                    # idn_material_name=parsed_material.,
-                    # quantity=material_parsed_data.,
-                    # price=material_parsed_data.,
-                    # cost=material_parsed_data.,
-                    # vat_rate=material_parsed_data.,
-                    # vat_amount=material_parsed_data.,
+                    # TODO: set parsed material data from 'parsed_data'
+                    # ! Now it's mocked data
+                    quantity=0.0,
+                    price=0.0,
+                    cost=0.0,
+                    vat_rate=0.0,
+                    vat_amount=0.0,
                 )
             )
 

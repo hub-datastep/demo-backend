@@ -1,6 +1,7 @@
+from datetime import date
+
 from fastapi import HTTPException
 from loguru import logger
-from rq.job import JobStatus
 
 from exception.utd_card_processing_exception import raise_utd_card_processing_exception
 from model.file.utd.download_pdf_model import download_file
@@ -8,7 +9,7 @@ from model.file.utd.mappings_with_parsed_data_model import add_parsed_data_to_ma
 from model.file.utd.pdf_parsing_model import extract_noms
 from model.mapping.mapping_execute_model import get_noms_with_indexes, start_mapping_and_wait_results
 from model.user import user_model
-from scheme.file.utd_card_message_scheme import UTDCardInputMessage, UTDCardOutputMessage
+from scheme.file.utd_card_message_scheme import UTDCardInputMessage, UTDCardOutputMessage, UTDCardStatus
 from util.uuid import generate_uuid
 
 UNISTROY_USER_ID = 56
@@ -56,22 +57,23 @@ def parse_and_map_utd_card(body: UTDCardInputMessage) -> UTDCardOutputMessage:
 
         output_message = UTDCardOutputMessage(
             **body.dict(),
-            idn_guid=body.guid,
+            idn_card_guid=body.guid,
             guid=iteration_key,
-            status=JobStatus.FINISHED,
-            # Parsed Data
-            # TODO: set parsed params from UTD pdf file
-            # organization_inn=,
-            # supplier_inn=,
-            # idn_number=,
-            # idn_date=,
-            # correction_idn_number=,
-            # correction_idn_date=,
-            # contract_name=,
-            # contract_number=,
-            # contract_date=,
+            status=UTDCardStatus.DONE,
             # Mapping Data
             materials=mapped_materials,
+            # Parsed Data
+            # TODO: set parsed params from UTD pdf file
+            # ! Now it's mocked data
+            organization_inn="3305061878",
+            supplier_inn="4629044850",
+            idn_number="НО-12865РД",
+            idn_date=date(2024, 8, 27),
+            correction_idn_number="НО-12865РД/2",
+            correction_idn_date=date(2024, 8, 27),
+            contract_name="ДОГОВОР ПОСТАВКИ № 003/06-Лето от 13.09.2023",
+            contract_number="003/06-Лето",
+            contract_date=date(2024, 8, 27),
         )
 
         return output_message
@@ -81,7 +83,7 @@ def parse_and_map_utd_card(body: UTDCardInputMessage) -> UTDCardOutputMessage:
         error_str = e.detail
         return raise_utd_card_processing_exception(
             body=body,
-            text=error_str,
+            error_message=error_str,
         )
 
     # Handle unknown errors
@@ -89,5 +91,5 @@ def parse_and_map_utd_card(body: UTDCardInputMessage) -> UTDCardOutputMessage:
         error_str = str(e)
         return raise_utd_card_processing_exception(
             body=body,
-            text=error_str,
+            error_message=error_str,
         )
