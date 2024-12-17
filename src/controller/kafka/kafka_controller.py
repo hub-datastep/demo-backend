@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 
-from infra.env import TGBOT_DELIVERY_NOTE_TOPIC
+from infra.env import TGBOT_DELIVERY_NOTE_EXPORT_TOPIC
 from infra.kafka import send_message_to_kafka
 from middleware.kafka_middleware import with_kafka_broker_connection
 from model.auth.auth_model import get_current_user
@@ -17,10 +17,10 @@ router = APIRouter()
 async def send_test_message_to_kafka(
     current_user: UserRead = Depends(get_current_user),
 ):
-    message = "Hello World"
+    message = "Hello from Datastep!!"
     await send_message_to_kafka(
-        message_body={"key": message},
-        topic=TGBOT_DELIVERY_NOTE_TOPIC,
+        message_body=message,
+        topic=TGBOT_DELIVERY_NOTE_EXPORT_TOPIC,
     )
     return message
 
@@ -34,6 +34,6 @@ async def send_utd_card_message_to_kafka(
 ):
     await send_message_to_kafka(
         message_body=body,
-        topic=TGBOT_DELIVERY_NOTE_TOPIC,
+        topic=TGBOT_DELIVERY_NOTE_EXPORT_TOPIC,
     )
     return "Message sent"

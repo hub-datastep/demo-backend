@@ -35,3 +35,12 @@ async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
         message_body=output_message.dict(),
         topic=TGBOT_DELIVERY_NOTE_EXPORT_TOPIC,
     )
+
+
+@kafka_broker.subscriber(
+    TGBOT_DELIVERY_NOTE_EXPORT_TOPIC,
+    group_id=KAFKA_CONSUMER_GROUP,
+    **KAFKA_DEFAULT_BATCH_SETTINGS,
+)
+async def mapping_results_consumer(body):
+    logger.debug(f"Unistroy mapping results: {body}")
