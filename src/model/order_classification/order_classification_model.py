@@ -458,7 +458,7 @@ def classify_order(
                 client=client,
                 # verbose=True,
             )
-            order_class = llm_response.order_class
+            order_class = llm_response.order_class.lower()
 
             # Save full LLM response
             history_record.llm_response = llm_response.dict()
@@ -469,7 +469,7 @@ def classify_order(
         # TODO: decide what to do with every class
         is_emergency = None
         if is_use_order_classification:
-            is_emergency = order_class.lower().strip() == "аварийная"
+            is_emergency = order_class.strip() == "аварийная"
 
         # TODO: update 'is_emergency' param usage
 
