@@ -11,6 +11,10 @@ def add_parsed_data_to_mappings(
 ):
     output_materials: list[MappedMaterial] = []
 
+    # TODO: remove this later
+    # It's needed just to set equal length for both lists
+    parsed_materials_data = list(range(len(mapping_results)))
+
     for result, parsed_data in zip(mapping_results, parsed_materials_data):
         result: MappingNomenclaturesResultRead
         # TODO: fix 'parsed_data' type
