@@ -6,10 +6,17 @@ from loguru import logger
 from exception.utd_card_processing_exception import raise_utd_card_processing_exception
 from model.file.utd.download_pdf_model import download_file
 from model.file.utd.mappings_with_parsed_data_model import add_parsed_data_to_mappings
-from model.file.utd.pdf_parsing_model import extract_noms
-from model.mapping.mapping_execute_model import get_noms_with_indexes, start_mapping_and_wait_results
+from model.file.utd.pdf_parsing_model import extract_params_and_noms
+from model.mapping.mapping_execute_model import (
+    get_noms_with_indexes,
+    start_mapping_and_wait_results,
+)
 from model.user import user_model
-from scheme.file.utd_card_message_scheme import UTDCardInputMessage, UTDCardOutputMessage, UTDCardStatus
+from scheme.file.utd_card_message_scheme import (
+    UTDCardInputMessage,
+    UTDCardOutputMessage,
+    UTDCardStatus,
+)
 from util.uuid import generate_uuid
 
 UNISTROY_USER_ID = 56
@@ -24,12 +31,13 @@ def parse_and_map_utd_card(body: UTDCardInputMessage) -> UTDCardOutputMessage:
         # Download UTD pdf file
         file_bytes = download_file(file_url=pdf_file_url)
 
-        # Parse nomenclatures from UTD pdf file
-        nomenclatures_list = extract_noms(
+        # Parse params and nomenclatures from UTD pdf file
+        params_and_noms = extract_params_and_noms(
             pdf_file_content=file_bytes,
             idn_file_guid=idn_file_guid,
         )
-        logger.debug(f"Extracted noms:\n{nomenclatures_list}")
+        logger.debug(f"Extracted params and noms:\n{params_and_noms}")
+        nomenclatures_list = params_and_noms.nomenclatures_list
         nomenclatures_with_indexes_list = get_noms_with_indexes(nomenclatures_list)
 
         # Get Unistroy user and its params
@@ -63,12 +71,12 @@ def parse_and_map_utd_card(body: UTDCardInputMessage) -> UTDCardOutputMessage:
             # Mapping Data
             materials=mapped_materials,
             # Parsed Data
+            supplier_inn=params_and_noms.seller_inn,
+            idn_number=params_and_noms.invoice_number,
+            idn_date=params_and_noms.invoice_date,
             # TODO: set parsed params from UTD pdf file
             # ! Now it's mocked data
             organization_inn="3305061878",
-            supplier_inn="4629044850",
-            idn_number="НО-12865РД",
-            idn_date=date(2024, 8, 27),
             correction_idn_number="НО-12865РД/2",
             correction_idn_date=date(2024, 8, 27),
             contract_name="ДОГОВОР ПОСТАВКИ № 003/06-Лето от 13.09.2023",

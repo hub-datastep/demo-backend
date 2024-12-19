@@ -110,3 +110,10 @@ class UTDCardOutputMessage(SQLModel):
     contract_date: date | None = None
     # Сообщение об ошибке
     error_message: str | None = None
+
+
+class UTDParamsWithNomenclatures(SQLModel):
+    invoice_number: str | None = None
+    invoice_date: date | None = None
+    seller_inn: str | None = None
+    nomenclatures_list: list[str] | None = None
