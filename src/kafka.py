@@ -25,17 +25,19 @@ KAFKA_DEFAULT_BATCH_SETTINGS = {
     **KAFKA_DEFAULT_BATCH_SETTINGS,
 )
 async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
-    logger.debug(f"Unistroy mapping with parsing request: {body}")
+    logger.debug(f"Unistroy Kafka Request (input message):\n{body}")
 
     # Run mapping with parsing and wait results
     output_message = mapping_with_parsing_model.parse_and_map_utd_card(body=body)
 
     # Send message to Unistroy Kafka export-topic with results
+    logger.debug(f"Unistroy Kafka Response (output message):\n{output_message}")
     await send_message_to_kafka(
         message_body=output_message.dict(),
         topic=TGBOT_DELIVERY_NOTE_EXPORT_TOPIC,
     )
 
+# ! У нас нет пока нет прав на чтение этого топика, только на запись
 # @kafka_broker.subscriber(
 #     TGBOT_DELIVERY_NOTE_EXPORT_TOPIC,
 #     group_id=KAFKA_CONSUMER_GROUP,
