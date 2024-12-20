@@ -3,6 +3,7 @@ from typing import Any
 
 from faststream.kafka import KafkaBroker, KafkaRouter
 from faststream.security import SASLPlaintext
+from loguru import logger
 
 from infra.env import KAFKA_BOOTSTRAP_SERVERS, KAFKA_USERNAME, KAFKA_PASSWORD, IS_KAFKA_WITH_SSL, DATA_FOLDER_PATH
 
@@ -21,6 +22,8 @@ def create_kafka_broker():
         ssl_context.check_hostname = False
         ssl_context.verify_mode = CERT_REQUIRED
         ssl_context.load_verify_locations(cafile=SSL_CERT_PATH)
+        logger.debug(f"Kafka Username: {KAFKA_USERNAME}")
+        logger.debug(f"Kafka Password: {KAFKA_PASSWORD}")
         security = SASLPlaintext(
             ssl_context=ssl_context,
             username=KAFKA_USERNAME,
