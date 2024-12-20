@@ -6,7 +6,7 @@ import pdfplumber
 from fastapi import HTTPException, status
 from pdfplumber import PDF
 
-from scheme.file.utd_card_message_scheme import UTDParamsWithNomenclatures
+from scheme.file.utd_card_message_scheme import UTDEntityWithParamsAndNoms
 
 # Ключевые слова для поиска столбцов с наименованием товара
 _KEYWORDS = [
@@ -31,11 +31,11 @@ _MONTHS_NAME_AND_NUMBER_STR = {
 }
 
 _PARAMS_PATTERNS = {
-    "invoice_number": r"Счет-фактура\s*№\s*([\w-]+)",
-    "seller_inn": r"ИНН[\/КПП продавца]*[:\s]*([0-9]{10})",
+    "idn_number": r"Счет-фактура\s*№\s*([\w-]+)",
+    "supplier_inn": r"ИНН[\/КПП продавца]*[:\s]*([0-9]{10})",
 }
 
-_INVOICE_DATE_PATTERN = (
+_UTD_DATE_PATTERN = (
     r"Счет-фактура[^\n]*?от\s*(\d{1,2}[\.\s][а-яА-Я]+[\.\s]\d{4}|\d{2}\.\d{2}\.\d{4})"
 )
 
@@ -48,7 +48,7 @@ def _clean_column_name(column_name: str) -> str:
 
 
 def _normalize_date(date_str: str) -> date | None:
-    """Функция для нормализации дат в формате DD.MM.YYYY."""
+    """Функция для нормализации даты в формат DD.MM.YYYY и тип datetime.date"""
 
     date_match = re.search(r"(\d{1,2})\s+([а-яА-Я]+)\s+(\d{4})", date_str)
     if date_match:
@@ -132,7 +132,7 @@ def extract_noms(
     if not f:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Failed to parse noms from file with IDN guid '{idn_file_guid}'",
+            detail=f"Failed to parse noms from PDF file with IDN file guid '{idn_file_guid}'",
         )
 
     noms_list = list(unique_nomenclatures)
@@ -157,24 +157,24 @@ def extract_full_text(
 
 def extract_params(
     pdf: PDF,
-) -> UTDParamsWithNomenclatures:
+) -> UTDEntityWithParamsAndNoms:
     full_text = extract_full_text(pdf=pdf)
     full_text = re.sub(r"\s+", " ", full_text)
 
-    extracted_params = UTDParamsWithNomenclatures()
+    extracted_params = UTDEntityWithParamsAndNoms()
 
     for param_name, pattern in _PARAMS_PATTERNS.items():
         match = re.search(pattern, full_text, re.IGNORECASE)
         param_value = match.group(1) if match else None
         setattr(extracted_params, param_name, param_value)
 
-    invoice_date_str_match = re.search(_INVOICE_DATE_PATTERN, full_text, re.IGNORECASE)
-    invoice_date_str = (
-        invoice_date_str_match.group(1) if invoice_date_str_match else None
+    utd_date_str_match = re.search(_UTD_DATE_PATTERN, full_text, re.IGNORECASE)
+    utd_date_str = (
+        utd_date_str_match.group(1) if utd_date_str_match else None
     )
-    if invoice_date_str is not None:
-        extracted_params.invoice_date = _normalize_date(
-            date_str=invoice_date_str,
+    if utd_date_str is not None:
+        extracted_params.idn_date = _normalize_date(
+            date_str=utd_date_str,
         )
 
     return extracted_params
@@ -183,7 +183,7 @@ def extract_params(
 def extract_params_and_noms(
     pdf_file_content: BytesIO,
     idn_file_guid: str,
-) -> UTDParamsWithNomenclatures:
+) -> UTDEntityWithParamsAndNoms:
     with pdfplumber.open(pdf_file_content) as pdf:
         has_text = any(page.extract_text() for page in pdf.pages)
 
@@ -201,7 +201,7 @@ def extract_params_and_noms(
         else:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"File with IDN guid '{idn_file_guid}' is scan, but text is required.",
+                detail=f"PDF file with IDN file guid '{idn_file_guid}' is scan, but text is required.",
             )
 
     return extracted_params
