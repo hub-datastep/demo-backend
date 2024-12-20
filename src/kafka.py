@@ -56,6 +56,7 @@ async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
 
 @kafka_broker.subscriber(
     "1cbsh.material-category.out.1",
+    group_id=KAFKA_CONSUMER_GROUP,
     **{
         "batch": True,
         "max_records": 1_000_000,
