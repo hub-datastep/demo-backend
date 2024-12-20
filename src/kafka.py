@@ -4,7 +4,7 @@ from loguru import logger
 from infra.env import (
     KAFKA_CONSUMER_GROUP,
     TGBOT_DELIVERY_NOTE_TOPIC,
-    TGBOT_DELIVERY_NOTE_EXPORT_TOPIC,
+    TGBOT_DELIVERY_NOTE_EXPORT_TOPIC, DATA_FOLDER_PATH,
 )
 from infra.kafka import kafka_broker, send_message_to_kafka
 from model.mapping import mapping_with_parsing_model
@@ -43,6 +43,7 @@ async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
             topic=TGBOT_DELIVERY_NOTE_EXPORT_TOPIC,
         )
 
+
 # ! У нас нет пока нет прав на чтение этого топика, только на запись
 # @kafka_broker.subscriber(
 #     TGBOT_DELIVERY_NOTE_EXPORT_TOPIC,
@@ -51,3 +52,17 @@ async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
 # )
 # async def mapping_results_consumer(body):
 #     logger.debug(f"Unistroy mapping results: {body}")
+
+
+@kafka_broker.subscriber(
+    "1cbsh.material-category.out.1",
+    **{
+        "batch": True,
+        "max_records": 1_000_000,
+        "auto_offset_reset": "earliest",
+    },
+)
+async def get_all_messages(body):
+    messages_path = f"{DATA_FOLDER_PATH}/kafka_messages.txt"
+    with open(messages_path, 'w') as f:
+        f.write(str(body))
