@@ -23,25 +23,25 @@ KAFKA_DEFAULT_BATCH_SETTINGS = {
 
 # Unistroy UTD PDF files Mapping Subscriber
 # Gets messages from topic
-@kafka_broker.subscriber(
-    TGBOT_DELIVERY_NOTE_TOPIC,
-    group_id=KAFKA_CONSUMER_GROUP,
-    **KAFKA_DEFAULT_BATCH_SETTINGS,
-)
-async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
-    logger.debug(f"Unistroy Kafka Request (input message):\n{body}")
-
-    # Run mapping with parsing and wait results
-    output_messages_list = mapping_with_parsing_model.parse_and_map_utd_card(body=body)
-
-    async for output_message in output_messages_list:
-        logger.debug(f"Unistroy Kafka Response (output message):\n{output_message}")
-
-        # Send message to Unistroy Kafka export-topic with results
-        await send_message_to_kafka(
-            message_body=output_message.dict(),
-            topic=TGBOT_DELIVERY_NOTE_EXPORT_TOPIC,
-        )
+# @kafka_broker.subscriber(
+#     TGBOT_DELIVERY_NOTE_TOPIC,
+#     group_id=KAFKA_CONSUMER_GROUP,
+#     **KAFKA_DEFAULT_BATCH_SETTINGS,
+# )
+# async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
+#     logger.debug(f"Unistroy Kafka Request (input message):\n{body}")
+#
+#     # Run mapping with parsing and wait results
+#     output_messages_list = mapping_with_parsing_model.parse_and_map_utd_card(body=body)
+#
+#     async for output_message in output_messages_list:
+#         logger.debug(f"Unistroy Kafka Response (output message):\n{output_message}")
+#
+#         # Send message to Unistroy Kafka export-topic with results
+#         await send_message_to_kafka(
+#             message_body=output_message.dict(),
+#             topic=TGBOT_DELIVERY_NOTE_EXPORT_TOPIC,
+#         )
 
 
 # ! У нас нет пока нет прав на чтение этого топика, только на запись
