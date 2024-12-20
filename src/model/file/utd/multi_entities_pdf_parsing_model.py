@@ -31,24 +31,18 @@ _MONTHS_NAME_AND_NUMBER_STR = {
 }
 
 _PARAMS_PATTERNS = {
-    "idn_number": r"Счет-фактура\s*№\s*([\w-]+)",
     "supplier_inn": r"ИНН[\/КПП продавца]*[:\s]*([0-9]{10})",
 }
+
+_UTD_NUMBER_PATTERN = r"Счет-фактура\s*№\s*([\w-]+)"
 
 _UTD_DATE_PATTERN = (
     r"Счет-фактура[^\n]*?от\s*(\d{1,2}[\.\s][а-яА-Я]+[\.\s]\d{4}|\d{2}\.\d{2}\.\d{4})"
 )
 
 
-def _clean_column_name(column_name: str) -> str:
-    """
-    Функция для очистки названий колонок от лишних пробелов и символов перевода строки.
-    """
-    return " ".join(column_name.replace("\n", " ").split())
-
-
 def _normalize_date(date_str: str) -> date | None:
-    """Функция для нормализации даты в формат DD.MM.YYYY и тип datetime.date"""
+    """Функция для нормализации дат в формате DD.MM.YYYY и тип datetime.date"""
 
     date_match = re.search(r"(\d{1,2})\s+([а-яА-Я]+)\s+(\d{4})", date_str)
     if date_match:
@@ -71,24 +65,56 @@ def _normalize_date(date_str: str) -> date | None:
     return normalized_date
 
 
-def extract_noms(
+def extract_params_from_page_text(
+    page_text: str,
+) -> UTDEntityWithParamsAndNoms:
+    page_text = re.sub(r"\s+", " ", page_text)
+
+    extracted_params = UTDEntityWithParamsAndNoms()
+
+    # Get other IDN params
+    for param_name, pattern in _PARAMS_PATTERNS.items():
+        match = re.search(pattern, page_text, re.IGNORECASE)
+        param_value = match.group(1) if match else None
+        setattr(extracted_params, param_name, param_value)
+
+    # Get IDN date
+    utd_date_str_match = re.search(_UTD_DATE_PATTERN, page_text, re.IGNORECASE)
+    utd_date_str = utd_date_str_match.group(1) if utd_date_str_match else None
+    if utd_date_str is not None:
+        extracted_params.idn_date = _normalize_date(
+            date_str=utd_date_str,
+        )
+
+    return extracted_params
+
+
+def _clean_column_name(column_name: str) -> str:
+    """
+    Функция для очистки названий колонок от лишних пробелов и символов перевода строки.
+    """
+    return " ".join(column_name.replace("\n", " ").split())
+
+
+def extract_noms_from_pages(
     pdf: PDF,
+    pages_numbers_list: list[int],
     idn_file_guid: str,
 ) -> list[str]:
-    # Множество для уникальных номенклатур
-    unique_nomenclatures = set()
+    nomenclatures_list = []
 
-    # Все строки данных
-    combined_table_rows = []
     # Текущая строка заголовка
     current_header = None
     # Индексы нужных столбцов
     header_indices = []
 
-    # TODO: rename 'f' param to more understandable name
-    f = 0
-    for page in pdf.pages:
-        tables = page.extract_tables()
+    for page_number in pages_numbers_list:
+        pdf_page = pdf.pages[page_number]
+
+        # Все строки данных
+        combined_table_rows = []
+
+        tables = pdf_page.extract_tables()
         for table in tables:
             if not table:
                 # Пропускаем пустые таблицы
@@ -99,7 +125,8 @@ def extract_noms(
 
             # Проверка, содержит ли строка заголовка ключевые слова
             is_header_row_contains_any_keyword = any(
-                any(keyword in cell for keyword in _KEYWORDS) for cell in header_row
+                any(keyword in cell for keyword in _KEYWORDS)
+                for cell in header_row
             )
             if is_header_row_contains_any_keyword:
                 # Найден новый заголовок, сбрасываем текущие данные
@@ -121,87 +148,78 @@ def extract_noms(
             else:
                 # Нет заголовка и нет текущего заголовка, пропускаем таблицу
                 pass
+
         # Извлечение данных из combined_table_rows с использованием header_indices
         for row in combined_table_rows:
             for index in header_indices:
                 if len(row) > index and row[index]:
                     cleaned_value = row[index].strip().replace("\n", " ")
-                    unique_nomenclatures.add(cleaned_value)
-                    f += 1
+                    nomenclatures_list.append(cleaned_value)
 
-    if not f:
+    # If no nomenclatures was parsed
+    if len(nomenclatures_list) == 0:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Failed to parse noms from PDF file with IDN file guid '{idn_file_guid}'",
+            detail=f"Failed to parse nomenclatures from PDF file with IDN file guid '{idn_file_guid}'",
         )
 
-    noms_list = list(unique_nomenclatures)
-
-    return noms_list
+    return nomenclatures_list
 
 
-def extract_full_text(
+def get_entities_with_params(
     pdf: PDF,
-) -> str:
-    full_text = ""
+) -> list[UTDEntityWithParamsAndNoms]:
+    utd_entities: list[UTDEntityWithParamsAndNoms] = []
 
-    for page in pdf.pages:
-        if page.rotation in [90, 270]:
-            extracted_text = page.extract_text(orientation="vertical")
-        else:
-            extracted_text = page.extract_text()
-        full_text += extracted_text if extracted_text else ""
+    last_utd_number: str | None = None
+    for page_number, page in enumerate(pdf.pages):
+        page_text = page.extract_text()
 
-    return full_text
+        # Search UTD number on page
+        utd_entity_match = re.search(_UTD_NUMBER_PATTERN, page_text)
+        # If found, set new UTD number as last
+        if utd_entity_match:
+            last_utd_number = utd_entity_match.group(1)
+            # Get params of new UTD entity
+            utd_params = extract_params_from_page_text(
+                page_text=page_text,
+            )
+            # Update UTD number and add it to entities list
+            utd_params.idn_number = last_utd_number
+            utd_entities.append(utd_params)
 
+        # Add page to UTD entity pages list
+        for entity in utd_entities:
+            if entity.idn_number == last_utd_number:
+                entity.pages_numbers_list.append(page_number)
 
-def extract_params(
-    pdf: PDF,
-) -> UTDEntityWithParamsAndNoms:
-    full_text = extract_full_text(pdf=pdf)
-    full_text = re.sub(r"\s+", " ", full_text)
-
-    extracted_params = UTDEntityWithParamsAndNoms()
-
-    for param_name, pattern in _PARAMS_PATTERNS.items():
-        match = re.search(pattern, full_text, re.IGNORECASE)
-        param_value = match.group(1) if match else None
-        setattr(extracted_params, param_name, param_value)
-
-    utd_date_str_match = re.search(_UTD_DATE_PATTERN, full_text, re.IGNORECASE)
-    utd_date_str = (
-        utd_date_str_match.group(1) if utd_date_str_match else None
-    )
-    if utd_date_str is not None:
-        extracted_params.idn_date = _normalize_date(
-            date_str=utd_date_str,
-        )
-
-    return extracted_params
+    return utd_entities
 
 
-def extract_params_and_noms(
-    pdf_file_content: BytesIO,
+def extract_entities_with_params_and_noms(
+    pdf_file: BytesIO | str,
     idn_file_guid: str,
-) -> UTDEntityWithParamsAndNoms:
-    with pdfplumber.open(pdf_file_content) as pdf:
+):
+    with pdfplumber.open(pdf_file) as pdf:
         has_text = any(page.extract_text() for page in pdf.pages)
 
         if has_text:
-            noms_list = extract_noms(
+            entities_list = get_entities_with_params(
                 pdf=pdf,
-                idn_file_guid=idn_file_guid,
             )
 
-            extracted_params = extract_params(
-                pdf=pdf,
-            )
-            extracted_params.nomenclatures_list = noms_list
+            for entity in entities_list:
+                nomenclatures_list = extract_noms_from_pages(
+                    pdf=pdf,
+                    pages_numbers_list=entity.pages_numbers_list,
+                    idn_file_guid=idn_file_guid,
+                )
+                entity.nomenclatures_list = nomenclatures_list
+
+                yield entity
 
         else:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"PDF file with IDN file guid '{idn_file_guid}' is scan, but text is required.",
             )
-
-    return extracted_params

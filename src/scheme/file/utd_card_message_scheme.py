@@ -112,8 +112,9 @@ class UTDCardOutputMessage(SQLModel):
     error_message: str | None = None
 
 
-class UTDParamsWithNomenclatures(SQLModel):
-    invoice_number: str | None = None
-    invoice_date: date | None = None
-    seller_inn: str | None = None
+class UTDEntityWithParamsAndNoms(SQLModel):
+    idn_number: str | None = None
+    idn_date: date | None = None
+    supplier_inn: str | None = None
+    pages_numbers_list: list[int] = []
     nomenclatures_list: list[str] | None = None
