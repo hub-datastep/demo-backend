@@ -17,6 +17,20 @@ services:
       - ./.env:/app/.env
       - server:${DATA_FOLDER_PATH}
 
+  faststream:
+    image: datastep_backend
+    restart: always
+    command: bash -c "
+      cd /app/src
+      && faststream run --reload --host kafka:app"
+    volumes:
+      - ./src:/app/src
+      - ./.env:/app/.env
+      - server:${DATA_FOLDER_PATH}
+    depends_on:
+      - backend
+      - kafka
+
   redis-server:
     image: redis/redis-stack-server
     restart: always
@@ -35,6 +49,7 @@ services:
       - ./.env:/app/.env
       - server:${DATA_FOLDER_PATH}
     depends_on:
+      - backend
       - redis-server
 
   rq-dashboard:
@@ -66,6 +81,7 @@ services:
 
   volumes-viewer:
     image: filebrowser/filebrowser
+    restart: always
     ports:
       - "9080:80"
     volumes:
@@ -80,6 +96,36 @@ services:
       - chroma-data:/chroma/chroma/
     ports:
       - "8011:8000"
+
+  kafka:
+    image: bitnami/kafka:3.5.0
+    restart: always
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    ports:
+      - "9092:9092"
+
+  logs-viewer:
+    image: amir20/dozzle
+    restart: always
+    ports:
+      - "8070:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./logs-viewer-users.yml:/data/users.yml
+    environment:
+      DOZZLE_AUTH_PROVIDER: simple
+      DOZZLE_ENABLE_ACTIONS: "true"
+
 
 volumes:
   server:

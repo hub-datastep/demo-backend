@@ -1,19 +1,28 @@
-from typing import Type
-
 from fastapi import HTTPException
+from sqlalchemy.orm import joinedload
 from sqlmodel import Session, select
 
+from infra.database import engine
 from scheme.user.user_scheme import UserCreate, User, UserUpdate
 from util.hashing import get_password_hash
 
 
-def get_user_by_id(session: Session, user_id: int) -> Type[User]:
-    user_db = session.get(User, user_id)
+def get_user_by_id(session: Session, user_id: int) -> User:
+    user = session.get(User, user_id)
+    return user
 
-    if user_db is None:
-        raise HTTPException(status_code=404, detail=f"User with chat_id={user_id} is not found.")
 
-    return user_db
+def get_full_user_by_id(user_id: int):
+    with Session(engine) as session:
+        st = select(User)
+        st = st.where(User.id == user_id)
+        st = st.options(
+            joinedload(User.classifier_config),
+        )
+
+        user = session.exec(st).first()
+
+        return user
 
 
 def get_user_by_username(session: Session, username: str) -> User:

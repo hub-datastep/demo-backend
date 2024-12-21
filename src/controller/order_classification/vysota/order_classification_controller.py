@@ -14,7 +14,22 @@ from scheme.user.user_scheme import UserRead
 router = APIRouter()
 
 
-@router.get("/config/{user_id}", response_model=OrderClassificationConfig)
+@router.get("/config/id/{config_id}", response_model=OrderClassificationConfig)
+@version(1)
+def get_classification_config_by_id(
+    config_id: int,
+    session: Session = Depends(get_session),
+    current_user: UserRead = Depends(get_current_user),
+):
+    """
+    """
+    return order_classification_config_model.get_order_classification_config_by_id(
+        session=session,
+        config_id=config_id,
+    )
+
+
+@router.get("/config/user_id/{user_id}", response_model=OrderClassificationConfig)
 @version(1)
 def get_classification_config_by_user_id(
     user_id: int,
@@ -23,7 +38,7 @@ def get_classification_config_by_user_id(
 ):
     """
     """
-    return order_classification_config_model.get_emergency_classification_config_by_user_id(
+    return order_classification_config_model.get_order_classification_config_by_user_id(
         session=session,
         user_id=user_id,
     )
@@ -31,24 +46,24 @@ def get_classification_config_by_user_id(
 
 @router.post("/new_order", response_model=OrderClassificationRecord)
 @version(1)
-def get_emergency_class(
-    client: str,
-    crm: str,
+def classify_order(
     body: OrderClassificationRequest,
     # Init response to return object and change status code if needed
     response: Response,
+    crm: str | None = None,
+    client: str | None = None,
 ):
     """
     Вебхук для обновления аварийности заявки в Домиленд.
     """
-    emergency_classification_response = order_classification_model.get_emergency_class(
+    order_classification_response = order_classification_model.classify_order(
         body=body,
         client=client,
     )
 
     response_status = status.HTTP_200_OK
-    if emergency_classification_response.is_error:
-        response_status = status.HTTP_500_INTERNAL_SERVER_ERROR
+    if order_classification_response.is_error:
+        response_status = status.HTTP_400_BAD_REQUEST
 
     response.status_code = response_status
-    return emergency_classification_response
+    return order_classification_response
