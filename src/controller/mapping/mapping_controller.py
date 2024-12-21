@@ -20,13 +20,15 @@ router = APIRouter()
 @version(1)
 @modes_required([TenantMode.CLASSIFIER])
 def get_saved_nomenclature_mapping_result_by_user_id(
+    iteration_key: str | None = None,
     session: Session = Depends(get_session),
     current_user: UserRead = Depends(get_current_user),
 ):
     """
-    Получает результаты сопоставления номенклатур через юзер айди.
+    Получает результаты сопоставления номенклатур по ID текущего юзера.
     """
-    return mapping_result_repository.get_nomenclature_results(session, current_user.id)
+    user_id = current_user.id
+    return mapping_result_repository.get_nomenclature_results(session, user_id, iteration_key)
 
 
 @router.post("", response_model=JobIdRead)
