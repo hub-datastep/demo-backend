@@ -8,7 +8,7 @@ def add_parsed_data_to_mappings(
     mapping_results: list[MappingNomenclaturesResultRead],
     # TODO: set type for 'parsed_materials_data'
     parsed_materials_data: list,
-):
+) -> list[MappedMaterial] | None:
     output_materials: list[MappedMaterial] = []
 
     # TODO: remove this later
@@ -20,9 +20,12 @@ def add_parsed_data_to_mappings(
         # TODO: fix 'parsed_data' type
         parsed_data: Any
 
+        if result.nomenclatures is None:
+            return None
+
         for nom in result.nomenclatures:
             nomenclature_guid = None
-            if len(nom.mappings) > 0:
+            if nom.mappings is not None and len(nom.mappings) > 0:
                 nomenclature_guid = nom.mappings[0].nomenclature_guid
 
             output_materials.append(

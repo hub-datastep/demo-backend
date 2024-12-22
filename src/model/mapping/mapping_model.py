@@ -340,7 +340,7 @@ def start_mapping(
 
     # Check if classifier version id exists in user's classifier config
     model_id = classifier_config.model_id
-    is_model_id_exists_in_config = bool(model_id)
+    is_model_id_exists_in_config = bool(model_id.strip())
     if not is_model_id_exists_in_config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

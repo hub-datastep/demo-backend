@@ -1,3 +1,4 @@
+import traceback
 from datetime import date
 from typing import Any, AsyncGenerator
 
@@ -99,6 +100,8 @@ async def parse_and_map_utd_card(
 
     # Handle our errors
     except HTTPException as e:
+        error_traceback = traceback.format_exc()
+        logger.error(error_traceback)
         error_str = e.detail
         yield raise_utd_card_processing_exception(
             body=body,
@@ -107,6 +110,8 @@ async def parse_and_map_utd_card(
 
     # Handle unknown errors
     except Exception as e:
+        error_traceback = traceback.format_exc()
+        logger.error(error_traceback)
         error_str = str(e)
         yield raise_utd_card_processing_exception(
             body=body,
