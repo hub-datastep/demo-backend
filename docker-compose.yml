@@ -15,6 +15,8 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
+      # Just to see .env in files viewer
+      - ./.env:${DATA_FOLDER_PATH}/env-file
       - backend:${DATA_FOLDER_PATH}
 
   faststream:
