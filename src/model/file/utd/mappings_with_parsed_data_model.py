@@ -25,7 +25,7 @@ def add_parsed_data_to_mappings(
 
         for nom in result.nomenclatures:
             nomenclature_guid = None
-            if len(nom.mappings) > 0:
+            if nom.mappings is not None and len(nom.mappings) > 0:
                 nomenclature_guid = nom.mappings[0].nomenclature_guid
 
             output_materials.append(
