@@ -79,13 +79,13 @@ services:
       - "8988:8978"
 
   volumes-viewer:
-    image: filebrowser/filebrowser
+    image: hurlenko/filebrowser
     restart: always
     ports:
-      - "9080:80"
+      - "9080:8080"
     volumes:
-      - volumes-viewer:/database.db
-      - backend:/srv
+      - backend:/data
+      - volumes-viewer:/config
 
   chroma-db:
     image: chromadb/chroma
