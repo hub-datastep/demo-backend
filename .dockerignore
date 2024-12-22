@@ -1,5 +1,4 @@
 # Environment
-.env
 venv/
 
 # Logs
@@ -11,11 +10,15 @@ __pycache__/
 # IDEA
 .idea/
 .vscode/
+.swm/
 
+# Tests
+tests/
+
+# Redis Dump
 dump.rdb
-database.db
 
-# Mkdocs
+# Mkdocs built
 site/
 
 data/fastembed/.locks
