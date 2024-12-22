@@ -27,13 +27,13 @@ jobs:
             git pull
 
             echo "Stop containers"
-            docker-compose stop
+            docker compose stop
 
             echo "Clear docker caches"
             docker system prune -f
 
             echo "Build new containers"
-            docker-compose build
+            docker compose build
 
             echo "Run new containers"
-            docker-compose up -d
+            docker compose up -d

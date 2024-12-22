@@ -15,10 +15,10 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
-      - server:${DATA_FOLDER_PATH}
+      - backend:${DATA_FOLDER_PATH}
 
   faststream:
-    image: datastep_backend
+    image: datastep-backend
     restart: always
     command: bash -c "
       cd /app/src
@@ -26,10 +26,9 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
-      - server:${DATA_FOLDER_PATH}
+      - backend:${DATA_FOLDER_PATH}
     depends_on:
       - backend
-      - kafka
 
   redis-server:
     image: redis/redis-stack-server
@@ -41,36 +40,13 @@ services:
       - redis-server:${DATA_FOLDER_PATH}
 
   rq-worker:
-    image: datastep_backend
+    image: datastep-backend
     restart: always
     command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT} mapping_nomenclatures sync_nomenclatures retrain_classifier classification documents
-    environment:
-      #      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      #      - OPENAI_API_BASE=${OPENAI_API_BASE}
-
-      - AZURE_DEPLOYMENT_NAME_DB_ASSISTANT=${AZURE_DEPLOYMENT_NAME_DB_ASSISTANT}
-      - AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES=${AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES}
-      - AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT=${AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT}
-      - AZURE_DEPLOYMENT_NAME_EMBEDDINGS=${AZURE_DEPLOYMENT_NAME_EMBEDDINGS}
-
-      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
-      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
-      - OPENAI_API_VERSION=${OPENAI_API_VERSION}
-
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-
-      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
-
-      - CHROMA_HOST=${CHROMA_HOST}
-      - CHROMA_PORT=${CHROMA_PORT}
-
-      - DATA_FOLDER_PATH=${DATA_FOLDER_PATH}
-      - FASTEMBED_CACHE_PATH=${FASTEMBED_CACHE_PATH}
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
-      - server:${DATA_FOLDER_PATH}
+      - backend:${DATA_FOLDER_PATH}
     depends_on:
       - backend
       - redis-server
@@ -90,15 +66,16 @@ services:
     ports:
       - "5442:5432"
     volumes:
-      - datastep-db:/var/lib/postgresql/data
+      - db:/var/lib/postgresql/data
     environment:
+      - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
   dbeaver:
     image: dbeaver/cloudbeaver
     restart: always
     volumes:
-      - datastep-dbeaver:/opt/cloudbeaver/workspace
+      - dbeaver:/opt/cloudbeaver/workspace
     ports:
       - "8988:8978"
 
@@ -108,7 +85,8 @@ services:
     ports:
       - "9080:80"
     volumes:
-      - server:/srv
+      - volumes-viewer
+      - backend:/srv
 
   chroma-db:
     image: chromadb/chroma
@@ -116,7 +94,7 @@ services:
     environment:
       - IS_PERSISTENT=TRUE
     volumes:
-      - chroma-data:/chroma/chroma/
+      - chroma-db:/chroma/chroma/
     ports:
       - "8011:8000"
 
@@ -151,9 +129,10 @@ services:
 
 
 volumes:
-  server:
+  backend:
+  db:
+  dbeaver:
   redis-server:
-  datastep-db:
-  datastep-dbeaver:
-  chroma-data:
+  chroma-db:
     driver: local
+  volumes-viewer:
