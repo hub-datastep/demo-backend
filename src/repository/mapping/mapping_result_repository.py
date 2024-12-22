@@ -10,10 +10,20 @@ def save_mapping_results_list(mapping_results: list[MappingResult]):
         session.commit()
 
 
-def get_nomenclature_results(session: Session, user_id: int) -> list[MappingResult]:
-    statement = select(MappingResult).where(MappingResult.user_id == user_id)
-    result = session.exec(statement)
-    return list(result.all())
+def get_nomenclature_results(
+    session: Session,
+    user_id: int,
+    iteration_key: str | None = None,
+) -> list[MappingResult]:
+    st = select(MappingResult)
+    st = st.where(MappingResult.user_id == user_id)
+
+    if iteration_key is not None:
+        print(f"Iter key: {iteration_key}")
+        st = st.where(MappingResult.iteration_key.ilike(f"%{iteration_key}%"))
+
+    results_list = list(session.exec(st).all())
+    return results_list
 
 
 def save_correct_nomenclature(nomenclature: MappingResultUpdate, session: Session) -> MappingResult:
