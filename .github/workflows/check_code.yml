@@ -1,0 +1,48 @@
+name: 🔍 Code Quality Checks
+
+# Срабатывает при пуше на любую ветку, кроме 'main'
+on:
+  push:
+    branches:
+      - '**'
+    branches-ignore:
+      - main
+
+jobs:
+  lint-and-check:
+    name: Lint and Analyze Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint flake8 mypy black ruff
+
+      # Запуск Black (форматирование)
+      - name: Run Black
+        run: black --check .
+
+      # Запуск Ruff (линтинг)
+      - name: Run Ruff
+        run: ruff .
+
+      # Запуск Pylint (проверка качества кода)
+      - name: Run Pylint
+        run: pylint $(git ls-files '*.py')
+
+      # Запуск Flake8 (дополнительные проверки)
+      - name: Run Flake8
+        run: flake8 .
+
+      # Запуск Mypy (проверка типов)
+      - name: Run Mypy
+        run: mypy --strict .
