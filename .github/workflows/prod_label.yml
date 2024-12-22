@@ -4,16 +4,16 @@ on:
   pull_request:
     branches:
       - main
-    types: [opened, synchronize, reopened]
+    types: [ opened, synchronize, reopened ]
 
 jobs:
   add-prod-label:
     runs-on: ubuntu-latest
     steps:
-    - name: Add PROD label if it exists
-      uses: actions-ecosystem/action-add-labels@v1
-      with:
-        labels: |
-          PROD
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Add PROD label if it exists
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: |
+            PROD
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
