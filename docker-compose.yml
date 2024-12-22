@@ -84,8 +84,8 @@ services:
     ports:
       - "9080:80"
     volumes:
-      - volumes-viewer:/database.db
-      - volumes-viewer:/.filebrowser.json
+      - volumes-viewer/database.db:/database.db
+      - volumes-viewer/.filebrowser.json:/.filebrowser.json
       - backend:/srv
 
   chroma-db:
