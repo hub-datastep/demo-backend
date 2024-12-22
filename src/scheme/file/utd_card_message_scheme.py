@@ -62,7 +62,7 @@ class MappedMaterial(SQLModel):
     # Материалы НСИ, похожие на материал УПД
     # Если material_guid=null, тогда не передается
     # Если material_guid is not null, тогда передаем
-    similar_mappings: SimilarMapping | None = None
+    similar_mappings: list[SimilarMapping] | None = None
     # Количество полученного материала
     quantity: float | None = None
     # Цена материала за единицу
