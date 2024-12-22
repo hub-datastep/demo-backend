@@ -22,18 +22,16 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           script_stop: true
           script: |
-            cd ~/datastep/demo-backend/
+            cd ~/datastep/${{ github.event.repository.name }}/
+            
             git checkout main
             git pull
 
-            echo "Stop containers"
+            echo "Stop all containers"
             docker compose stop
-
-            echo "Clear docker caches"
+            
+            echo "Clear docker cache"
             docker system prune -f
-
-            echo "Build new containers"
-            docker compose build
-
-            echo "Run new containers"
-            docker compose up -d
+            
+            echo "Run updated container"
+            docker compose up -d --build
