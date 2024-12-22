@@ -18,7 +18,7 @@ tests/
 # Redis Dump
 dump.rdb
 
-# Mkdocs
+# Mkdocs built
 site/
 
 data/fastembed/.locks

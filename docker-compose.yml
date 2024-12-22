@@ -15,10 +15,10 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
-      - server:${DATA_FOLDER_PATH}
+      - backend:${DATA_FOLDER_PATH}
 
   faststream:
-    image: datastep_backend
+    image: datastep-backend
     restart: always
     command: bash -c "
       cd /app/src
@@ -26,10 +26,9 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
-      - server:${DATA_FOLDER_PATH}
+      - backend:${DATA_FOLDER_PATH}
     depends_on:
       - backend
-      - kafka
 
   redis-server:
     image: redis/redis-stack-server
@@ -47,7 +46,7 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
-      - server:${DATA_FOLDER_PATH}
+      - backend:${DATA_FOLDER_PATH}
     depends_on:
       - backend
       - redis-server
@@ -67,15 +66,16 @@ services:
     ports:
       - "5442:5432"
     volumes:
-      - datastep-db:/var/lib/postgresql/data
+      - db:/var/lib/postgresql/data
     environment:
+      - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
   dbeaver:
     image: dbeaver/cloudbeaver
     restart: always
     volumes:
-      - datastep-dbeaver:/opt/cloudbeaver/workspace
+      - dbeaver:/opt/cloudbeaver/workspace
     ports:
       - "8988:8978"
 
@@ -85,7 +85,8 @@ services:
     ports:
       - "9080:80"
     volumes:
-      - server:/srv
+      - volumes-viewer
+      - backend:/srv
 
   chroma-db:
     image: chromadb/chroma
@@ -93,7 +94,7 @@ services:
     environment:
       - IS_PERSISTENT=TRUE
     volumes:
-      - chroma-data:/chroma/chroma/
+      - chroma-db:/chroma/chroma/
     ports:
       - "8011:8000"
 
@@ -128,9 +129,10 @@ services:
 
 
 volumes:
-  server:
+  backend:
+  db:
+  dbeaver:
   redis-server:
-  datastep-db:
-  datastep-dbeaver:
-  chroma-data:
+  chroma-db:
     driver: local
+  volumes-viewer:
