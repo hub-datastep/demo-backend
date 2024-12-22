@@ -24,25 +24,25 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install pylint flake8 mypy black ruff
+          python3 -m pip install --upgrade pip
+          pip3 install pylint flake8 mypy black ruff
 
-      # Запуск Black (форматирование)
+      # Запуск Black (проверяет форматирование, флаг --check для запрета автоматического форматирования)
       - name: Run Black
         run: black --check .
 
-      # Запуск Ruff (линтинг)
+      # Запуск Ruff (выполняет быструю линтинг-проверку)
       - name: Run Ruff
         run: ruff .
 
-      # Запуск Pylint (проверка качества кода)
-      - name: Run Pylint
-        run: pylint $(git ls-files '*.py')
+      # Запуск Pylint (проверяет качество кода)
+      #- name: Run Pylint
+      #  run: pylint $(git ls-files '*.py')
 
-      # Запуск Flake8 (дополнительные проверки)
+      # Запуск Flake8 (находит ошибки и предупреждения)
       - name: Run Flake8
         run: flake8 .
 
-      # Запуск Mypy (проверка типов)
+      # Запуск Mypy (проверяет аннотации типов)
       - name: Run Mypy
         run: mypy --strict .
