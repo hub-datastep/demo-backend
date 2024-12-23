@@ -59,10 +59,11 @@ def _build_where_metadatas_old(
     is_hard_params: bool,
 ):
     if len(metadatas_list) == 0 or not is_params_needed:
-        where_metadatas = {"$and": [
-            {"group": group},
-            # {"brand": brand},
-        ]}
+        # where_metadatas = {"$and": [
+        #     {"group": group},
+        #     {"brand": brand},
+        # ]}
+        where_metadatas = {"group": group}
     else:
         metadatas_list_with_group = [{"group": group}]
         for metadata in metadatas_list:
