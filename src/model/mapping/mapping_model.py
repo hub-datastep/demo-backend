@@ -61,7 +61,7 @@ def _build_where_metadatas_old(
     if len(metadatas_list) == 0 or not is_params_needed:
         where_metadatas = {"$and": [
             {"group": group},
-            {"brand": brand},
+            # {"brand": brand},
         ]}
     else:
         metadatas_list_with_group = [{"group": group}]
@@ -211,8 +211,8 @@ def map_on_nom(
     is_brand_exists = brand is not None
     is_brand_needed = is_brand_exists and is_use_brand_recognition
 
-    where_metadatas = _build_where_metadatas(
-        # where_metadatas = _build_where_metadatas_old(
+    # where_metadatas = _build_where_metadatas(
+    where_metadatas = _build_where_metadatas_old(
         group=group,
         brand=brand,
         metadatas_list=metadatas_list,
