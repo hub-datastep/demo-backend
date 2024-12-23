@@ -211,32 +211,15 @@ def map_on_nom(
     is_brand_exists = brand is not None
     is_brand_needed = is_brand_exists and is_use_brand_recognition
 
-    # where_metadatas = _build_where_metadatas(
-    #     group=group,
-    #     brand=brand,
-    #     metadatas_list=metadatas_list,
-    #     is_params_needed=is_params_needed,
-    #     is_brand_needed=is_brand_needed,
-    #     is_hard_params=is_hard_params,
-    # )
-
-    # TODO: remove this algorithm
-    if len(metadatas_list) == 0 or not is_use_params:
-        where_metadatas = {"$and": [
-            {"group": group},
-            {"brand": brand},
-        ]}
-    else:
-        metadatas_list_with_group = [{"group": group}]
-        for metadata in metadatas_list:
-            metadatas_list_with_group.append(metadata)
-
-        # Get metadatas for hard-search
-        if is_hard_params:
-            where_metadatas = {"$and": metadatas_list_with_group}
-        # Get metadatas for soft-search
-        else:
-            where_metadatas = {"$or": metadatas_list_with_group}
+    where_metadatas = _build_where_metadatas(
+        # where_metadatas = _build_where_metadatas_old(
+        group=group,
+        brand=brand,
+        metadatas_list=metadatas_list,
+        is_params_needed=is_params_needed,
+        is_brand_needed=is_brand_needed,
+        is_hard_params=is_hard_params,
+    )
 
     nom_embeddings = nom_embeddings.tolist()
     response: QueryResult = collection.query(
@@ -394,7 +377,7 @@ def _map_nomenclatures_chunk(
     )
 
     # Extract nomenclature keyword
-    is_use_keywords = classifier_config is None or classifier_config.is_use_keywords_detection
+    is_use_keywords = classifier_config.is_use_keywords_detection
     if is_use_keywords:
         noms['keyword'] = noms['normalized'].progress_apply(
             lambda nom_name: extract_keyword(nom_name)
@@ -409,18 +392,14 @@ def _map_nomenclatures_chunk(
     noms['name'] = noms['nomenclature']
 
     # Get noms brand params
-    # TODO: uncomment this
-    # is_use_brand_recognition = classifier_config is None or classifier_config.is_use_brand_recognition
-    # if is_use_brand_recognition:
-    #     noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
-    # else:
-    #     noms['brand'] = None
-    # TODO: remove this
-    is_use_brand_recognition = classifier_config is None or classifier_config.is_use_brand_recognition
-    noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
+    is_use_brand_recognition = classifier_config.is_use_brand_recognition
+    if is_use_brand_recognition:
+        noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
+    else:
+        noms['brand'] = None
 
     # Extract all noms params
-    is_use_params = classifier_config is None or classifier_config.is_use_params
+    is_use_params = classifier_config.is_use_params
     if is_use_params:
         noms = extract_features(noms)
 
