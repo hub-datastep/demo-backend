@@ -23,9 +23,7 @@ from scheme.file.utd_card_message_scheme import (
 )
 from util.uuid import generate_uuid
 
-# UNISTROY_USER_ID = 56
-# For tests
-UNISTROY_USER_ID = 1
+UNISTROY_USER_ID = 56
 
 
 async def parse_and_map_utd_card(
