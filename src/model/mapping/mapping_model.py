@@ -397,6 +397,8 @@ def _map_nomenclatures_chunk(
     is_use_view_classification = classifier_config.is_use_view_classification
     if is_use_view_classification:
         noms = get_nomenclatures_views(noms)
+    else:
+        noms['view'] = None
 
     # Run classification to get nomenclatures groups
     model_id = classifier_config.model_id
