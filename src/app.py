@@ -1,20 +1,19 @@
-import traceback
 from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi_versioning import VersionedFastAPI
-from requests import Request
+from loguru import logger
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import JSONResponse
 
 from controller.auth import auth_controller
 from controller.chat import message_controller, chat_controller
 from controller.chroma_collection import chroma_collection_controller
 from controller.classifier import classifier_config_controller, classifier_controller
 from controller.embedding import embedding_controller
+from controller.emergency_class import emergency_class_controller
 from controller.file import file_controller
 from controller.ksr import ksr_controller
 from controller.mapping import mapping_controller
@@ -27,6 +26,8 @@ from controller.task import task_controller
 from controller.tenant import tenant_controller
 from controller.used_token import used_token_controller
 from controller.user import user_controller
+from infra.env import DATA_FOLDER_PATH
+from util.healthcheck.redis_connection import check_redis_connection
 
 app = FastAPI()
 
@@ -76,16 +77,15 @@ app.include_router(task_controller.router, tags=["task"], prefix="/task")
 # Ksr Nomenclature
 app.include_router(ksr_controller.router, tags=["ksr"], prefix="/ksr")
 
+# Emergency Class
+app.include_router(emergency_class_controller.router, tags=["emergency_class"], prefix="/emergency_class")
 
-@app.middleware("http")
-async def catch_exceptions_middleware(request: Request, call_next):
-    try:
-        return await call_next(request)
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"message": f"{e}", "traceback": traceback.format_exception(e)},
-        )
+
+@app.get("/healthcheck")
+def healthcheck():
+    logger.debug(f"Data Folder Path: {DATA_FOLDER_PATH}")
+    check_redis_connection()
+    return {"status": "ok"}
 
 
 app = VersionedFastAPI(
@@ -101,6 +101,20 @@ app = VersionedFastAPI(
         )
     ]
 )
+
+# @app.middleware("http")
+# async def catch_exceptions_middleware(request: Request, call_next):
+#     try:
+#         return await call_next(request)
+#     except Exception as e:
+#         return HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail={
+#                 "message": f"{e}",
+#                 "traceback": traceback.format_exception(e),
+#             },
+#         )
+
 
 # Built docs dir
 app.mount("/mkdocs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True), name="mkdocs")

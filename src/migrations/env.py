@@ -23,24 +23,44 @@ config.set_main_option('sqlalchemy.url', os.getenv("DB_CONNECTION_STRING"))
 # for 'autogenerate' support
 # from myapp import mymodel
 
-# noinspection PyTypeChecker
+# noinspection PyUnresolvedReferences
 from scheme.chat.chat_scheme import Chat
+# noinspection PyUnresolvedReferences
 from scheme.prediction.database_prediction_config_scheme import DatabasePredictionConfig
+# noinspection PyUnresolvedReferences
 from scheme.file.file_scheme import File
+# noinspection PyUnresolvedReferences
 from scheme.chat.mark_scheme import Mark
+# noinspection PyUnresolvedReferences
 from scheme.chat.message_scheme import Message
+# noinspection PyUnresolvedReferences
 from scheme.mode.mode_scheme import Mode
+# noinspection PyUnresolvedReferences
 from scheme.mode.mode_tenant_scheme import ModeTenantLink
+# noinspection PyUnresolvedReferences
 from scheme.prompt.prompt_scheme import Prompt
+# noinspection PyUnresolvedReferences
 from scheme.chat.review_scheme import Review
+# noinspection PyUnresolvedReferences
 from scheme.tenant.tenant_scheme import Tenant
+# noinspection PyUnresolvedReferences
 from scheme.auth.token_scheme import Token
+# noinspection PyUnresolvedReferences
 from scheme.user.user_scheme import User
+# noinspection PyUnresolvedReferences
 from scheme.classifier.classifier_version_scheme import ClassifierVersion
+# noinspection PyUnresolvedReferences
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
+# noinspection PyUnresolvedReferences
 from scheme.mapping.mapping_results_scheme import MappingResult
+# noinspection PyUnresolvedReferences
 from scheme.used_token.used_token_scheme import UsedToken
+# noinspection PyUnresolvedReferences
 from scheme.role.role_scheme import Role
+# noinspection PyUnresolvedReferences
+from scheme.emergency_class.emergency_classification_history_scheme import EmergencyClassificationRecord
+# noinspection PyUnresolvedReferences
+from scheme.emergency_class.emergency_classification_config_scheme import EmergencyClassificationConfig
 
 # target_metadata = mymodel.Base.metadata
 target_metadata = SQLModel.metadata

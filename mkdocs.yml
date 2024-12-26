@@ -12,14 +12,15 @@ plugins:
       default_handler: python
       handlers:
         python:
-          paths: [src]
+          paths: [ src ]
 
 nav:
   - Главная: index.md
-  - Ассистент по базам данных: db_assistant.md
-  - Ассистент по документам: wiki_assistant.md
-  - Сервис маппинга номенклатуры: nomenclatures_mapper.md
-  - Описание автотестов: auto_tests.md
+  #  - Ассистент по базам данных: db_assistant.md
+  #  - Ассистент по документам: wiki_assistant.md
+  #  - Сервис маппинга номенклатуры: nomenclatures_mapper.md
+  - Авторизация: authorization.md
+  - Описание авто-тестов: auto_tests.md
   - Диаграмма базы данных: db_diagram.md
 
 
