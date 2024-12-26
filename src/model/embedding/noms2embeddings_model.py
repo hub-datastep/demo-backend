@@ -1,3 +1,4 @@
+from loguru import logger
 from pandas import DataFrame, read_sql
 from rq import get_current_job
 
@@ -66,6 +67,7 @@ def _create_and_save_embeddings(
     job.save_meta()
 
     noms_names_list = df_noms_with_features['name'].to_list()
+    logger.debug(f"Nomenclatures names list:\n{noms_names_list}")
     df_noms_with_features['brand'] = ner_service.predict(noms_names_list)
 
     job.meta['general_status'] = "Building metadatas"
