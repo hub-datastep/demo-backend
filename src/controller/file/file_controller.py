@@ -19,7 +19,7 @@ router = APIRouter()
 @modes_required([TenantMode.DOCS])
 def get_all_files(
     current_user: UserRead = Depends(get_current_user),
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
 ):
     """
     """
@@ -44,7 +44,7 @@ def extract_utd_nomenclatures(
     file_object: UploadFile,
     current_user: UserRead = Depends(get_current_user),
 ):
-    return utd_file_model.extract_noms_from_utd(file_object)
+    return utd_file_model.extract_noms(file_object)
 
 
 @router.post("", response_model=File)
@@ -62,7 +62,9 @@ def upload_file(
     # TODO: В контроллере не должно быть логики, перенести генерацию описания в save_file
     # description = get_file_description(file_object)
     description = ""
-    return file_model.save_file(session, file_object, tenant_id, description, is_knowledge_base)
+    return file_model.save_file(
+        session, file_object, tenant_id, description, is_knowledge_base
+    )
 
 
 @router.delete("/{file_id}")

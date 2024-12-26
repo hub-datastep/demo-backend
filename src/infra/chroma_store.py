@@ -8,7 +8,7 @@ from rq.job import Job, get_current_job
 from tqdm import tqdm
 
 from infra.env import CHROMA_HOST, CHROMA_PORT
-from scheme.mapping.synchronize_scheme import SyncNomenclaturesChromaPatch
+# from scheme.mapping.synchronize_scheme import SyncNomenclaturesChromaPatch
 
 
 class FastembedChromaFunction(EmbeddingFunction):
@@ -107,38 +107,38 @@ def is_in_vectorstore(
     return len(guid['ids']) != 0
 
 
-def update_collection_with_patch(
-    collection: Collection,
-    patch: list[SyncNomenclaturesChromaPatch],
-    job: Job
-) -> list[SyncNomenclaturesChromaPatch]:
-    for elem in tqdm(patch):
-        if elem.action == "delete":
-            delete_embeddings(collection, ids=elem.nomenclature_data.id)
-            print(f"Удалено: {elem.nomenclature_data.id}")
-
-        elif elem.action == "create":
-            add_embeddings(
-                collection,
-                ids=elem.nomenclature_data.id,
-                documents=elem.nomenclature_data.nomenclature_name,
-                metadatas={"group": str(elem.nomenclature_data.group)}
-            )
-            print(f"Добавлено: {elem.nomenclature_data.id}")
-
-        elif elem.action == "update":
-            update_embeddings(
-                collection,
-                ids=elem.nomenclature_data.id,
-                documents=elem.nomenclature_data.nomenclature_name,
-                metadatas={"group": str(elem.nomenclature_data.group)}
-            )
-            print(f"Обновлено: {elem.nomenclature_data.id}")
-
-        job.meta["ready_count"] += 1
-        job.save_meta()
-
-    return patch
+# def update_collection_with_patch(
+#     collection: Collection,
+#     patch: list[SyncNomenclaturesChromaPatch],
+#     job: Job
+# ) -> list[SyncNomenclaturesChromaPatch]:
+#     for elem in tqdm(patch):
+#         if elem.action == "delete":
+#             delete_embeddings(collection, ids=elem.nomenclature_data.id)
+#             print(f"Удалено: {elem.nomenclature_data.id}")
+#
+#         elif elem.action == "create":
+#             add_embeddings(
+#                 collection,
+#                 ids=elem.nomenclature_data.id,
+#                 documents=elem.nomenclature_data.nomenclature_name,
+#                 metadatas={"group": str(elem.nomenclature_data.group)}
+#             )
+#             print(f"Добавлено: {elem.nomenclature_data.id}")
+#
+#         elif elem.action == "update":
+#             update_embeddings(
+#                 collection,
+#                 ids=elem.nomenclature_data.id,
+#                 documents=elem.nomenclature_data.nomenclature_name,
+#                 metadatas={"group": str(elem.nomenclature_data.group)}
+#             )
+#             print(f"Обновлено: {elem.nomenclature_data.id}")
+#
+#         job.meta["ready_count"] += 1
+#         job.save_meta()
+#
+#     return patch
 
 
 def create_embeddings_by_chunks(

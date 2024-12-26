@@ -12,33 +12,25 @@ services:
       && python3 /app/src/app.py"
     ports:
       - "8090:8080"
-    environment:
-      #      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      #      - OPENAI_API_BASE=${OPENAI_API_BASE}
-
-      - AZURE_DEPLOYMENT_NAME_DB_ASSISTANT=${AZURE_DEPLOYMENT_NAME_DB_ASSISTANT}
-      - AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES=${AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES}
-      - AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT=${AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT}
-      - AZURE_DEPLOYMENT_NAME_EMBEDDINGS=${AZURE_DEPLOYMENT_NAME_EMBEDDINGS}
-
-      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
-      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
-      - OPENAI_API_VERSION=${OPENAI_API_VERSION}
-
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-
-      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
-
-      - CHROMA_HOST=${CHROMA_HOST}
-      - CHROMA_PORT=${CHROMA_PORT}
-
-      - DATA_FOLDER_PATH=${DATA_FOLDER_PATH}
-      - FASTEMBED_CACHE_PATH=${FASTEMBED_CACHE_PATH}
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
-      - server:${DATA_FOLDER_PATH}
+      # Just to see .env in files viewer
+      - ./.env:${DATA_FOLDER_PATH}/env-file
+      - backend:${DATA_FOLDER_PATH}
+
+  faststream:
+    image: datastep-backend
+    restart: always
+    command: bash -c "
+      cd /app/src
+      && faststream run --reload --host kafka:app"
+    volumes:
+      - ./src:/app/src
+      - ./.env:/app/.env
+      - backend:${DATA_FOLDER_PATH}
+    depends_on:
+      - backend
 
   redis-server:
     image: redis/redis-stack-server
@@ -50,37 +42,15 @@ services:
       - redis-server:${DATA_FOLDER_PATH}
 
   rq-worker:
-    image: datastep_backend
+    image: datastep-backend
     restart: always
     command: rq worker --path /app/src --url redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT} mapping_nomenclatures sync_nomenclatures retrain_classifier classification documents
-    environment:
-      #      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      #      - OPENAI_API_BASE=${OPENAI_API_BASE}
-
-      - AZURE_DEPLOYMENT_NAME_DB_ASSISTANT=${AZURE_DEPLOYMENT_NAME_DB_ASSISTANT}
-      - AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES=${AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES}
-      - AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT=${AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT}
-      - AZURE_DEPLOYMENT_NAME_EMBEDDINGS=${AZURE_DEPLOYMENT_NAME_EMBEDDINGS}
-
-      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
-      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
-      - OPENAI_API_VERSION=${OPENAI_API_VERSION}
-
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-
-      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
-
-      - CHROMA_HOST=${CHROMA_HOST}
-      - CHROMA_PORT=${CHROMA_PORT}
-
-      - DATA_FOLDER_PATH=${DATA_FOLDER_PATH}
-      - FASTEMBED_CACHE_PATH=${FASTEMBED_CACHE_PATH}
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
-      - server:${DATA_FOLDER_PATH}
+      - backend:${DATA_FOLDER_PATH}
     depends_on:
+      - backend
       - redis-server
 
   rq-dashboard:
@@ -98,24 +68,27 @@ services:
     ports:
       - "5442:5432"
     volumes:
-      - datastep-db:/var/lib/postgresql/data
+      - db:/var/lib/postgresql/data
     environment:
+      - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
   dbeaver:
     image: dbeaver/cloudbeaver
     restart: always
     volumes:
-      - datastep-dbeaver:/opt/cloudbeaver/workspace
+      - dbeaver:/opt/cloudbeaver/workspace
     ports:
       - "8988:8978"
 
   volumes-viewer:
-    image: filebrowser/filebrowser
+    image: hurlenko/filebrowser
+    restart: always
     ports:
-      - "9080:80"
+      - "9080:8080"
     volumes:
-      - server:/srv
+      - backend:/data
+      - volumes-viewer:/config
 
   chroma-db:
     image: chromadb/chroma
@@ -123,14 +96,45 @@ services:
     environment:
       - IS_PERSISTENT=TRUE
     volumes:
-      - chroma-data:/chroma/chroma/
+      - chroma-db:/chroma/chroma/
     ports:
       - "8011:8000"
 
+  kafka:
+    image: bitnami/kafka:3.5.0
+    restart: always
+    environment:
+      - KAFKA_ENABLE_KRAFT=yes
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    ports:
+      - "9092:9092"
+
+  logs-viewer:
+    image: amir20/dozzle
+    restart: always
+    ports:
+      - "8070:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./logs-viewer-users.yml:/data/users.yml
+    environment:
+      DOZZLE_AUTH_PROVIDER: simple
+      DOZZLE_ENABLE_ACTIONS: "true"
+
+
 volumes:
-  server:
+  backend:
+  db:
+  dbeaver:
   redis-server:
-  datastep-db:
-  datastep-dbeaver:
-  chroma-data:
+  chroma-db:
     driver: local
+  volumes-viewer:

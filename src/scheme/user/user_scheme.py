@@ -13,12 +13,25 @@ class User(UserBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
     password: str
 
-    tenant: "Tenant" = Relationship(back_populates="users")
-    role: "Role" = Relationship(back_populates="users")
+    tenant: "Tenant" = Relationship(
+        back_populates="users",
+    )
+    role: "Role" = Relationship(
+        back_populates="users",
+    )
 
-    database_prediction_config: "DatabasePredictionConfig" = Relationship(back_populates="user")
-    classifier_config: "ClassifierConfig" = Relationship(back_populates="user")
-    emergency_classification_config: "EmergencyClassificationConfig" = Relationship(back_populates="user")
+    database_prediction_config: "DatabasePredictionConfig" = Relationship(
+        back_populates="user",
+    )
+    classifier_config: "ClassifierConfig" = Relationship(
+        back_populates="user",
+    )
+    order_classification_config: "OrderClassificationConfig" = Relationship(
+        back_populates="user",
+    )
+    solution_imitation_configs: list["SolutionImitationConfig"] = Relationship(
+        back_populates="user",
+    )
 
     chat: "Chat" = Relationship(back_populates="user")
 
@@ -44,7 +57,12 @@ from scheme.classifier.classifier_config_scheme import ClassifierConfig
 from scheme.prediction.database_prediction_config_scheme import DatabasePredictionConfig
 from scheme.tenant.tenant_scheme import Tenant, TenantRead
 from scheme.role.role_scheme import Role
-from scheme.emergency_class.emergency_classification_config_scheme import EmergencyClassificationConfig
+from scheme.order_classification.order_classification_config_scheme import (
+    OrderClassificationConfig,
+)
+from scheme.solution_imitation.solution_imitation_config_scheme import (
+    SolutionImitationConfig,
+)
 
 User.update_forward_refs()
 UserRead.update_forward_refs()

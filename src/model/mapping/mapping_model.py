@@ -27,6 +27,7 @@ from scheme.task.task_scheme import JobIdRead
 from util.extract_keyword import extract_keyword
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
 from util.normalize_name import normalize_name
+from util.uuid import generate_uuid
 
 tqdm.pandas()
 # noinspection PyTypeChecker
@@ -77,16 +78,18 @@ def get_nomenclatures_groups(
 def _build_where_metadatas_old(
     group: str,
     brand: str | None,
+    view: str | None,
     metadatas_list: list[dict] | None,
     is_params_needed: bool,
     is_brand_needed: bool,
     is_hard_params: bool,
 ):
     if len(metadatas_list) == 0 or not is_params_needed:
-        where_metadatas = {"$and": [
-            {"group": group},
-            {"brand": brand},
-        ]}
+        # where_metadatas = {"$and": [
+        #     {"group": group},
+        #     {"brand": brand},
+        # ]}
+        where_metadatas = {"group": group}
     else:
         metadatas_list_with_group = [{"group": group}]
         for metadata in metadatas_list:
@@ -275,7 +278,8 @@ def map_on_nom(
     is_brand_exists = brand is not None
     is_brand_needed = is_brand_exists and is_use_brand_recognition
 
-    where_metadatas = build_where_metadatas(
+    # where_metadatas = _build_where_metadatas_old(
+    where_metadatas = _build_where_metadatas(
         group=group,
         brand=brand,
         view=view,
@@ -366,10 +370,11 @@ def split_nomenclatures_by_chunks(
 
 def create_mapping_job(
     nomenclatures: list[MappingOneNomenclatureUpload],
-    previous_job_id: str | None,
     most_similar_count: int,
-    classifier_config: ClassifierConfig | None,
+    classifier_config: ClassifierConfig,
     tenant_id: int,
+    iteration_key: str,
+    previous_job_id: str | None = None,
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.MAPPING)
     job = queue.enqueue(
@@ -378,6 +383,7 @@ def create_mapping_job(
         most_similar_count,
         classifier_config,
         tenant_id,
+        iteration_key,
         meta={
             "previous_nomenclature_id": previous_job_id
         },
@@ -391,8 +397,9 @@ def start_mapping(
     nomenclatures: list[MappingOneNomenclatureUpload],
     most_similar_count: int,
     chunk_size: int,
-    classifier_config: ClassifierConfig | None,
+    classifier_config: ClassifierConfig,
     tenant_id: int,
+    iteration_key: str | None = None,
 ) -> JobIdRead:
     # Check if collection name exists in user's classifier config
     collection_name = classifier_config.chroma_collection_name
@@ -414,12 +421,16 @@ def start_mapping(
 
     # Check if classifier version id exists in user's classifier config
     model_id = classifier_config.model_id
-    is_model_id_exists_in_config = bool(model_id)
+    is_model_id_exists_in_config = bool(model_id.strip())
     if not is_model_id_exists_in_config:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Classifier version {model_id} is not exists.",
         )
+
+    # Generate UUID for iteration
+    if iteration_key is None:
+        iteration_key = generate_uuid()
 
     # Split nomenclatures to chunks
     segments = split_nomenclatures_by_chunks(
@@ -434,6 +445,7 @@ def start_mapping(
             most_similar_count=most_similar_count,
             classifier_config=classifier_config,
             tenant_id=tenant_id,
+            iteration_key=iteration_key,
         )
         last_job_id = job.job_id
 
@@ -443,8 +455,9 @@ def start_mapping(
 def _map_nomenclatures_chunk(
     nomenclatures: list[MappingOneNomenclatureUpload],
     most_similar_count: int,
-    classifier_config: ClassifierConfig | None,
+    classifier_config: ClassifierConfig,
     tenant_id: int,
+    iteration_key: str,
 ) -> list[MappingOneNomenclatureRead]:
     logger.info(f"Classifier config for user with ID {classifier_config.user_id}: {classifier_config}")
 
@@ -463,7 +476,7 @@ def _map_nomenclatures_chunk(
     )
 
     # Extract nomenclature keyword
-    is_use_keywords = classifier_config is None or classifier_config.is_use_keywords_detection
+    is_use_keywords = classifier_config.is_use_keywords_detection
     if is_use_keywords:
         noms['keyword'] = noms['normalized'].progress_apply(
             lambda nom_name: extract_keyword(nom_name)
@@ -478,15 +491,14 @@ def _map_nomenclatures_chunk(
     noms['name'] = noms['nomenclature']
 
     # Get noms brand params
-    is_use_brand_recognition = classifier_config is None or classifier_config.is_use_brand_recognition
+    is_use_brand_recognition = classifier_config.is_use_brand_recognition
     if is_use_brand_recognition:
         noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
     else:
         noms['brand'] = None
-    # noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
 
     # Extract all noms params
-    is_use_params = classifier_config is None or classifier_config.is_use_params
+    is_use_params = classifier_config.is_use_params
     if is_use_params:
         noms = extract_features(noms)
 
@@ -613,6 +625,7 @@ def _map_nomenclatures_chunk(
     save_mapping_result(
         nomenclatures=result_nomenclatures,
         user_id=user_id,
+        iteration_key=iteration_key,
     )
 
     # Charge tenant used tokens for nomenclatures mapping
@@ -626,10 +639,10 @@ def _map_nomenclatures_chunk(
     return result_nomenclatures
 
 
-def get_jobs_from_rq(nomenclature_id: str) -> list[MappingNomenclaturesResultRead]:
+def get_jobs_from_rq(job_id: str) -> list[MappingNomenclaturesResultRead]:
     jobs_list: list[MappingNomenclaturesResultRead] = []
 
-    prev_job_id = nomenclature_id
+    prev_job_id = job_id
     while prev_job_id is not None:
         job = get_job(prev_job_id)
         job_meta = job.get_meta(refresh=True)
@@ -651,6 +664,15 @@ def get_jobs_from_rq(nomenclature_id: str) -> list[MappingNomenclaturesResultRea
     return jobs_list
 
 
-def get_all_jobs(nomenclature_id: str) -> list[MappingNomenclaturesResultRead]:
-    jobs_from_rq = get_jobs_from_rq(nomenclature_id)
+def get_all_jobs(job_id: str) -> list[MappingNomenclaturesResultRead]:
+    jobs_from_rq = get_jobs_from_rq(job_id)
     return jobs_from_rq
+
+
+def is_job_finished(job_status: str) -> bool:
+    if job_status == JobStatus.FINISHED:
+        return True
+    if job_status == JobStatus.FAILED:
+        return True
+
+    return False

@@ -13,15 +13,19 @@ from controller.chat import message_controller, chat_controller
 from controller.chroma_collection import chroma_collection_controller
 from controller.classifier import classifier_config_controller, classifier_controller
 from controller.embedding import embedding_controller
-from controller.emergency_class import emergency_class_controller
 from controller.file import file_controller
+from controller.kafka import kafka_controller
 from controller.ksr import ksr_controller
 from controller.mapping import mapping_controller
+from controller.mapping import mapping_with_parsing_controller
 from controller.mode import mode_controller
 from controller.ner import brand_model_controller
+from controller.order_classification.vysota import \
+    order_classification_controller as vysota_order_classification_controller
 from controller.prediction import prediction_controller
 from controller.prompt import prompt_controller
 from controller.role import role_controller
+from controller.solution_imitation import solution_imitation_controller
 from controller.task import task_controller
 from controller.tenant import tenant_controller
 from controller.used_token import used_token_controller
@@ -59,7 +63,7 @@ app.include_router(message_controller.router, tags=["message"], prefix="/message
 app.include_router(prediction_controller.router, tags=["prediction"])
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
 
-# Nomenclature
+# Mapping
 app.include_router(classifier_config_controller.router, tags=["classifier_config"], prefix="/classifier_config")
 app.include_router(mapping_controller.router, tags=["mapping"], prefix="/mapping")
 app.include_router(embedding_controller.router, tags=["embedding"], prefix="/embedding")
@@ -68,17 +72,35 @@ app.include_router(chroma_collection_controller.router, tags=["chroma_collection
 app.include_router(classifier_controller.router, tags=["classifier"], prefix="/classifier")
 app.include_router(brand_model_controller.router, tags=["ner_brand"], prefix="/ner_brand")
 
+# Mapping with Parsing
+app.include_router(
+    mapping_with_parsing_controller.router,
+    tags=["Mapping with Parsing"],
+    prefix="/mapping/with_parsing",
+)
+
 # Used Tokens
 app.include_router(used_token_controller.router, tags=["used_token"], prefix="/used_token")
 
-# Other
+# Redis Tasks
 app.include_router(task_controller.router, tags=["task"], prefix="/task")
 
 # Ksr Nomenclature
 app.include_router(ksr_controller.router, tags=["ksr"], prefix="/ksr")
 
+# Solution Imitation
+app.include_router(solution_imitation_controller.router, tags=["Solution Imitation"], prefix="/solution_imitation")
+
 # Emergency Class
-app.include_router(emergency_class_controller.router, tags=["emergency_class"], prefix="/emergency_class")
+# Vysota Service
+app.include_router(
+    vysota_order_classification_controller.router,
+    tags=["Orders Classification"],
+    prefix="/classification/orders",
+)
+
+# Unistroy Kafka Mapping
+app.include_router(kafka_controller.router, tags=["Kafka"], prefix="/kafka")
 
 
 @app.get("/healthcheck")
@@ -117,7 +139,8 @@ app = VersionedFastAPI(
 
 
 # Built docs dir
-app.mount("/mkdocs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True), name="mkdocs")
+# app.mount("/mkdocs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True), name="mkdocs")
+
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"), name="static")
 
 if __name__ == "__main__":

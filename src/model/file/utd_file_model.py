@@ -12,17 +12,17 @@ from util.files_paths import get_filename_with_postfix
 NOMENCLATURE_COLUMN_NAME = "наименование товара"
 
 
-def _clean_text(text: str):
-    return re.sub(r'[\s\n]+', ' ', text).strip()
+def _clean_text(text: str) -> str:
+    return re.sub(r"[\s\n]+", " ", text).strip()
 
 
-def _save_utd_file(file_object: UploadFile):
+def _save_file(file_object: UploadFile) -> str:
     file_name = file_object.filename
     filename_with_postfix = get_filename_with_postfix(file_name)
     file_path = f"{DATA_FOLDER_PATH}/UTDs/{filename_with_postfix}"
     file_folder_path = Path(file_path).parent
 
-    # Create dir UTDs if not exists
+    # Create dir if not exists
     os.makedirs(file_folder_path, exist_ok=True)
 
     with open(file_path, "wb") as new_file:
@@ -32,8 +32,8 @@ def _save_utd_file(file_object: UploadFile):
     return file_path
 
 
-def extract_noms_from_utd(file_object: UploadFile):
-    file_path = _save_utd_file(file_object)
+def extract_noms(file_object: UploadFile) -> list[str]:
+    file_path = _save_file(file_object)
 
     parsed_noms = []
     try:
@@ -56,10 +56,14 @@ def extract_noms_from_utd(file_object: UploadFile):
                     ]
                     # logger.info(headers_list)
 
-                    name_col_idx = next((
-                        i for i, val in enumerate(headers_list)
-                        if val and NOMENCLATURE_COLUMN_NAME in val.lower()
-                    ), None)
+                    name_col_idx = next(
+                        (
+                            i
+                            for i, val in enumerate(headers_list)
+                            if val and NOMENCLATURE_COLUMN_NAME in val.lower()
+                        ),
+                        None,
+                    )
                     # logger.debug(f"Name col index: {name_col_idx}")
 
                     if name_col_idx:
@@ -70,7 +74,9 @@ def extract_noms_from_utd(file_object: UploadFile):
                     columns_count = len(headers_list)
                     # logger.debug(f"Cols count: {columns_count}")
 
-                    is_nomenclatures_table = name_col_idx is not None or columns_count == 16
+                    is_nomenclatures_table = (
+                        name_col_idx is not None or columns_count == 16
+                    )
                     # logger.debug(f"is_nomenclatures_table: {is_nomenclatures_table}")
 
                     if not is_nomenclatures_table:
@@ -93,9 +99,11 @@ def extract_noms_from_utd(file_object: UploadFile):
                         if is_headers_row:
                             continue
 
-                        nomenclature = _clean_text(
-                            row[name_col_idx]
-                        ) if name_col_idx and row[name_col_idx] else None
+                        nomenclature = (
+                            _clean_text(row[name_col_idx])
+                            if name_col_idx and row[name_col_idx]
+                            else None
+                        )
                         # logger.info(f"Nomenclature: {nomenclature}")
 
                         if nomenclature and len(nomenclature) > 5:
