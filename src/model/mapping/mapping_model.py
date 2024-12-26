@@ -81,9 +81,10 @@ def _build_where_metadatas_old(
     brand: str | None,
     view: str | None,
     metadatas_list: list[dict] | None,
+    is_hard_params: bool,
     is_params_needed: bool,
     is_brand_needed: bool,
-    is_hard_params: bool,
+    is_view_needed: bool,
 ):
     if len(metadatas_list) == 0 or not is_params_needed:
         # where_metadatas = {"$and": [
@@ -111,154 +112,38 @@ def build_where_metadatas(
     brand: str | None,
     view: str | None,
     metadatas_list: list[dict] | None,
+    is_hard_params: bool,
     is_params_needed: bool,
     is_brand_needed: bool,
-    is_hard_params: bool,
+    is_view_needed: bool,
 ) -> Where:
-    metadata_list_with_group = [
-        {"internal_group": group},
-        # Ставлю использование Вида номенклатуры пока здесь, пока у нас нет этого параметра в конфиге Классификатора
-        {"view": view},
-    ]
-    # metadata_list_with_brand = [{"brand": brand}] if is_brand_needed else []
-    # metadata_list_with_params = metadatas_list if is_params_needed else []
-    metadata_list_with_brand = [{"brand": brand}]
-    metadata_list_with_params = metadatas_list
+    conditions = [{"internal_group": group}]
 
-    is_many_params = is_params_needed and len(metadata_list_with_params) > 1
+    additional_conditions = []
 
-    # If using hard-search
-    # group, brand and params must be equal
+    if is_params_needed:
+        additional_conditions.extend(metadatas_list)
+
+    if is_brand_needed:
+        additional_conditions.append({"brand": brand})
+
+    if is_view_needed:
+        additional_conditions.append({"view": view})
+
     if is_hard_params:
-        # If using params
-        if is_params_needed:
-            # If using brand
-            if is_brand_needed:
-                where_metadatas = {
-                    "$and": [
-                        *metadata_list_with_group,
-                        *metadata_list_with_params,
-                        *metadata_list_with_brand,
-                    ],
-                }
-
-            # If not using brand
-            else:
-                where_metadatas = {
-                    "$and": [
-                        *metadata_list_with_group,
-                        *metadata_list_with_params,
-                    ],
-                }
-
-        # If not using params
+        if len(additional_conditions) > 0:
+            conditions.extend(additional_conditions)
+            return {"$and": conditions}
         else:
-            # If using brand
-            if is_brand_needed:
-                where_metadatas = {
-                    "$and": [
-                        *metadata_list_with_group,
-                        *metadata_list_with_brand,
-                    ],
-                }
-
-            # If not using brand
-            else:
-                # Where filter without view
-                # where_metadatas = metadata_list_with_group[0]
-                # Where filter with view
-                where_metadatas = {
-                    "$and": [
-                        *metadata_list_with_group,
-                    ],
-                }
-
-    # If using soft-search
-    # group must be equal and any or nothing of brand and params is equal
+            return conditions[0]
     else:
-        # If using params
-        if is_params_needed:
-            # If using brand
-            if is_brand_needed:
-                where_metadatas = {
-                    "$and": [
-                        *metadata_list_with_group,
-                        {
-                            "$or": [
-                                *metadata_list_with_params,
-                                *metadata_list_with_brand,
-                            ],
-                        },
-                    ],
-                }
-
-            # If not using brand
-            else:
-                # If params 2 or more
-                if is_many_params:
-                    where_metadatas = {
-                        "$and": [
-                            *metadata_list_with_group,
-                            {
-                                "$or": [
-                                    *metadata_list_with_params,
-                                ],
-                            },
-                        ],
-                    }
-
-                # If is 1 param
-                else:
-                    where_metadatas = {
-                        "$or": [
-                            *metadata_list_with_group,
-                            # {
-                            #     "$and": [
-                            #         *metadata_list_with_group,
-                            #     ],
-                            # },
-                            {
-                                "$and": [
-                                    *metadata_list_with_group,
-                                    *metadata_list_with_params,
-                                ],
-                            },
-                        ],
-                    }
-
-        # If not using params
+        if len(additional_conditions) > 1:
+            return {"$and": [conditions[0], {"$or": additional_conditions}]}
+        elif len(additional_conditions) == 1:
+            conditions.extend(additional_conditions)
+            return {"$or": [conditions[0], {"$and": conditions}]}
         else:
-            # If using brand
-            if is_brand_needed:
-                where_metadatas = {
-                    "$or": [
-                        *metadata_list_with_group,
-                        # {
-                        #     "$and": [
-                        #         *metadata_list_with_group,
-                        #     ],
-                        # },
-                        {
-                            "$and": [
-                                *metadata_list_with_group,
-                                *metadata_list_with_brand,
-                            ],
-                        },
-                    ],
-                }
-
-            # If not using brand
-            else:
-                # Where filter without view
-                # where_metadatas = metadata_list_with_group[0]
-                # Where filter with view
-                where_metadatas = {
-                    "$and": [
-                        *metadata_list_with_group,
-                    ],
-                }
-
-    return where_metadatas
+            return conditions[0]
 
 
 def map_on_nom(
@@ -271,6 +156,7 @@ def map_on_nom(
     is_hard_params: bool,
     is_use_params: bool,
     is_use_brand_recognition: bool,
+    is_use_view_classification: bool,
     most_similar_count: int = 1,
 ) -> list[MappingOneTargetRead] | None:
     is_params_exists = metadatas_list is not None and len(metadatas_list) > 0
@@ -279,15 +165,19 @@ def map_on_nom(
     is_brand_exists = brand is not None
     is_brand_needed = is_brand_exists and is_use_brand_recognition
 
+    is_view_exists = view is not None
+    is_view_needed = is_view_exists and is_use_view_classification
+
     # where_metadatas = _build_where_metadatas_old(
     where_metadatas = build_where_metadatas(
         group=group,
         brand=brand,
         view=view,
         metadatas_list=metadatas_list,
+        is_hard_params=is_hard_params,
         is_params_needed=is_params_needed,
         is_brand_needed=is_brand_needed,
-        is_hard_params=is_hard_params,
+        is_view_needed=is_view_needed,
     )
 
     nom_embeddings = nom_embeddings.tolist()
@@ -491,17 +381,22 @@ def _map_nomenclatures_chunk(
     # Copy noms to "name" column for params extracting
     noms['name'] = noms['nomenclature']
 
-    # Get noms brand params
+    # Extract all noms params
+    is_use_params = classifier_config.is_use_params
+    if is_use_params:
+        noms = extract_features(noms)
+
+    # Get all noms brands
     is_use_brand_recognition = classifier_config.is_use_brand_recognition
     if is_use_brand_recognition:
         noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
     else:
         noms['brand'] = None
 
-    # Extract all noms params
-    is_use_params = classifier_config.is_use_params
-    if is_use_params:
-        noms = extract_features(noms)
+    # Run LLM to get nomenclatures views
+    is_use_view_classification = classifier_config.is_use_view_classification
+    if is_use_view_classification:
+        noms = get_nomenclatures_views(noms)
 
     # Run classification to get nomenclatures groups
     model_id = classifier_config.model_id
@@ -515,11 +410,6 @@ def _map_nomenclatures_chunk(
         raise Exception(
             f"Model with ID '{model_id}' does not support params or DataFrame for prediction does not contains them"
         )
-
-    # Run LLM to get nomenclatures views
-    # TODO: add this to ClassifierConfig
-    # TODO: run this only if param in ClassifierConfig is true
-    noms = get_nomenclatures_views(noms)
 
     # Get all noms params with group as metadatas list
     if is_use_params:
@@ -573,6 +463,7 @@ def _map_nomenclatures_chunk(
                 is_hard_params=True,
                 is_use_params=is_use_params,
                 is_use_brand_recognition=is_use_brand_recognition,
+                is_use_view_classification=is_use_view_classification,
             )
             nom['mappings'] = mappings
 
@@ -591,11 +482,12 @@ def _map_nomenclatures_chunk(
                     group=nom['internal_group'],
                     brand=nom['brand'],
                     view=nom['view'],
-                    most_similar_count=most_similar_count,
                     metadatas_list=metadatas_list,
                     is_hard_params=False,
                     is_use_params=is_use_params,
                     is_use_brand_recognition=is_use_brand_recognition,
+                    most_similar_count=most_similar_count,
+                    is_use_view_classification=is_use_view_classification,
                 )
                 nom['similar_mappings'] = similar_mappings
 
