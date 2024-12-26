@@ -1,4 +1,5 @@
 import httpx
+from loguru import logger
 
 from infra.env import NER_SERVICE_URL
 
@@ -17,9 +18,11 @@ class NERServiceClient:
         print(f"Nomenclatures count: {nomenclatures_count}")
         for i in range(0, nomenclatures_count, self._chunk_size):
             noms_chunk = nomenclatures[i:i + self._chunk_size]
+            logger.debug(f"Noms chunk: {noms_chunk}")
+            logger.debug(f"Noms chunk length: {len(noms_chunk)}")
 
             if len(noms_chunk) == 0:
-                break
+                continue
 
             try:
                 body = {
@@ -37,7 +40,7 @@ class NERServiceClient:
             except Exception as e:
                 print(f"Index chunk {i} - {e}")
 
-        print(f"Nomenclatures brands count: {len(noms_brands_list)}")
+        logger.debug(f"Nomenclatures brands count: {len(noms_brands_list)}")
         return noms_brands_list
 
     def __exit__(self, exc_type, exc_val, exc_tb):
