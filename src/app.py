@@ -4,6 +4,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi_versioning import VersionedFastAPI
+from loguru import logger
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 
@@ -29,6 +30,7 @@ from controller.task import task_controller
 from controller.tenant import tenant_controller
 from controller.used_token import used_token_controller
 from controller.user import user_controller
+from infra.env import DATA_FOLDER_PATH
 from util.healthcheck.redis_connection import check_redis_connection
 
 app = FastAPI()
@@ -103,6 +105,7 @@ app.include_router(kafka_controller.router, tags=["Kafka"], prefix="/kafka")
 
 @app.get("/healthcheck")
 def healthcheck():
+    logger.debug(f"Data Folder Path: {DATA_FOLDER_PATH}")
     check_redis_connection()
     return {"status": "ok"}
 

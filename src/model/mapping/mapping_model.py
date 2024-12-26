@@ -1,24 +1,28 @@
+from datetime import datetime
+
 import joblib
 import numpy as np
 from chromadb import QueryResult, Where
 from chromadb.api.models.Collection import Collection
 from fastapi import HTTPException, status
 from fastembed import TextEmbedding
+from loguru import logger
 from pandas import DataFrame
 from rq import get_current_job
 from rq.job import JobStatus
 from tqdm import tqdm
 
 from infra.chroma_store import connect_to_chroma_collection, get_all_collections
-from infra.redis_queue import get_redis_queue, MAX_JOB_TIMEOUT, QueueName, get_job
+from infra.redis_queue import MAX_JOB_TIMEOUT, QueueName, get_job, get_redis_queue
 from model.classifier.classifier_retrain_model import TRAINING_COLUMNS
 from model.classifier.classifier_version_model import get_model_path
+from model.mapping.group_views_model import get_nomenclatures_views
 from model.mapping.mapping_result_model import save_mapping_result
 from model.ner.ner import ner_service
 from model.used_token.used_token_model import charge_used_tokens, count_used_tokens
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
-from scheme.mapping.mapping_scheme import MappingOneNomenclatureUpload, \
-    MappingNomenclaturesResultRead, MappingOneTargetRead, MappingOneNomenclatureRead
+from scheme.mapping.mapping_scheme import (MappingNomenclaturesResultRead, MappingOneNomenclatureRead,
+                                           MappingOneNomenclatureUpload, MappingOneTargetRead)
 from scheme.task.task_scheme import JobIdRead
 from util.extract_keyword import extract_keyword
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
@@ -30,7 +34,7 @@ tqdm.pandas()
 np.set_printoptions(threshold=np.inf)
 
 
-def get_nomenclatures_groups(
+def _get_nomenclatures_groups_old(
     noms: DataFrame,
     model_id: str,
     is_use_params: bool,
@@ -50,13 +54,37 @@ def get_nomenclatures_groups(
     return predicted_groups
 
 
+def get_nomenclatures_groups(
+    noms: DataFrame,
+    model_id: str,
+) -> list[str]:
+    model_path = get_model_path(model_id)
+    model_packages = joblib.load(model_path)
+    logger.info(f"model packages: {model_packages}")
+
+    model = model_packages['model']
+    label_encoder = model_packages['label_encoder']
+
+    prediction_df = noms['nomenclature']
+    prediction_list = prediction_df.to_list()
+
+    # Predict groups ids and encode them to groups names
+    predicted_groups = label_encoder.inverse_transform(
+        model.predict(prediction_list),
+    )
+
+    return predicted_groups
+
+
 def _build_where_metadatas_old(
     group: str,
     brand: str | None,
+    view: str | None,
     metadatas_list: list[dict] | None,
+    is_hard_params: bool,
     is_params_needed: bool,
     is_brand_needed: bool,
-    is_hard_params: bool,
+    is_view_needed: bool,
 ):
     if len(metadatas_list) == 0 or not is_params_needed:
         # where_metadatas = {"$and": [
@@ -79,120 +107,43 @@ def _build_where_metadatas_old(
     return where_metadatas
 
 
-def _build_where_metadatas(
+def build_where_metadatas(
     group: str,
     brand: str | None,
+    view: str | None,
     metadatas_list: list[dict] | None,
+    is_hard_params: bool,
     is_params_needed: bool,
     is_brand_needed: bool,
-    is_hard_params: bool,
+    is_view_needed: bool,
 ) -> Where:
-    metadata_list_with_group = [{"group": group}]
-    metadata_list_with_brand = [{"brand": brand}]
-    metadata_list_with_params = metadatas_list
+    conditions = [{"internal_group": group}]
 
-    is_many_params = is_params_needed and len(metadata_list_with_params) > 1
+    additional_conditions = []
 
-    # If using hard-search
-    # group, brand and params must be equal
+    if is_params_needed:
+        additional_conditions.extend(metadatas_list)
+
+    if is_brand_needed:
+        additional_conditions.append({"brand": brand})
+
+    if is_view_needed:
+        additional_conditions.append({"view": view})
+
     if is_hard_params:
-        # If using params
-        if is_params_needed:
-            # If using brand
-            if is_brand_needed:
-                where_metadatas = {
-                    "$and": [
-                        *metadata_list_with_group,
-                        *metadata_list_with_params,
-                        *metadata_list_with_brand,
-                    ],
-                }
-
-            # If not using brand
-            else:
-                where_metadatas = {
-                    "$and": [
-                        *metadata_list_with_group,
-                        *metadata_list_with_params,
-                    ],
-                }
-
-        # If not using params
+        if len(additional_conditions) > 0:
+            conditions.extend(additional_conditions)
+            return {"$and": conditions}
         else:
-            # If using brand
-            if is_brand_needed:
-                where_metadatas = {
-                    "$and": [
-                        *metadata_list_with_group,
-                        *metadata_list_with_brand,
-                    ],
-                }
-
-            # If not using brand
-            else:
-                where_metadatas = metadata_list_with_group[0]
-
-    # If using soft-search
-    # group must be equal and any or nothing of brand and params is equal
+            return conditions[0]
     else:
-        # If using params
-        if is_params_needed:
-            # If using brand
-            if is_brand_needed:
-                where_metadatas = {
-                    **metadata_list_with_group[0],
-                    "$or": [
-                        *metadata_list_with_params,
-                        *metadata_list_with_brand,
-                    ],
-                }
-
-            # If not using brand
-            else:
-                # If params 2 or more
-                if is_many_params:
-                    where_metadatas = {
-                        **metadata_list_with_group[0],
-                        "$or": [
-                            *metadata_list_with_params,
-                        ],
-                    }
-
-                # If is 1 param
-                else:
-                    where_metadatas = {
-                        "$or": [
-                            *metadata_list_with_group,
-                            {
-                                "$and": [
-                                    *metadata_list_with_group,
-                                    *metadata_list_with_params,
-                                ],
-                            },
-                        ],
-                    }
-
-        # If not using params
+        if len(additional_conditions) > 1:
+            return {"$and": [conditions[0], {"$or": additional_conditions}]}
+        elif len(additional_conditions) == 1:
+            conditions.extend(additional_conditions)
+            return {"$or": [conditions[0], {"$and": conditions}]}
         else:
-            # If using brand
-            if is_brand_needed:
-                where_metadatas = {
-                    "$or": [
-                        *metadata_list_with_group,
-                        {
-                            "$and": [
-                                *metadata_list_with_group,
-                                *metadata_list_with_brand,
-                            ],
-                        },
-                    ],
-                }
-
-            # If not using brand
-            else:
-                where_metadatas = metadata_list_with_group[0]
-
-    return where_metadatas
+            return conditions[0]
 
 
 def map_on_nom(
@@ -200,10 +151,12 @@ def map_on_nom(
     nom_embeddings: np.ndarray,
     group: str,
     brand: str | None,
+    view: str | None,
     metadatas_list: list[dict] | None,
     is_hard_params: bool,
     is_use_params: bool,
     is_use_brand_recognition: bool,
+    is_use_view_classification: bool,
     most_similar_count: int = 1,
 ) -> list[MappingOneTargetRead] | None:
     is_params_exists = metadatas_list is not None and len(metadatas_list) > 0
@@ -212,14 +165,19 @@ def map_on_nom(
     is_brand_exists = brand is not None
     is_brand_needed = is_brand_exists and is_use_brand_recognition
 
-    # where_metadatas = _build_where_metadatas(
-    where_metadatas = _build_where_metadatas_old(
+    is_view_exists = view is not None
+    is_view_needed = is_view_exists and is_use_view_classification
+
+    # where_metadatas = _build_where_metadatas_old(
+    where_metadatas = build_where_metadatas(
         group=group,
         brand=brand,
+        view=view,
         metadatas_list=metadatas_list,
+        is_hard_params=is_hard_params,
         is_params_needed=is_params_needed,
         is_brand_needed=is_brand_needed,
-        is_hard_params=is_hard_params,
+        is_view_needed=is_view_needed,
     )
 
     nom_embeddings = nom_embeddings.tolist()
@@ -227,26 +185,56 @@ def map_on_nom(
         query_embeddings=[nom_embeddings],
         where=where_metadatas,
         n_results=most_similar_count,
+        include=["documents", "distances", "metadatas"],
     )
 
     response_ids = response['ids'][0]
-    response_documents = response['documents'][0]
-    response_distances = response['distances'][0]
 
     if len(response_ids) == 0:
         return None
 
+    response_documents = response['documents'][0]
+    response_metadatas = response['metadatas'][0]
+    response_distances = response['distances'][0]
+
     mapped_noms = []
     for i in range(len(response_ids)):
+        group = response_metadatas[i].get("group")
+        group_code = response_metadatas[i].get("group_code")
+        view_code = response_metadatas[i].get("view_code")
+        material_code = response_metadatas[i].get("material_code")
+
         mapped_noms.append(
             MappingOneTargetRead(
                 nomenclature_guid=response_ids[i],
                 nomenclature=response_documents[i],
+                group=group,
+                group_code=group_code,
+                view_code=view_code,
+                material_code=material_code,
                 similarity_score=response_distances[i],
             )
         )
 
     return mapped_noms
+
+
+# param arg can be: group, group_code, view_code, material_code
+def _get_mappings_param(param: str, mappings_list: list[MappingOneTargetRead]) -> str:
+    param_values = []
+
+    for mapping in mappings_list:
+        if param == "group":
+            param_values.append(mapping.group)
+        if param == "group_code":
+            param_values.append(mapping.group_code)
+        if param == "view_code":
+            param_values.append(mapping.view_code)
+        if param == "material_code":
+            param_values.append(mapping.material_code)
+
+    param_values_as_str = "\n".join(param_values)
+    return param_values_as_str
 
 
 def convert_nomenclatures_to_df(nomenclatures: list[MappingOneNomenclatureUpload]) -> DataFrame:
@@ -362,7 +350,8 @@ def _map_nomenclatures_chunk(
     tenant_id: int,
     iteration_key: str,
 ) -> list[MappingOneNomenclatureRead]:
-    print(classifier_config)
+    logger.info(f"Classifier config for user with ID {classifier_config.user_id}: {classifier_config}")
+
     job = get_current_job()
 
     # Init job data
@@ -389,28 +378,33 @@ def _map_nomenclatures_chunk(
     # Create embeddings for every mapping
     noms['embeddings'] = get_nomenclatures_embeddings(noms['nomenclature'].to_list())
 
-    # Copy noms to "name" column for extracting params
+    # Copy noms to "name" column for params extracting
     noms['name'] = noms['nomenclature']
-
-    # Get noms brand params
-    is_use_brand_recognition = classifier_config.is_use_brand_recognition
-    if is_use_brand_recognition:
-        noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
-    else:
-        noms['brand'] = None
 
     # Extract all noms params
     is_use_params = classifier_config.is_use_params
     if is_use_params:
         noms = extract_features(noms)
 
-    # Run classification to get mapping group
+    # Get all noms brands
+    is_use_brand_recognition = classifier_config.is_use_brand_recognition
+    if is_use_brand_recognition:
+        noms['brand'] = ner_service.predict(noms['nomenclature'].to_list())
+    else:
+        noms['brand'] = None
+
+    # Run LLM to get nomenclatures views
+    is_use_view_classification = classifier_config.is_use_view_classification
+    if is_use_view_classification:
+        noms = get_nomenclatures_views(noms)
+
+    # Run classification to get nomenclatures groups
     model_id = classifier_config.model_id
     try:
-        noms['group'] = get_nomenclatures_groups(
+        noms['internal_group'] = get_nomenclatures_groups(
             noms=noms,
             model_id=model_id,
-            is_use_params=is_use_params,
+            # is_use_params=is_use_params,
         )
     except ValueError:
         raise Exception(
@@ -426,11 +420,17 @@ def _map_nomenclatures_chunk(
     collection_name = classifier_config.chroma_collection_name
     collection = connect_to_chroma_collection(collection_name)
 
+    # Init noms result params
+    noms['group'] = None
+    noms['group_code'] = None
+    noms['view_code'] = None
+    noms['material_code'] = None
+    noms['nomenclature_params'] = None
     noms['mappings'] = None
     noms['similar_mappings'] = None
-    noms['nomenclature_params'] = None
 
     for i, nom in noms.iterrows():
+        start_at = datetime.now()
         # Create mapping metadatas list for query
         if is_use_params:
             metadatas_list = []
@@ -445,7 +445,7 @@ def _map_nomenclatures_chunk(
         nom['nomenclature_params'] = metadatas_list
 
         # Check if nom really belong to mapped group, only if is_use_keywords is True
-        if is_use_keywords and nom['keyword'] not in nom['group'].lower():
+        if is_use_keywords and nom['keyword'] not in nom['internal_group'].lower():
             nom['mappings'] = [MappingOneTargetRead(
                 nomenclature_guid="",
                 nomenclature="Для такой номенклатуры группы не нашлось",
@@ -456,33 +456,54 @@ def _map_nomenclatures_chunk(
             mappings = map_on_nom(
                 collection=collection,
                 nom_embeddings=nom['embeddings'],
-                group=nom['group'],
+                group=nom['internal_group'],
                 brand=nom['brand'],
+                view=nom['view'],
                 metadatas_list=metadatas_list,
                 is_hard_params=True,
                 is_use_params=is_use_params,
                 is_use_brand_recognition=is_use_brand_recognition,
+                is_use_view_classification=is_use_view_classification,
             )
             nom['mappings'] = mappings
+
+            # Extract NSI group
+            if mappings is not None:
+                nom['group'] = _get_mappings_param("group", mappings)
+                nom['group_code'] = _get_mappings_param("group_code", mappings)
+                nom['view_code'] = _get_mappings_param("view_code", mappings)
+                nom['material_code'] = _get_mappings_param("material_code", mappings)
 
             # Map similar nomenclatures if nom's params is not valid
             if mappings is None:
                 similar_mappings = map_on_nom(
                     collection=collection,
                     nom_embeddings=nom['embeddings'],
-                    group=nom['group'],
+                    group=nom['internal_group'],
                     brand=nom['brand'],
-                    most_similar_count=most_similar_count,
+                    view=nom['view'],
                     metadatas_list=metadatas_list,
                     is_hard_params=False,
                     is_use_params=is_use_params,
                     is_use_brand_recognition=is_use_brand_recognition,
+                    most_similar_count=most_similar_count,
+                    is_use_view_classification=is_use_view_classification,
                 )
                 nom['similar_mappings'] = similar_mappings
+
+                # Extract NSI group
+                if similar_mappings is not None:
+                    nom['group'] = _get_mappings_param("group", similar_mappings)
+                    nom['group_code'] = _get_mappings_param("group_code", similar_mappings)
+                    nom['view_code'] = _get_mappings_param("view_code", similar_mappings)
+                    nom['material_code'] = _get_mappings_param("material_code", similar_mappings)
 
         noms.loc[i] = nom
         job.meta['ready_count'] += 1
         job.save_meta()
+
+        end_at = datetime.now()
+        logger.debug(f"Nomenclature processing time: {end_at - start_at}")
 
     job.meta['status'] = "finished"
     job.save_meta()

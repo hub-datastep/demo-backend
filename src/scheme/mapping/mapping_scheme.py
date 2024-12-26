@@ -8,14 +8,24 @@ class MappingOneNomenclatureUpload(SQLModel):
 
 class MappingOneTargetRead(SQLModel):
     nomenclature_guid: str
+    group: str | None
+    group_code: str | None
+    view: str | None
+    view_code: str | None
+    material_code: str | None
     nomenclature: str
     similarity_score: float
 
 
 class MappingOneNomenclatureRead(SQLModel):
     row_number: int
+    internal_group: str
+    group: str | None
+    group_code: str | None
+    view: str | None
+    view_code: str | None
     nomenclature: str
-    group: str
+    material_code: str | None
     nomenclature_params: list[dict] | None
     mappings: list[MappingOneTargetRead] | None
     similar_mappings: list[MappingOneTargetRead] | None
