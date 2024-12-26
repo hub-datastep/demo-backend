@@ -10,13 +10,13 @@ from util.features_extraction import extract_features, get_noms_metadatas_with_f
 
 NOMENCLATURE_COLUMNS_FOR_COLLECTION = [
     "id",
-    "material_code",
     "name",
-    "group_code",
-    "group",
+    "material_code",
     "internal_group",
-    "view_code",
+    "group",
+    "group_code",
     "view",
+    "view_code",
 ]
 NOMENCLATURE_COLUMNS_AS_STRING = ", ".join(f'"{col}"' for col in NOMENCLATURE_COLUMNS_FOR_COLLECTION)
 
@@ -28,7 +28,6 @@ def _fetch_all_noms(db_con_str: str, table_name: str) -> DataFrame:
         WHERE "is_group" = FALSE
         AND "is_deleted" = FALSE
      """
-    print(st)
 
     return read_sql(st, db_con_str)
 
@@ -37,7 +36,7 @@ def _create_and_save_embeddings(
     db_con_str: str,
     table_name: str,
     collection_name: str,
-    chunk_size: int | None,
+    chunk_size: int,
 ):
     job = get_current_job()
 
@@ -78,9 +77,12 @@ def _create_and_save_embeddings(
         nom = df_noms_with_features.loc[i]
         # Add additional columns, that not features
         metadatas[i].update({
+            "material_code": str(nom['material_code']),
             "internal_group": str(nom['internal_group']),
             "group": str(nom['group']),
+            "group_code": str(nom['group_code']),
             "view": str(nom['view']),
+            "view_code": str(nom['view_code']),
             "brand": str(nom['brand']),
         })
 
@@ -108,7 +110,7 @@ def start_creating_and_saving_nomenclatures(
     db_con_str: str,
     table_name: str,
     collection_name: str,
-    chunk_size: int | None,
+    chunk_size: int,
 ):
     queue = get_redis_queue(name=QueueName.SYNCING)
     job = queue.enqueue(
