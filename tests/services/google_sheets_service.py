@@ -20,30 +20,36 @@ assert TESTS_MAPPING_TEST_CASES_TABLE_NAME, "TESTS_MAPPING_TEST_CASES_TABLE_NAME
 CREDENTIALS_PATH = f"{DATA_FOLDER_PATH}/datastep-excel-for-classifier-66a610dc9ff6.json"
 
 TEST_CASES_TABLE_HEADERS = [
-    'Тест-Кейс ID',
-    'Шаг алгоритма',
-    'Тип ошибки',
-    'Номенклатура поставщика',
-    'Ожидание группа',
-    'Ожидание номенклатура',
-]
-
-TESTS_RESULT_TABLE_HEADERS = [
     "Тест-Кейс ID",
     "Шаг алгоритма",
     "Тип ошибки",
-    "Корректно группа?",
-    "Корректно номенклатура?",
-    "Номенклатура",
-    "Ожидание группа",
-    "Реальность группа",
-    "Ожидание номенклатура",
-    "Реальность номенклатура",
-    "Параметры",
+    "Номенклатура на Вход",
+    "Ожидание Внутренняя Группа",
+    "Ожидание Группа",
+    "Ожидание Вид",
+    "Ожидание Номенклатура",
 ]
 
 
+# TESTS_RESULT_TABLE_HEADERS = [
+#     "Тест-Кейс ID",
+#     "Шаг алгоритма",
+#     "Тип ошибки",
+#     "Корректно группа?",
+#     "Корректно номенклатура?",
+#     "Номенклатура",
+#     "Ожидание группа",
+#     "Реальность группа",
+#     "Ожидание номенклатура",
+#     "Реальность номенклатура",
+#     "Реальность вид",
+#     "Реальность вид",
+#     "Параметры",
+# ]
+
+
 def get_google_sheets_client():
+    logger.debug(f"Credentials path: {CREDENTIALS_PATH}")
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     # Авторизация
     creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_PATH, scope)
@@ -66,7 +72,7 @@ def read_sheet(spreadsheet_name, sheet_name, expected_headers):
     except SpreadsheetNotFound as e:
         logger.error(e)
         raise ValueError(
-            f"Spreadsheet '{spreadsheet_name}' not found. Check TESTS_MAPPING_SPREADSHEET_NAME and TESTS_MAPPING_TEST_CASES_TABLE_NAME in .env"
+            f"Spreadsheet '{spreadsheet_name}' not found. Check if it's not XLSX or try publish it for service account."
         )
 
 
@@ -88,7 +94,7 @@ def create_new_sheet_and_write_results(new_sheet_name, processed_results):
     client = get_google_sheets_client()
     spreadsheet = client.open(TESTS_MAPPING_SPREADSHEET_NAME)
     new_sheet = spreadsheet.add_worksheet(title=new_sheet_name, rows=100, cols=20)
-    new_sheet.insert_row(TESTS_RESULT_TABLE_HEADERS, 1)
+    # new_sheet.insert_row(TESTS_RESULT_TABLE_HEADERS, 1)
 
     for i, result in enumerate(processed_results, start=2):
         row = [
@@ -109,7 +115,8 @@ def create_new_sheet_and_write_results(new_sheet_name, processed_results):
 
 def create_new_offline_sheet_and_write_results(new_sheet_name, processed_results):
     # Преобразуем данные в DataFrame
-    df = pd.DataFrame(processed_results, columns=TESTS_RESULT_TABLE_HEADERS)
+    # df = pd.DataFrame(processed_results, columns=TESTS_RESULT_TABLE_HEADERS)
+    df = pd.DataFrame(processed_results)
 
     # Сохраняем DataFrame в Excel файл
     file_path = f"{new_sheet_name}.xlsx"
