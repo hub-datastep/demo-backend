@@ -90,6 +90,7 @@ def get_nomenclatures_views(nomenclatures: DataFrame):
             views_chain=views_chain,
             groups_view_df=groups_view_df,
         ),
+        # Apply to each row instead of each column
         axis=1,
     )
 
