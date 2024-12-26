@@ -60,7 +60,8 @@ def get_nomenclatures_groups(
 ) -> list[str]:
     model_path = get_model_path(model_id)
     model_packages = joblib.load(model_path)
-    # logger.info(f"model packages: {model_packages}")
+    logger.info(f"model packages: {model_packages}")
+
     model = model_packages['model']
     label_encoder = model_packages['label_encoder']
 
@@ -69,7 +70,7 @@ def get_nomenclatures_groups(
 
     # Predict groups ids and encode them to groups names
     predicted_groups = label_encoder.inverse_transform(
-        model.predict(prediction_list)
+        model.predict(prediction_list),
     )
 
     return predicted_groups
@@ -279,7 +280,7 @@ def map_on_nom(
     is_brand_needed = is_brand_exists and is_use_brand_recognition
 
     # where_metadatas = _build_where_metadatas_old(
-    where_metadatas = _build_where_metadatas(
+    where_metadatas = build_where_metadatas(
         group=group,
         brand=brand,
         view=view,
