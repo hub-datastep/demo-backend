@@ -1,7 +1,7 @@
 from sqlmodel import Session
 
-from datastep.components import datastep_faiss
-from datastep.components.datastep_faiss import search_relevant_description
+from llm.component import datastep_faiss
+from llm.component.datastep_faiss import search_relevant_description
 from repository.file.file_repository import get_file_by_id, get_all_filenames_by_tenant_id
 from scheme.file.file_scheme import KnowledgeBaseFile
 from scheme.prediction.prediction_scheme import DocumentPredictionRead, KnowledgeBasePredictionRead

@@ -1,9 +1,9 @@
 from langchain_openai import AzureChatOpenAI
 from loguru import logger
 
-from datastep.chains.order_classification_chain import get_llm_by_client_credentials
-from datastep.chains.order_multi_classification.class_score_chain import get_class_score_chain, get_class_score
-from datastep.chains.order_multi_classification.most_relevant_class_chain import get_most_relevant_class, \
+from llm.chain.order_classification_chain import get_llm_by_client_credentials
+from llm.chain.order_multi_classification.class_score_chain import get_class_score_chain, get_class_score
+from llm.chain.order_multi_classification.most_relevant_class_chain import get_most_relevant_class, \
     get_most_relevant_class_chain
 from scheme.order_classification.order_classification_config_scheme import RulesWithParams
 from scheme.order_classification.order_classification_scheme import MostRelevantClassLLMResponse
