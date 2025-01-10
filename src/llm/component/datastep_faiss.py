@@ -6,9 +6,9 @@ from langchain_core.documents import Document
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-from datastep.chains.datastep_docs_chain import get_chain_for_docs
-from datastep.chains.datastep_knowledge_base_chain import get_chain_for_knowledge_base
-from datastep.chains.datastep_search_relevant_description_chain import get_chain_for_relevant_description
+from llm.chain.datastep_docs_chain import get_chain_for_docs
+from llm.chain.datastep_knowledge_base_chain import get_chain_for_knowledge_base
+from llm.chain.datastep_search_relevant_description_chain import get_chain_for_relevant_description
 from infra.env import AZURE_DEPLOYMENT_NAME_EMBEDDINGS
 from scheme.file.file_scheme import KnowledgeBaseFile
 from util.files_paths import get_file_folder_path

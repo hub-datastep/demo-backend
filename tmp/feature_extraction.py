@@ -58,7 +58,6 @@ FEATURES_REGEX_PATTERNS = {
     "density": r"(\d+)кг/м3",
 }
 
-
 FEATURES_REGEX_PATTERNS_FOR_CLASS = {
     "Бетон Материалы": {
 
@@ -162,71 +161,107 @@ FEATURES_REGEX_PATTERNS_FOR_CLASS = {
 }
 
 
-def extract_match(pattern: str, text: str) -> str:
-    # Extract param by pattern
-    match = re.search(pattern, text, flags=re.IGNORECASE)
-    # Get param as str
-    result = str(match.group()) if match else ""
 
-    # Remove "No", "№", "мм" from reinforcement_diameter param
-    # It should contain only number
-    if re.match(FEATURES_REGEX_PATTERNS['reinforcement_diameter'], result):
-        result = re.sub(r"(No|№)|(мм)", "", result)
+import re
+import pandas as pd
 
-    # Change "FK0" to "с боковым подключением" in radiator_types param
-    if re.match(r"(FK0)", result):
-        result = re.sub(r"(FK0)", "с боковым подключением", result)
-
-    # Change "FTV" to "с нижним подключением" in radiator_types param
-    elif re.match(r"(FTV)", result):
-        result = re.sub(r"(FTV)", "с нижним подключением", result)
-
-    # Replace special symbols to spaces
-    result = re.sub(r"[^A-zА-я0-9 ]+|[xх_]+", "-", result)
-
-    # Turn to lower case
-    result = result.lower()
-    # Remove spaces and other at the start and end of string
-    result = str(result.strip())
-
-    # Replace eng chars to equal russian
-    for en_char, ru_char in ENG_TO_RUS_CHARS.items():
-        result = result.replace(en_char, ru_char)
-
-    return result
-
-# TODO: переписать функцию extract_features - нужно вытащить internal_group и name, применить к name регулярки из FEATURES_REGEX_PATTERNS_FOR_CLASS[internal_group]
-def extract_features(nomenclatures: DataFrame) -> DataFrame:
-    # Применяем регулярные выражения для извлечения характеристик
-    for index, row in nomenclatures.iterrows():
-        internal_group = row['internal_group']
-        name = row['name']
+def get_noms_metadatas_with_features(
+    df_noms_with_features: pd.DataFrame,
+    features_regex_patterns_for_class: dict
+) -> list[dict]:
+    """
+    Функция формирует метаданные (результаты регулярных выражений) по каждой строке df_noms_with_features.
+    
+    :param df_noms_with_features: DataFrame с колонками [NOMs, GROUP] (минимально необходимые).
+    :param features_regex_patterns_for_class: словарь вида:
+        {
+          "Бетон Материалы": {
+              "прочность": r"(M|М)-?\d+",
+              "температура": r"\(-\s?\d+С\)"
+              # и т.д.
+          },
+          "Щитовое оборудование Материалы": {
+              "тип_щита": r"Щ[ОСЭ].*",
+              "этажность": r"\d+\s?квартир"
+              # и т.д.
+          },
+          ...
+        }
         
-        # Проверяем, есть ли для данной группы свои регулярные выражения
-        if internal_group in FEATURES_REGEX_PATTERNS_FOR_CLASS:
-            for param_name, pattern in FEATURES_REGEX_PATTERNS_FOR_CLASS[internal_group].items():
-                nomenclatures.at[index, param_name] = extract_match(pattern, name)
-        else:
-            # Если для группы нет своих регулярных выражений, применяем общие
-            for param_name, pattern in FEATURES_REGEX_PATTERNS.items():
-                nomenclatures.at[index, param_name] = extract_match(pattern, name)
+    :return: список словарей вида:
+        [
+          {
+            "NOMs": <str>,
+            "features": {
+              <имя_свойства_1>: <строка_совпадения_или_None>,
+              <имя_свойства_2>: <строка_совпадения_или_None>,
+              ...
+            }
+          },
+          ...
+        ]
+    """
+    results = []
 
-    return nomenclatures
-
-
-def get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[dict]:
-    metadatas = []
-
-    # Разделяем сложную строку на несколько шагов
     for _, row in df_noms_with_features.iterrows():
-        # Извлечение значений регулярных выражений
-        # Возвращает объект вида {regex_name: nomenclature_param}
-        regex_values = row[FEATURES_REGEX_PATTERNS.keys()].to_dict()
+        nom = row["NOMs"]
+        group_name = row["GROUP"]
 
-        # regex_values.update({
-        #     "brand": row['brand']
-        # })
+        # Получаем набор регулярных выражений для текущей группы
+        group_patterns = features_regex_patterns_for_class.get(group_name, {})
 
-        metadatas.append(regex_values)
+        # Применяем регулярки к NOM
+        features_dict = {}
+        for feature_name, pattern in group_patterns.items():
+            match = re.search(pattern, str(nom))
+            if match:
+                # Сохраняем всё совпадение (group(0)), 
+                # либо, при необходимости, какую-то определённую группу: match.group(1)
+                features_dict[feature_name] = match.group(0).lower()
+            else:
+                features_dict[feature_name] = None
+        
+        # Формируем итоговую запись
+        # result_item = features_dict if features_dict else None
+        # results.append(result_item)
+        if features_dict:
+            results.append([nom, group_name, features_dict])
+    
+    return results
+print(', '.join(i for i in FEATURES_REGEX_PATTERNS_FOR_CLASS), len(FEATURES_REGEX_PATTERNS_FOR_CLASS))
+from save_excel import save_to_excel
+def main():
+    # Считываем Excel (лишь колонки NOMs и GROUP)
+    df_sample = pd.read_excel(
+        r"E:\Unistroy.xlsx",
+        sheet_name='MAIN',
+        usecols=['NOMs', 'GROUP']
+    )
+    #  data = {
+    #     "NOMs": [
+    #         "Бетон М-100",
+    #         "Бетон М-100 (- 5С)",
+    #         "Бетон М-150",
+    #         "Бетон М150 (- 5С)",
+    #         "ЩЭ 4 квартиры",
+    #         "Щит этажный (пробный первый вариант)"
+    #     ],
+    #     "GROUP": [
+    #         "Бетон Материалы",
+    #         "Бетон Материалы",
+    #         "Бетон Материалы",
+    #         "Бетон Материалы",
+    #         "Щитовое оборудование Материалы",
+    #         "Щитовое оборудование Материалы"
+    #     ]
+    # }
 
-    return metadatas
+    # df_sample = pd.DataFrame(data)
+
+    result = get_noms_metadatas_with_features(df_sample, FEATURES_REGEX_PATTERNS_FOR_CLASS)
+    save_to_excel(result, 'output.xlsx')
+    for item in result:
+        print(item)
+
+# if __name__ == "__main__":
+#     main()

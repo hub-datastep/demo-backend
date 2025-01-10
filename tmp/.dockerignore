@@ -1,0 +1,25 @@
+# Environment
+venv/
+
+# Logs
+*log
+
+# Python cache
+__pycache__/
+
+# IDEA
+.idea/
+.vscode/
+.swm/
+
+# Tests
+tests/
+
+# Redis Dump
+dump.rdb
+
+# Mkdocs built
+site/
+
+data/fastembed/.locks
+data/fastembed/models--qdrant--multilingual-e5-large-onnx

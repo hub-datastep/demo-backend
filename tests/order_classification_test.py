@@ -6,7 +6,7 @@ from loguru import logger
 from pandas import DataFrame
 from tqdm import tqdm
 
-from datastep.chains.order_multi_classification.order_multi_classification_chain import (
+from llm.chain.order_multi_classification.order_multi_classification_chain import (
     get_order_class,
 )
 from google_sheets_service import read_sheet
