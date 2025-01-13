@@ -61,20 +61,18 @@ if __name__ == "__main__":
         order_query = order["Order Query"]
         correct_class = order["Correct Class"]
 
-        predicted_class = None
-        llm_comment = None
-        scores = None
-        query_summary = None
-        if correct_class != "Другое":
-            order_class_response = get_order_class(
-                order_query=_normalize_resident_request_string(order_query),
-                rules_by_classes=rules_by_classes,
-                # verbose=True,
-            )
-            predicted_class = order_class_response.most_relevant_class_response.order_class
-            llm_comment = order_class_response.most_relevant_class_response.comment
-            scores = order_class_response.scores
-            query_summary = order_class_response.query_summary
+        if correct_class == "Другое":
+            continue
+
+        order_class_response = get_order_class(
+            order_query=_normalize_resident_request_string(order_query),
+            rules_by_classes=rules_by_classes,
+            # verbose=True,
+        )
+        predicted_class = order_class_response.most_relevant_class_response.order_class
+        llm_comment = order_class_response.most_relevant_class_response.comment
+        scores = order_class_response.scores
+        query_summary = order_class_response.query_summary
 
         end_time = datetime.now()
         process_time = end_time - start_time
