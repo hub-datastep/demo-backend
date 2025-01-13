@@ -1,3 +1,6 @@
+import json
+from datetime import datetime
+
 from faststream import FastStream
 from loguru import logger
 
@@ -68,9 +71,11 @@ async def get_all_messages(body):
     """
     Консьюмер для выгрузки всех категорий для материалов из НСИ
     """
-    messages_path = f"{DATA_FOLDER_PATH}/kafka_messages-categories.txt"
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+    messages_path = (f"{DATA_FOLDER_PATH}/unistroy-kafka-nsi/"
+                     f"{now}/kafka_messages-categories.json")
     with open(messages_path, 'w') as f:
-        f.write(str(body))
+        json.dump(body, f)
 
 
 # * Выгрузка материалов из топика
@@ -87,6 +92,8 @@ async def get_all_messages(body):
     """
     Консьюмер для выгрузки всех материалов из НСИ
     """
-    messages_path = f"{DATA_FOLDER_PATH}/kafka_messages-materials.txt"
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+    messages_path = (f"{DATA_FOLDER_PATH}/unistroy-kafka-nsi/"
+                     f"{now}/kafka_messages-materials.json")
     with open(messages_path, 'w') as f:
-        f.write(str(body))
+        json.dump(body, f)
