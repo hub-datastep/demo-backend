@@ -15,7 +15,7 @@ from scheme.order_classification.order_classification_scheme import (
 _PROMPT_TEMPLATE = """
 Заявка: "{query}"
 
-Даны оценки соответствия заявки следующим классам:
+Даны оценки соответствия заявки следующим классам по шкале от 0 до 10:
 {scores}
 
 Вот список классов с правилами,
