@@ -2,11 +2,21 @@ from langchain_openai import AzureChatOpenAI
 from loguru import logger
 
 from llm.chain.order_classification_chain import get_llm_by_client_credentials
-from llm.chain.order_multi_classification.class_score_chain import get_class_score_chain, get_class_score
-from llm.chain.order_multi_classification.most_relevant_class_chain import get_most_relevant_class, \
-    get_most_relevant_class_chain
+from llm.chain.order_multi_classification.class_score_chain import (
+    get_class_score_chain, \
+    get_class_score,
+)
+from llm.chain.order_multi_classification.most_relevant_class_chain import \
+    (
+    get_most_relevant_class,
+)
+from llm.chain.order_multi_classification.order_query_summarization import \
+    (
+    get_order_query_summary,
+)
 from scheme.order_classification.order_classification_config_scheme import RulesWithParams
-from scheme.order_classification.order_classification_scheme import MostRelevantClassLLMResponse
+from scheme.order_classification.order_classification_scheme import \
+    MostRelevantClassLLMResponse
 
 
 def _get_scores_of_classes(
@@ -26,7 +36,9 @@ def _get_scores_of_classes(
         rules_with_params = RulesWithParams(**params)
 
         if not rules_with_params.is_use_classification:
-            logger.info(f"Class '{class_name}' was skipped by config of client '{client}'")
+            logger.info(
+                f"Class '{class_name}' was skipped by config of client '{client}'"
+            )
             continue
 
         # Get rules from config
@@ -54,29 +66,31 @@ def get_order_class(
 ) -> MostRelevantClassLLMResponse:
     llm = get_llm_by_client_credentials(client=client)
 
-    scores = _get_scores_of_classes(
+    order_query_summary = get_order_query_summary(
         llm=llm,
         order_query=order_query,
+        client=client,
+        verbose=verbose,
+    )
+
+    scores = _get_scores_of_classes(
+        llm=llm,
+        order_query=order_query_summary,
         rules_by_classes=rules_by_classes,
         client=client,
         verbose=verbose,
     )
 
-    scores_str = "\n\n".join([
-        f"{score}"
-        for class_name, score in scores.items()
-    ])
+    scores_str = "\n\n".join([f"{score}" for class_name, score in scores.items()])
     # print(scores_str)
 
-    most_relevant_class_chain = get_most_relevant_class_chain(
-        llm=llm,
-        verbose=verbose,
-    )
     order_class = get_most_relevant_class(
-        chain=most_relevant_class_chain,
-        order_query=order_query,
+        llm=llm,
+        order_query=order_query_summary,
+        rules_by_classes=rules_by_classes,
         scores=scores_str,
         client=client,
+        verbose=verbose,
     )
 
     return order_class
