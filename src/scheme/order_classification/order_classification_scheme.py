@@ -94,5 +94,5 @@ class MostRelevantClassLLMResponse(SQLModel):
 
 class OrderClassificationLLMResponse(SQLModel):
     most_relevant_class_response: MostRelevantClassLLMResponse
-    scores: dict[str, str]
+    scores: str
     query_summary: str
