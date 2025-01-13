@@ -449,10 +449,6 @@ def classify_order(
                        f"cannot find responsible UDS",
             )
 
-        # Normalize order query for LLM chain
-        normalized_query = _normalize_resident_request_string(order_query)
-        history_record.order_normalized_query = normalized_query
-
         # Get classes with rules from config
         # And check if this param exists
         rules_by_classes = config.rules_by_classes
@@ -466,6 +462,9 @@ def classify_order(
 
         # Run LLM to classify order
         if is_use_order_classification:
+            # Normalize order query for LLM chain
+            normalized_query = _normalize_resident_request_string(order_query)
+
             llm_response = get_order_class(
                 order_query=normalized_query,
                 rules_by_classes=rules_by_classes,
@@ -473,7 +472,10 @@ def classify_order(
                 # verbose=True,
             )
             order_class = llm_response.most_relevant_class_response.order_class.lower()
+            query_summary = llm_response.query_summary
 
+            # Save order query summary as normalized
+            history_record.order_normalized_query = query_summary
             # Save full LLM response
             history_record.llm_response = llm_response.dict()
         else:
