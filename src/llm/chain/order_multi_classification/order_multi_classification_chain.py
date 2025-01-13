@@ -80,9 +80,10 @@ def get_order_class(
         verbose=verbose,
     )
 
-    scores_str = "\n".join(
-        [f"- \"{class_name}\": {score}"
-         for class_name, score in scores.items()]
+    # Class name already exists in score
+    scores_str = "\n\n".join(
+        [f"{score}"
+         for _, score in scores.items()]
     )
     # print(scores_str)
 
@@ -97,6 +98,6 @@ def get_order_class(
 
     return OrderClassificationLLMResponse(
         most_relevant_class_response=most_relevant_class_response,
-        scores=scores,
+        scores=scores_str,
         query_summary=query_summary,
     )
