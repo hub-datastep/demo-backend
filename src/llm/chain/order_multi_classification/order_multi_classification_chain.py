@@ -3,20 +3,19 @@ from loguru import logger
 
 from llm.chain.order_classification_chain import get_llm_by_client_credentials
 from llm.chain.order_multi_classification.class_score_chain import (
-    get_class_score_chain, \
+    get_class_score_chain,
     get_class_score,
 )
-from llm.chain.order_multi_classification.most_relevant_class_chain import \
-    (
+from llm.chain.order_multi_classification.most_relevant_class_chain import (
     get_most_relevant_class,
 )
-from llm.chain.order_multi_classification.order_query_summarization import \
-    (
+from llm.chain.order_multi_classification.order_query_summarization import (
     get_order_query_summary,
 )
 from scheme.order_classification.order_classification_config_scheme import RulesWithParams
-from scheme.order_classification.order_classification_scheme import \
-    MostRelevantClassLLMResponse
+from scheme.order_classification.order_classification_scheme import (
+    OrderClassificationLLMResponse,
+)
 
 
 def _get_scores_of_classes(
@@ -63,10 +62,10 @@ def get_order_class(
     rules_by_classes: dict,
     client: str | None = None,
     verbose: bool = False,
-) -> MostRelevantClassLLMResponse:
+) -> OrderClassificationLLMResponse:
     llm = get_llm_by_client_credentials(client=client)
 
-    order_query_summary = get_order_query_summary(
+    query_summary = get_order_query_summary(
         llm=llm,
         order_query=order_query,
         client=client,
@@ -75,22 +74,29 @@ def get_order_class(
 
     scores = _get_scores_of_classes(
         llm=llm,
-        order_query=order_query_summary,
+        order_query=query_summary,
         rules_by_classes=rules_by_classes,
         client=client,
         verbose=verbose,
     )
 
-    scores_str = "\n\n".join([f"{score}" for class_name, score in scores.items()])
+    scores_str = "\n".join(
+        [f"- \"{class_name}\": {score}"
+         for class_name, score in scores.items()]
+    )
     # print(scores_str)
 
-    order_class = get_most_relevant_class(
+    most_relevant_class_response = get_most_relevant_class(
         llm=llm,
-        order_query=order_query_summary,
+        order_query=query_summary,
         rules_by_classes=rules_by_classes,
         scores=scores_str,
         client=client,
         verbose=verbose,
     )
 
-    return order_class
+    return OrderClassificationLLMResponse(
+        most_relevant_class_response=most_relevant_class_response,
+        scores=scores,
+        query_summary=query_summary,
+    )
