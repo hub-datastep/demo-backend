@@ -24,6 +24,12 @@ KAFKA_DEFAULT_BATCH_SETTINGS = {
 }
 
 
+def _get_path_for_files():
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
+    messages_path = f"{DATA_FOLDER_PATH}/unistroy/kafka-nsi/{now}"
+    return messages_path
+
+
 # Unistroy UTD PDF files Mapping Subscriber
 # Gets messages from topic
 @kafka_broker.subscriber(
@@ -59,7 +65,8 @@ async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
 
 # * Выгрузка категорий из топика
 @kafka_broker.subscriber(
-    "1cbsh.stage.material-category.out.1",
+    # "1cbsh.stage.material-category.out.1",
+    "1cbsh.material-category.out.1",
     group_id=KAFKA_CONSUMER_GROUP,
     **{
         "batch": True,
@@ -71,16 +78,16 @@ async def get_all_messages(body):
     """
     Консьюмер для выгрузки всех категорий для материалов из НСИ
     """
-    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
-    messages_path = (f"{DATA_FOLDER_PATH}/unistroy-kafka-nsi/"
-                     f"{now}/kafka_messages-categories.json")
+    files_path = _get_path_for_files()
+    messages_path = f"{files_path}/kafka_messages-categories.json"
     with open(messages_path, 'w') as f:
         json.dump(body, f)
 
 
 # * Выгрузка материалов из топика
 @kafka_broker.subscriber(
-    "1cbsh.stage.material.out.1",
+    # "1cbsh.stage.material.out.1",
+    "1cbsh.material.out.1",
     group_id=KAFKA_CONSUMER_GROUP,
     **{
         "batch": True,
@@ -92,8 +99,7 @@ async def get_all_messages(body):
     """
     Консьюмер для выгрузки всех материалов из НСИ
     """
-    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
-    messages_path = (f"{DATA_FOLDER_PATH}/unistroy-kafka-nsi/"
-                     f"{now}/kafka_messages-materials.json")
+    files_path = _get_path_for_files()
+    messages_path = f"{files_path}/kafka_messages-materials.json"
     with open(messages_path, 'w') as f:
         json.dump(body, f)
