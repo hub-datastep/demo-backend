@@ -1,17 +1,14 @@
 import json
+import os
 from datetime import datetime
 
 from faststream import FastStream
-from loguru import logger
 
 from infra.env import (
     KAFKA_CONSUMER_GROUP,
-    TGBOT_DELIVERY_NOTE_TOPIC,
-    TGBOT_DELIVERY_NOTE_EXPORT_TOPIC, DATA_FOLDER_PATH,
+    DATA_FOLDER_PATH,
 )
-from infra.kafka import kafka_broker, send_message_to_kafka
-from model.mapping import mapping_with_parsing_model
-from scheme.file.utd_card_message_scheme import UTDCardInputMessage
+from infra.kafka import kafka_broker
 
 app = FastStream(kafka_broker)
 
@@ -27,6 +24,10 @@ KAFKA_DEFAULT_BATCH_SETTINGS = {
 def _get_path_for_files():
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
     messages_path = f"{DATA_FOLDER_PATH}/unistroy/kafka-nsi/{now}"
+
+    # Create all parent folder if not exists
+    os.makedirs(messages_path, exist_ok=True)
+
     return messages_path
 
 

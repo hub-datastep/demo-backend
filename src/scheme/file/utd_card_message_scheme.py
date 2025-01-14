@@ -111,6 +111,9 @@ class UTDCardOutputMessage(SQLModel):
     # Сообщение об ошибке
     error_message: str | None = None
 
+    # URL to web interface with results
+    results_url: str
+
 
 class UTDEntityWithParamsAndNoms(SQLModel):
     idn_number: str | None = None
