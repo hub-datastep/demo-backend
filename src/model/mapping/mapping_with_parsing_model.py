@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from loguru import logger
 
 from exception.utd_card_processing_exception import raise_utd_card_processing_exception
+from infra.env import FRONTEND_URL
 from model.file.utd.download_pdf_model import download_file
 from model.file.utd.mappings_with_parsed_data_model import add_parsed_data_to_mappings
 from model.file.utd.multi_entities_pdf_parsing_model import (
@@ -24,6 +25,8 @@ from scheme.file.utd_card_message_scheme import (
 from util.uuid import generate_uuid
 
 UNISTROY_USER_ID = 56
+
+RESULTS_URL_BASE = f"{FRONTEND_URL}/classifier/history?iteration_key="
 
 
 async def parse_and_map_utd_card(
@@ -49,7 +52,9 @@ async def parse_and_map_utd_card(
         tenant_id = user.tenant_id
 
         for utd_entity in utd_entities_with_params_and_noms:
-            logger.debug(f"UTD Entity '{utd_entity.idn_number}' with params and noms:\n{utd_entity}")
+            logger.debug(
+                f"UTD Entity '{utd_entity.idn_number}' with params and noms:\n{utd_entity}"
+            )
 
             # Generate mapping iteration key (UTD guid)
             iteration_key = generate_uuid()
@@ -92,6 +97,8 @@ async def parse_and_map_utd_card(
                 contract_name="ДОГОВОР ПОСТАВКИ № 003/06-Лето от 13.09.2023",
                 contract_number="003/06-Лето",
                 contract_date=date(2024, 8, 27),
+                # URL to web interface with results
+                results_url=f"{RESULTS_URL_BASE}{iteration_key}",
             )
 
             yield output_message
