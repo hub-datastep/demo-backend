@@ -120,11 +120,19 @@ FEATURES_REGEX_PATTERNS_FOR_CLASS = {
         # - after SDR and optional dash, there are two groups "number x number",
         #   each group can have a decimal part.
         # Example: "SDR11 - 200х18,2", "SDR17.6-280х16,6", etc.
-        "SDR_and_dimensions": r"(?i)\bSDR(\d+(?:[\.,]\d+)?)(?:\s*-\s*)?(\d+(?:[\.,]\d+))\s*[xх]\s*(\d+(?:[\.,]\d+))\b",
+        "SDR_and_dimensions": r"(?i)\bSDR\s*(\d{1,2})\b",
 
         # Pipe length in meters: matches "number" + "m" (case-insensitive),
         # allows spaces before "m". Examples: "12m", " 12M", "(12m)", etc.
         "length_in_meters": r"(?i)\b(\d+(?:[\.,]\d+)?)\s*[мm]\b",
+    },
+    "Лифтовое оборудование Материалы":{
+        "payload": r"(?i)\b(?:г/п\s*[:\-]?\s*(\d+)\s*кг|(\d+)\s*кг)\b",
+        "number_of_stops": r"(?i)\b(\d+)\s*ост(?:\.|ановок)?\b",
+        "speed": r"(?i)\b(\d+(?:\.\d+)?)\s*м/с\b",
+        "machine_room": r"(?i)\b(?:Без\s*МП|С\s*МП)\b",
+        "usage_type": r"(?i)\b(?:пассажирский|грузовой)\b",
+
     }
 }
 
@@ -194,11 +202,11 @@ def get_noms_metadatas_with_features(
         # result_item = features_dict if features_dict else None
         # results.append(result_item)
         if features_dict:
-            results.append(features_dict)
+            results.append([nom, group_name, features_dict])
     
     return results
 
-
+from save_excel import save_to_excel
 def main():
     # Считываем Excel (лишь колонки NOMs и GROUP)
     df_sample = pd.read_excel(
@@ -228,6 +236,7 @@ def main():
     # df_sample = pd.DataFrame(data)
 
     result = get_noms_metadatas_with_features(df_sample, FEATURES_REGEX_PATTERNS_FOR_CLASS)
+    save_to_excel(result, 'output.xlsx')
     for item in result:
         print(item)
 
