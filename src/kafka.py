@@ -6,17 +6,23 @@ from faststream import FastStream
 
 from infra.env import (
     KAFKA_CONSUMER_GROUP,
-    DATA_FOLDER_PATH,
+    DATA_FOLDER_PATH, KAFKA_NSI_TOPIC_MATERIALS, KAFKA_NSI_TOPIC_CATEGORIES,
 )
 from infra.kafka import kafka_broker
 
 app = FastStream(kafka_broker)
 
-KAFKA_DEFAULT_BATCH_SETTINGS = {
+KAFKA_DEFAULT_SETTINGS = {
     # Получать 1 сообщение (False) или несколько сразу (True)
     "batch": False,
     # Кол-во обрабатываемых сообщений за раз
     "max_records": 1,
+    "auto_offset_reset": "earliest",
+}
+
+KAFKA_NSI_TOPICS_SETTINGS = {
+    "batch": True,
+    "max_records": 1_000_000,
     "auto_offset_reset": "earliest",
 }
 
@@ -36,7 +42,7 @@ def _get_path_for_files():
 # @kafka_broker.subscriber(
 #     TGBOT_DELIVERY_NOTE_TOPIC,
 #     group_id=KAFKA_CONSUMER_GROUP,
-#     **KAFKA_DEFAULT_BATCH_SETTINGS,
+#     **KAFKA_DEFAULT_SETTINGS,
 # )
 # async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
 #     logger.debug(f"Unistroy Kafka Request (input message):\n{body}")
@@ -66,14 +72,9 @@ def _get_path_for_files():
 
 # * Выгрузка категорий из топика
 @kafka_broker.subscriber(
-    # "1cbsh.stage.material-category.out.1",
-    "1cbsh.material-category.out.1",
+    KAFKA_NSI_TOPIC_CATEGORIES,
     group_id=KAFKA_CONSUMER_GROUP,
-    **{
-        "batch": True,
-        "max_records": 1_000_000,
-        "auto_offset_reset": "earliest",
-    },
+    **KAFKA_NSI_TOPICS_SETTINGS,
 )
 async def get_all_messages(body):
     """
@@ -87,14 +88,9 @@ async def get_all_messages(body):
 
 # * Выгрузка материалов из топика
 @kafka_broker.subscriber(
-    # "1cbsh.stage.material.out.1",
-    "1cbsh.material.out.1",
+    KAFKA_NSI_TOPIC_MATERIALS,
     group_id=KAFKA_CONSUMER_GROUP,
-    **{
-        "batch": True,
-        "max_records": 1_000_000,
-        "auto_offset_reset": "earliest",
-    },
+    **KAFKA_NSI_TOPICS_SETTINGS,
 )
 async def get_all_messages(body):
     """
