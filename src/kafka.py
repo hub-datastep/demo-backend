@@ -5,8 +5,10 @@ from datetime import datetime
 from faststream import FastStream
 
 from infra.env import (
-    KAFKA_CONSUMER_GROUP,
-    DATA_FOLDER_PATH, KAFKA_NSI_TOPIC_MATERIALS, KAFKA_NSI_TOPIC_CATEGORIES,
+    DATA_FOLDER_PATH,
+    KAFKA_NSI_TOPIC_MATERIALS,
+    KAFKA_NSI_TOPIC_CATEGORIES,
+    KAFKA_NSI_CONSUMERS_GROUP,
 )
 from infra.kafka import kafka_broker
 
@@ -73,7 +75,7 @@ def _get_path_for_files():
 # * Выгрузка категорий из топика
 @kafka_broker.subscriber(
     KAFKA_NSI_TOPIC_CATEGORIES,
-    group_id=KAFKA_CONSUMER_GROUP,
+    group_id=KAFKA_NSI_CONSUMERS_GROUP,
     **KAFKA_NSI_TOPICS_SETTINGS,
 )
 async def get_all_messages(body):
@@ -89,7 +91,7 @@ async def get_all_messages(body):
 # * Выгрузка материалов из топика
 @kafka_broker.subscriber(
     KAFKA_NSI_TOPIC_MATERIALS,
-    group_id=KAFKA_CONSUMER_GROUP,
+    group_id=KAFKA_NSI_CONSUMERS_GROUP,
     **KAFKA_NSI_TOPICS_SETTINGS,
 )
 async def get_all_messages(body):
