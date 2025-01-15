@@ -35,13 +35,13 @@ def _get_path_for_files():
     uuid = generate_uuid()
     messages_path = f"{DATA_FOLDER_PATH}/unistroy/kafka-nsi/{now}"
 
-    # Create all parent folder if not exists
-    os.makedirs(messages_path, exist_ok=True)
-
     return messages_path, uuid
 
 
 def save_to_json(file_path: str, data):
+    # Create all path if not exists
+    os.makedirs(file_path, exist_ok=True)
+
     with open(file_path, 'w') as f:
         json.dump(data, f, ensure_ascii=False)
 
