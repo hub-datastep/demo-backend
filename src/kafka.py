@@ -24,7 +24,7 @@ KAFKA_DEFAULT_SETTINGS = {
 }
 
 KAFKA_NSI_TOPICS_SETTINGS = {
-    "batch": False,
+    "batch": True,
     "max_records": 1_000_000,
     "auto_offset_reset": "earliest",
 }
@@ -33,12 +33,12 @@ KAFKA_NSI_TOPICS_SETTINGS = {
 def _get_path_for_files():
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
     uuid = generate_uuid()
-    messages_path = f"{DATA_FOLDER_PATH}/unistroy/kafka-nsi/{now}/{uuid}"
+    messages_path = f"{DATA_FOLDER_PATH}/unistroy/kafka-nsi/{now}"
 
     # Create all parent folder if not exists
     os.makedirs(messages_path, exist_ok=True)
 
-    return messages_path
+    return messages_path, uuid
 
 
 # Unistroy UTD PDF files Mapping Subscriber
@@ -84,8 +84,8 @@ async def get_all_messages(body):
     """
     Консьюмер для выгрузки всех категорий для материалов из НСИ
     """
-    files_path = _get_path_for_files()
-    messages_path = f"{files_path}/kafka_messages-categories.json"
+    files_path, uuid = _get_path_for_files()
+    messages_path = f"{files_path}/kafka_messages-categories-{uuid}.json"
     with open(messages_path, 'w') as f:
         json.dump(body, f, ensure_ascii=False)
 
@@ -100,7 +100,7 @@ async def get_all_messages(body):
     """
     Консьюмер для выгрузки всех материалов из НСИ
     """
-    files_path = _get_path_for_files()
-    messages_path = f"{files_path}/kafka_messages-materials.json"
+    files_path, uuid = _get_path_for_files()
+    messages_path = f"{files_path}/kafka_messages-materials-{uuid}.json"
     with open(messages_path, 'w') as f:
         json.dump(body, f, ensure_ascii=False)
