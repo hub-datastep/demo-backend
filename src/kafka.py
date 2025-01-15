@@ -11,6 +11,7 @@ from infra.env import (
     KAFKA_NSI_CONSUMERS_GROUP,
 )
 from infra.kafka import kafka_broker
+from util.uuid import generate_uuid
 
 app = FastStream(kafka_broker)
 
@@ -31,7 +32,8 @@ KAFKA_NSI_TOPICS_SETTINGS = {
 
 def _get_path_for_files():
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
-    messages_path = f"{DATA_FOLDER_PATH}/unistroy/kafka-nsi/{now}"
+    uuid = generate_uuid()
+    messages_path = f"{DATA_FOLDER_PATH}/unistroy/kafka-nsi/{now}/{uuid}"
 
     # Create all parent folder if not exists
     os.makedirs(messages_path, exist_ok=True)
