@@ -41,6 +41,11 @@ def _get_path_for_files():
     return messages_path, uuid
 
 
+def save_to_json(file_path: str, data):
+    with open(file_path, 'w') as f:
+        json.dump(data, f, ensure_ascii=False)
+
+
 # Unistroy UTD PDF files Mapping Subscriber
 # Gets messages from topic
 # @kafka_broker.subscriber(
@@ -85,9 +90,8 @@ async def get_all_messages(body):
     Консьюмер для выгрузки всех категорий для материалов из НСИ
     """
     files_path, uuid = _get_path_for_files()
-    messages_path = f"{files_path}/kafka_messages-categories-{uuid}.json"
-    with open(messages_path, 'w') as f:
-        json.dump(body, f, ensure_ascii=False)
+    categories_path = f"{files_path}/categories/{uuid}.json"
+    save_to_json(categories_path, body)
 
 
 # * Выгрузка материалов из топика
@@ -101,6 +105,5 @@ async def get_all_messages(body):
     Консьюмер для выгрузки всех материалов из НСИ
     """
     files_path, uuid = _get_path_for_files()
-    messages_path = f"{files_path}/kafka_messages-materials-{uuid}.json"
-    with open(messages_path, 'w') as f:
-        json.dump(body, f, ensure_ascii=False)
+    materials_path = f"{files_path}/materials/{uuid}.json"
+    save_to_json(materials_path, body)
