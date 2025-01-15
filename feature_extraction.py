@@ -125,6 +125,8 @@ FEATURES_REGEX_PATTERNS_FOR_CLASS = {
         # Pipe length in meters: matches "number" + "m" (case-insensitive),
         # allows spaces before "m". Examples: "12m", " 12M", "(12m)", etc.
         "length_in_meters": r"(?i)\b(\d+(?:[\.,]\d+)?)\s*[мm]\b",
+
+        "pe": r"\b[Пп][ЭЕEe][\s-]?(\d{2,4})\b"
     },
     "Лифтовое оборудование Материалы":{
         "payload": r"(?i)\b(?:г/п\s*[:\-]?\s*(\d+)\s*кг|(\d+)\s*кг)\b",
@@ -133,9 +135,30 @@ FEATURES_REGEX_PATTERNS_FOR_CLASS = {
         "machine_room": r"(?i)\b(?:Без\s*МП|С\s*МП)\b",
         "usage_type": r"(?i)\b(?:пассажирский|грузовой)\b",
 
+    },
+    "Блоки и другие стеновые материалы": {
+        "dimensions": r"(?i)\b(\d{2,4}[xх]\d{2,4}[xх]\d{2,4})\b",  # Matches dimensions like 390x190x188
+        "strength_class": r"(?i)\b([Mм][-\s]?\d{2,3})\b",  # Matches M75, M-75, M 75
+        "standard": r"(?i)\b(ГОСТ\s?\d{4,5}-\d{4})\b",  # Matches standards like ГОСТ 33126-2014
+    },
+    "Пазогребневые плиты гипсовые Материалы": {
+        "dimensions": r"(?i)\b\d{3}[х*]\d{3}[х*]\d{2,3}(мм)?\b"
+
+    },
+    "Перемычки железобетонные Материалы": {
+        # Matches sizes with "пб" (e.g., "10 пб", "10пб") and "пп" (e.g., "10 пп", "10пп")
+        "size_p": r"(?i)\b(\d{1,2})\s*п[бп]\b",
+
+        # Matches range values, optionally followed by "п" (e.g., "21-27", "21-27 п")
+        "range": r"\b(\d{1,2})\s*-\s*(\d{1,2})",
+    },
+    "Плиты перекрытия железобетонные пустотные Материалы": {
+        "material_type": r"(?i)\bП[БК]\b",
+        "dimensions": r"\b\d{1,3}-\d{1,3}-\d{1,3}т?(?:,\d{1,2})?(?=\s|[AА]тVт|\()",
+        "additional_info": r"(?i)[AА]тVт",
+        "weight": r"\d+,\d{1,2}"
     }
 }
-
 
 
 
@@ -194,7 +217,7 @@ def get_noms_metadatas_with_features(
             if match:
                 # Сохраняем всё совпадение (group(0)), 
                 # либо, при необходимости, какую-то определённую группу: match.group(1)
-                features_dict[feature_name] = match.group(0)
+                features_dict[feature_name] = match.group(0).lower()
             else:
                 features_dict[feature_name] = None
         
