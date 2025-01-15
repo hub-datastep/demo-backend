@@ -24,7 +24,7 @@ KAFKA_DEFAULT_SETTINGS = {
 }
 
 KAFKA_NSI_TOPICS_SETTINGS = {
-    "batch": True,
+    "batch": False,
     "max_records": 1_000_000,
     "auto_offset_reset": "earliest",
 }
