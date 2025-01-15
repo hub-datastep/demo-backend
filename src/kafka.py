@@ -85,7 +85,7 @@ async def get_all_messages(body):
     files_path = _get_path_for_files()
     messages_path = f"{files_path}/kafka_messages-categories.json"
     with open(messages_path, 'w') as f:
-        json.dump(body, f)
+        json.dump(body, f, ensure_ascii=False)
 
 
 # * Выгрузка материалов из топика
@@ -101,4 +101,4 @@ async def get_all_messages(body):
     files_path = _get_path_for_files()
     messages_path = f"{files_path}/kafka_messages-materials.json"
     with open(messages_path, 'w') as f:
-        json.dump(body, f)
+        json.dump(body, f, ensure_ascii=False)
