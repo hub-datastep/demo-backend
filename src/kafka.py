@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from pathlib import Path
 
 from faststream import FastStream
 
@@ -39,8 +40,8 @@ def _get_path_for_files():
 
 
 def save_to_json(file_path: str, data):
-    # Create all path if not exists
-    os.makedirs(file_path, exist_ok=True)
+    # Create parent dirs if not exists
+    os.makedirs(Path(file_path).parent, exist_ok=True)
 
     with open(file_path, 'w') as f:
         json.dump(data, f, ensure_ascii=False)
