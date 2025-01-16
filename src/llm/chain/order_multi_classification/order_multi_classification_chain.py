@@ -82,8 +82,8 @@ def get_order_class(
 
     # Class name already exists in score
     scores_str = "\n\n".join(
-        [f"{score}"
-         for _, score in scores.items()]
+        [f"{score_with_class_name}"
+         for _, score_with_class_name in scores.items()]
     )
     # print(scores_str)
 

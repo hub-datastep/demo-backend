@@ -8,23 +8,22 @@ from loguru import logger
 from openai import RateLimitError
 
 from infra.order_classification import WAIT_TIME_IN_SEC
+from llm.chain.order_classification_chain import get_llm_by_client_credentials
 
 _PROMPT_TEMPLATE = """
-Прочитай содержание заявки жильца и суммаризируй её.
- 
-Убери из заявки упоминания, схожие на:
-- Агрессия, раздражение, просьбы о помощи, жалобы, недовольство.
-- Срочность (крайний срок, необходимость немедленного решения).
-- Личные мнения, оценки, требования, предупреждения, опасения,
-  потенциальную опасность.
-- Ругательства, оскорбления, угрозы.
+Заявка жильца:
+```
+{query}
+```
 
-Кратко, чётко и точно опиши суть проблемы, которая описана в заявке.
-Все требования жильца в заявке описывай, как просьбы жильца.
+Прочитай заявку жильца и убери из неё:
+- Срочность (необходимость немедленного решения).
+- Агрессию, раздражение, ругательства, оскорбления, угрозы.
+Важно, чтобы заявка звучала нейтрально, а не агрессивно или срочно.
 
-Заявка жильца: "{query}"
+Твоей ответ должен содержать только содержание заявки жильца. 
 
-Твоё описание сути проблемы:
+Содержание заявки жильца:
 """
 
 
@@ -71,13 +70,15 @@ def get_order_query_summary(
         query_summary: str = chain.run(query=order_query)
         return query_summary
 
+    # TODO: make decorator for it
     except RateLimitError as e:
         logger.error(f"RateLimit error occurred: {str(e)}")
         logger.info(f"Wait {WAIT_TIME_IN_SEC} seconds and try again")
         time.sleep(WAIT_TIME_IN_SEC)
         logger.info(
-            f"Timeout passed, try to classify order '{order_query}' of client "
-            f"'{client}' again"
+            f"Timeout passed, "
+            f"try to classify order '{order_query}' "
+            f"of client '{client}' again"
         )
 
         return get_order_query_summary(
@@ -86,3 +87,20 @@ def get_order_query_summary(
             client=client,
             verbose=verbose,
         )
+
+
+if __name__ == "__main__":
+    llm = get_llm_by_client_credentials()
+
+    order_query = """
+Из-за пожарных учений отрубилась система вентиляции и не включается. СРОЧНО ПРОШУ ВКЛЮЧИТЬ. 
+ЗАДЫХАЕМСЯ.
+    """
+
+    summary = get_order_query_summary(
+        llm=llm,
+        order_query=order_query,
+    )
+
+    print(f"Order Query: {order_query}")
+    print(f"Order Summary: {summary}")
