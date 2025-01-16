@@ -52,7 +52,7 @@ AI_USER_ID = 15698
 ORDER_PROCESSED_BY_AI_MESSAGE = "ИИ классифицировал эту заявку как аварийную"
 
 
-def _normalize_resident_request_string(query: str) -> str:
+def normalize_resident_request_string(query: str) -> str:
     # Remove \n symbols
     removed_line_breaks_query = query.replace("\n", " ")
 
@@ -463,7 +463,7 @@ def classify_order(
         # Run LLM to classify order
         if is_use_order_classification:
             # Normalize order query for LLM chain
-            normalized_query = _normalize_resident_request_string(order_query)
+            normalized_query = normalize_resident_request_string(order_query)
 
             llm_response = get_order_class(
                 order_query=normalized_query,
