@@ -547,6 +547,11 @@ def classify_order(
 
             history_record.order_update_request = request_body
             history_record.order_update_response = response
+        # else:
+        #     if not is_use_order_classification:
+        #         result = {"result": disabled_field_msg}
+        #         history_record.order_update_request = result
+        #         history_record.order_update_response = result
 
     except (HTTPException, Exception) as error:
         history_record.is_error = True
