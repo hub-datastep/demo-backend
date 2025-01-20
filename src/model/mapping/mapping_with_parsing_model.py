@@ -17,16 +17,18 @@ from model.mapping.mapping_execute_model import (
     start_mapping_and_wait_results,
 )
 from model.user import user_model
+from repository.mapping import mapping_iteration_repository
 from scheme.file.utd_card_message_scheme import (
     UTDCardInputMessage,
     UTDCardOutputMessage,
     UTDCardStatus,
 )
+from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
 from util.uuid import generate_uuid
 
 UNISTROY_USER_ID = 56
 
-RESULTS_URL_BASE = f"{FRONTEND_URL}/classifier/history?iteration_key="
+RESULTS_URL_BASE = f"{FRONTEND_URL}/classifier/history?iteration_id="
 
 
 async def parse_and_map_utd_card(
@@ -57,7 +59,11 @@ async def parse_and_map_utd_card(
             )
 
             # Generate mapping iteration key (UTD guid)
-            iteration_key = generate_uuid()
+            iteration_id = generate_uuid()
+
+            # Create mapping iteration
+            iteration = MappingIteration(id=iteration_id)
+            mapping_iteration_repository.create_iteration(iteration=iteration)
 
             # Set index for each nomenclature
             nomenclatures_list = utd_entity.nomenclatures_list
@@ -68,7 +74,7 @@ async def parse_and_map_utd_card(
                 nomenclatures_list=nomenclatures_with_indexes_list,
                 classifier_config=classifier_config,
                 tenant_id=tenant_id,
-                iteration_key=iteration_key,
+                iteration_id=iteration_id,
             )
             logger.debug(f"Mapping Results:\n{mapping_results}")
 
@@ -81,7 +87,7 @@ async def parse_and_map_utd_card(
             output_message = UTDCardOutputMessage(
                 **body.dict(exclude={"guid"}),
                 idn_card_guid=body.guid,
-                guid=iteration_key,
+                guid=iteration_id,
                 status=UTDCardStatus.DONE,
                 # Mapping Data
                 materials=mapped_materials,
@@ -98,7 +104,7 @@ async def parse_and_map_utd_card(
                 contract_number="003/06-Лето",
                 contract_date=date(2024, 8, 27),
                 # URL to web interface with results
-                results_url=f"{RESULTS_URL_BASE}{iteration_key}",
+                results_url=f"{RESULTS_URL_BASE}{iteration_id}",
             )
 
             yield output_message
