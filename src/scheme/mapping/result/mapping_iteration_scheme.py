@@ -18,6 +18,12 @@ class MappingIteration(MappingIterationBase, table=True):
     results: list["MappingResult"] = Relationship(back_populates="iteration")
 
 
+class IterationWithResults(MappingIterationBase):
+    id: str
+    results: list["MappingResult"]
+
+
 from scheme.mapping.result.mapping_result_scheme import MappingResult
 
 MappingIteration.update_forward_refs()
+IterationWithResults.update_forward_refs()
