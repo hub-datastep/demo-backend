@@ -6,8 +6,8 @@ from sqlmodel import SQLModel, Field, Relationship
 class MappingResultBase(SQLModel):
     iteration_id: str | None = Field(foreign_key="mapping_iteration.id")
     user_id: int | None = Field(foreign_key="user.id")
-    results: dict | None = Field(sa_column=Column(JSONB))
-    corrected_nomenclature: dict | None = Field(default=None, sa_column=Column(JSONB))
+    result: dict | None = Field(sa_column=Column(JSONB))
+    corrected_nomenclature: dict | None = Field(sa_column=Column(JSONB))
 
 
 class MappingResult(MappingResultBase, table=True):

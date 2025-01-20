@@ -1,29 +1,19 @@
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from infra.database import engine
-from scheme.mapping.mapping_results_scheme import MappingResult, MappingResultUpdate
+from infra.database import get_session
+from scheme.mapping.result.mapping_result_scheme import MappingResult, MappingResultUpdate
 
 
-def save_mapping_results_list(mapping_results: list[MappingResult]):
-    with Session(engine) as session:
+def create_mapping_results_list(mapping_results: list[MappingResult]):
+    with get_session() as session:
         session.add_all(mapping_results)
         session.commit()
 
+        # Update results in list
+        for result in mapping_results:
+            session.refresh(result)
 
-def get_nomenclature_results(
-    session: Session,
-    user_id: int,
-    iteration_key: str | None = None,
-) -> list[MappingResult]:
-    st = select(MappingResult)
-    st = st.where(MappingResult.user_id == user_id)
-
-    if iteration_key is not None:
-        print(f"Iter key: {iteration_key}")
-        st = st.where(MappingResult.iteration_key.ilike(f"%{iteration_key}%"))
-
-    results_list = list(session.exec(st).all())
-    return results_list
+        return mapping_results
 
 
 def save_correct_nomenclature(nomenclature: MappingResultUpdate, session: Session) -> MappingResult:
