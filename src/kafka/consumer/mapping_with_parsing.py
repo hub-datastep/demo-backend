@@ -2,9 +2,9 @@ from faststream import FastStream
 from loguru import logger
 
 from infra.env import (
-    TGBOT_DELIVERY_NOTE_TOPIC,
-    KAFKA_CONSUMER_GROUP,
-    TGBOT_DELIVERY_NOTE_EXPORT_TOPIC,
+    UNISTROY_MAPPING_INPUT_TOPIC,
+    UNISTROY_KAFKA_CONSUMERS_GROUP,
+    UNISTROY_MAPPING_LINK_OUTPUT_TOPIC,
 )
 from infra.kafka import kafka_broker, send_message_to_kafka
 from model.mapping import mapping_with_parsing_model
@@ -13,6 +13,7 @@ from scheme.file.utd_card_message_scheme import UTDCardInputMessage
 app = FastStream(kafka_broker)
 
 KAFKA_DEFAULT_SETTINGS = {
+    "group_id": UNISTROY_KAFKA_CONSUMERS_GROUP,
     # Получать 1 сообщение (False) или несколько сразу (True)
     "batch": False,
     # Кол-во обрабатываемых сообщений за раз
@@ -24,8 +25,7 @@ KAFKA_DEFAULT_SETTINGS = {
 # Unistroy UTD PDF files Mapping Subscriber
 # Gets messages from topic
 @kafka_broker.subscriber(
-    TGBOT_DELIVERY_NOTE_TOPIC,
-    group_id=KAFKA_CONSUMER_GROUP,
+    UNISTROY_MAPPING_INPUT_TOPIC,
     **KAFKA_DEFAULT_SETTINGS,
 )
 async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
@@ -34,11 +34,12 @@ async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
     # Run mapping with parsing and wait results
     output_messages_list = mapping_with_parsing_model.parse_and_map_utd_card(body=body)
 
+    # TODO: send results_url only
     async for output_message in output_messages_list:
         logger.debug(f"Unistroy Kafka Response (output message):\n{output_message}")
 
         # Send message to Unistroy Kafka export-topic with results
         await send_message_to_kafka(
             message_body=output_message.dict(),
-            topic=TGBOT_DELIVERY_NOTE_EXPORT_TOPIC,
+            topic=UNISTROY_MAPPING_LINK_OUTPUT_TOPIC,
         )
