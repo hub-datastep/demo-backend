@@ -16,8 +16,11 @@ from controller.embedding import embedding_controller
 from controller.file import file_controller
 from controller.kafka import kafka_controller
 from controller.ksr import ksr_controller
-from controller.mapping import mapping_controller
-from controller.mapping import mapping_with_parsing_controller
+from controller.mapping import (
+    mapping_controller,
+    mapping_with_parsing_controller,
+    mapping_result_controller,
+)
 from controller.mode import mode_controller
 from controller.ner import brand_model_controller
 from controller.order_classification.vysota import \
@@ -64,11 +67,24 @@ app.include_router(prediction_controller.router, tags=["prediction"])
 app.include_router(file_controller.router, tags=["file"], prefix="/file")
 
 # Mapping
-app.include_router(classifier_config_controller.router, tags=["classifier_config"], prefix="/classifier_config")
-app.include_router(mapping_controller.router, tags=["mapping"], prefix="/mapping")
+app.include_router(
+    classifier_config_controller.router,
+    tags=["Classifier Config"],
+    prefix="/classifier/config",
+)
+app.include_router(mapping_controller.router, tags=["Mapping"], prefix="/mapping")
+app.include_router(
+    mapping_result_controller.router,
+    tags=["Mapping Result"],
+    prefix="/mapping/result",
+)
 app.include_router(embedding_controller.router, tags=["embedding"], prefix="/embedding")
 # app.include_router(synchronize_controller.router, tags=["synchronize"], prefix="/synchronize")
-app.include_router(chroma_collection_controller.router, tags=["chroma_collection"], prefix="/collection")
+app.include_router(
+    chroma_collection_controller.router,
+    tags=["chroma_collection"],
+    prefix="/collection",
+)
 app.include_router(classifier_controller.router, tags=["classifier"], prefix="/classifier")
 app.include_router(brand_model_controller.router, tags=["ner_brand"], prefix="/ner_brand")
 
@@ -89,7 +105,11 @@ app.include_router(task_controller.router, tags=["task"], prefix="/task")
 app.include_router(ksr_controller.router, tags=["ksr"], prefix="/ksr")
 
 # Solution Imitation
-app.include_router(solution_imitation_controller.router, tags=["Solution Imitation"], prefix="/solution_imitation")
+app.include_router(
+    solution_imitation_controller.router,
+    tags=["Solution Imitation"],
+    prefix="/solution_imitation",
+)
 
 # Emergency Class
 # Vysota Service
@@ -139,9 +159,14 @@ app = VersionedFastAPI(
 
 
 # Built docs dir
-# app.mount("/mkdocs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True), name="mkdocs")
+# app.mount("/mkdocs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True),
+# name="mkdocs")
 
-app.mount("/static", StaticFiles(directory=Path(__file__).parent / ".." / "data"), name="static")
+app.mount(
+    "/static",
+    StaticFiles(directory=Path(__file__).parent / ".." / "data"),
+    name="static",
+)
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8080, reload=True)

@@ -1,40 +1,24 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
-from sqlmodel import Session
 
-from infra.database import get_session
 from middleware.mode_middleware import TenantMode, modes_required
 from model.auth.auth_model import get_current_user
-from model.mapping import mapping_model, mapping_result_model, mapping_cim_work_type_model
-from repository.mapping import mapping_result_repository
-from scheme.mapping.mapping_results_scheme import MappingResult, MappingResultUpdate, InputModel, MappedCimModel
+from model.mapping import mapping_model, mapping_cim_work_type_model
 from scheme.mapping.mapping_scheme import MappingNomenclaturesUpload, MappingNomenclaturesResultRead
-from scheme.mapping.search_autocomplete_scheme import AutocompleteNomenclatureNameQuery
+from scheme.mapping.result.mapping_result_scheme import (
+    InputModel,
+    MappedCimModel,
+)
 from scheme.task.task_scheme import JobIdRead
 from scheme.user.user_scheme import UserRead
 
 router = APIRouter()
 
 
-@router.get("/history", response_model=list[MappingResult])
-@version(1)
-@modes_required([TenantMode.CLASSIFIER])
-def get_saved_nomenclature_mapping_result_by_user_id(
-    iteration_key: str | None = None,
-    session: Session = Depends(get_session),
-    current_user: UserRead = Depends(get_current_user),
-):
-    """
-    Получает результаты сопоставления номенклатур по ID текущего юзера.
-    """
-    user_id = current_user.id
-    return mapping_result_repository.get_nomenclature_results(session, user_id, iteration_key)
-
-
 @router.post("", response_model=JobIdRead)
 @version(1)
 @modes_required([TenantMode.CLASSIFIER])
-def start_nomenclature_mapping(
+def start_mapping_job(
     body: MappingNomenclaturesUpload,
     current_user: UserRead = Depends(get_current_user),
 ):
@@ -54,7 +38,7 @@ def start_nomenclature_mapping(
 @router.get("/{job_id}", response_model=list[MappingNomenclaturesResultRead])
 @version(1)
 @modes_required([TenantMode.CLASSIFIER])
-def get_nomenclature_mapping_result(
+def get_mapping_job_result(
     job_id: str,
     current_user: UserRead = Depends(get_current_user),
 ):
@@ -62,28 +46,6 @@ def get_nomenclature_mapping_result(
     Получает результат сопоставления номенклатур через указанный идентификатор задачи.
     """
     return mapping_model.get_all_jobs(job_id)
-
-
-@router.post("/similar_search", response_model=list[str])
-@version(1)
-@modes_required([TenantMode.CLASSIFIER])
-def get_similar_nomenclatures_by_user_query(
-    body: AutocompleteNomenclatureNameQuery,
-    session: Session = Depends(get_session),
-    current_user: UserRead = Depends(get_current_user),
-):
-    return mapping_result_model.get_similar_nomenclatures(body.query, current_user, session)
-
-
-@router.post("/history", response_model=MappingResult)
-@version(1)
-@modes_required([TenantMode.CLASSIFIER])
-def save_correct_nomenclature(
-    body: MappingResultUpdate,
-    session: Session = Depends(get_session),
-    current_user: UserRead = Depends(get_current_user),
-):
-    return mapping_result_repository.save_correct_nomenclature(body, session)
 
 
 @router.post("/cim_model_work_types", response_model=MappedCimModel)
