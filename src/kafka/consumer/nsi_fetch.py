@@ -7,16 +7,17 @@ from faststream import FastStream
 
 from infra.env import (
     DATA_FOLDER_PATH,
-    KAFKA_NSI_TOPIC_MATERIALS,
-    KAFKA_NSI_TOPIC_CATEGORIES,
-    KAFKA_NSI_CONSUMERS_GROUP,
+    UNISTROY_KAFKA_NSI_MATERIALS_TOPIC,
+    UNISTROY_KAFKA_NSI_CATEGORIES_TOPIC,
+    UNISTROY_KAFKA_NSI_CONSUMERS_GROUP,
 )
 from infra.kafka import kafka_broker
 from util.uuid import generate_uuid
 
 app = FastStream(kafka_broker)
 
-KAFKA_NSI_TOPICS_SETTINGS = {
+UNISTROY_KAFKA_NSI_CONSUMERS_SETTINGS = {
+    "group_id": UNISTROY_KAFKA_NSI_CONSUMERS_GROUP,
     "batch": True,
     "max_records": 1_000_000,
     "auto_offset_reset": "earliest",
@@ -40,9 +41,8 @@ def _save_to_json(file_path: str, data):
 
 
 @kafka_broker.subscriber(
-    KAFKA_NSI_TOPIC_CATEGORIES,
-    group_id=KAFKA_NSI_CONSUMERS_GROUP,
-    **KAFKA_NSI_TOPICS_SETTINGS,
+    UNISTROY_KAFKA_NSI_CATEGORIES_TOPIC,
+    **UNISTROY_KAFKA_NSI_CONSUMERS_SETTINGS,
 )
 async def get_all_categories(body):
     """
@@ -54,9 +54,8 @@ async def get_all_categories(body):
 
 
 @kafka_broker.subscriber(
-    KAFKA_NSI_TOPIC_MATERIALS,
-    group_id=KAFKA_NSI_CONSUMERS_GROUP,
-    **KAFKA_NSI_TOPICS_SETTINGS,
+    UNISTROY_KAFKA_NSI_MATERIALS_TOPIC,
+    **UNISTROY_KAFKA_NSI_CONSUMERS_SETTINGS,
 )
 async def get_all_materials(body):
     """
