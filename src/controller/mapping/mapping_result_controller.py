@@ -7,7 +7,7 @@ from middleware.mode_middleware import TenantMode, modes_required
 from model.auth.auth_model import get_current_user
 from model.mapping.result import mapping_result_model, mapping_iteration_model
 from repository.mapping import mapping_result_repository
-from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
+from scheme.mapping.result.mapping_iteration_scheme import IterationWithResults
 from scheme.mapping.result.mapping_result_scheme import (
     MappingResult,
     MappingResultUpdate,
@@ -18,22 +18,17 @@ from scheme.user.user_scheme import UserRead
 router = APIRouter()
 
 
-@router.get("/iteration/{iteration_id}", response_model=MappingIteration)
+@router.get("/iteration/{iteration_id}", response_model=IterationWithResults)
 @version(1)
 @modes_required([TenantMode.CLASSIFIER])
 def get_mapping_iteration_by_id(
     iteration_id: str,
-    with_results: bool | None = True,
-    session: Session = Depends(get_session),
     current_user: UserRead = Depends(get_current_user),
 ):
     """
     Получает итерацию маппинга по ID с его результатами.
     """
-    return mapping_iteration_model.get_iteration_by_id(
-        iteration_id=iteration_id,
-        with_results=with_results,
-    )
+    return mapping_iteration_model.get_iteration_by_id(iteration_id=iteration_id)
 
 
 @router.post("/similar_search", response_model=list[str])
