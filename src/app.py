@@ -23,8 +23,9 @@ from controller.mapping import (
 )
 from controller.mode import mode_controller
 from controller.ner import brand_model_controller
-from controller.order_classification.vysota import \
-    order_classification_controller as vysota_order_classification_controller
+from controller.order_classification.vysota import (
+    order_classification_controller as vysota_order_classification_controller,
+)
 from controller.prediction import prediction_controller
 from controller.prompt import prompt_controller
 from controller.role import role_controller
@@ -39,88 +40,158 @@ from util.healthcheck.redis_connection import check_redis_connection
 app = FastAPI()
 
 # Auth
-app.include_router(auth_controller.router, tags=["auth"], prefix="/auth")
+app.include_router(
+    auth_controller.router,
+    prefix="/auth",
+    tags=["Auth"],
+)
 
 # User
-app.include_router(user_controller.router, tags=["user"], prefix="/user")
+app.include_router(
+    user_controller.router,
+    prefix="/user",
+    tags=["User"],
+)
 
 # Role
-app.include_router(role_controller.router, tags=["role"], prefix="/role")
+app.include_router(
+    role_controller.router,
+    prefix="/role",
+    tags=["Role"],
+)
 
 # Tenant
-app.include_router(tenant_controller.router, tags=["tenant"], prefix="/tenant")
+app.include_router(
+    tenant_controller.router,
+    prefix="/tenant",
+    tags=["Tenant"],
+)
 
 # Mode
-app.include_router(mode_controller.router, tags=["mode"], prefix="/mode")
+app.include_router(
+    mode_controller.router,
+    prefix="/mode",
+    tags=["Mode"],
+)
 
 # Prompt
-app.include_router(prompt_controller.router, tags=["prompt"], prefix="/prompt")
+app.include_router(
+    prompt_controller.router,
+    prefix="/prompt",
+    tags=["Prompt"],
+)
 
 # Chat
-app.include_router(chat_controller.router, tags=["chat"], prefix="/chat")
-app.include_router(message_controller.router, tags=["message"], prefix="/message")
-# app.include_router(mark_controller.router, tags=["mark"], prefix="/mark")
-# app.include_router(review_controller.router, tags=["review"], prefix="/review")
+app.include_router(
+    chat_controller.router,
+    prefix="/chat",
+    tags=["Chat"],
+)
+app.include_router(
+    message_controller.router,
+    prefix="/message",
+    tags=["Message"],
+)
+# app.include_router(mark_controller.router, tags=["mark"], prefix="/mark",)
+# app.include_router(review_controller.router, tags=["review"], prefix="/review",)
 
 # Assistants
-app.include_router(prediction_controller.router, tags=["prediction"])
-app.include_router(file_controller.router, tags=["file"], prefix="/file")
+app.include_router(
+    prediction_controller.router,
+    tags=["Prediction"],
+)
+app.include_router(
+    file_controller.router,
+    prefix="/file",
+    tags=["File"],
+)
 
 # Mapping
 app.include_router(
     classifier_config_controller.router,
-    tags=["Classifier Config"],
     prefix="/classifier/config",
+    tags=["Classifier Config"],
 )
-app.include_router(mapping_controller.router, tags=["Mapping"], prefix="/mapping")
+app.include_router(
+    mapping_controller.router,
+    prefix="/mapping",
+    tags=["Mapping"],
+)
 app.include_router(
     mapping_result_controller.router,
-    tags=["Mapping Result"],
     prefix="/mapping/result",
+    tags=["Mapping Result"],
 )
-app.include_router(embedding_controller.router, tags=["embedding"], prefix="/embedding")
-# app.include_router(synchronize_controller.router, tags=["synchronize"], prefix="/synchronize")
+app.include_router(
+    embedding_controller.router,
+    prefix="/embedding",
+    tags=["Embedding"],
+)
+# app.include_router(synchronize_controller.router, tags=["synchronize"], prefix="/synchronize",)
 app.include_router(
     chroma_collection_controller.router,
-    tags=["chroma_collection"],
     prefix="/collection",
+    tags=["Chroma Collection"],
 )
-app.include_router(classifier_controller.router, tags=["classifier"], prefix="/classifier")
-app.include_router(brand_model_controller.router, tags=["ner_brand"], prefix="/ner_brand")
-
+app.include_router(
+    classifier_controller.router,
+    prefix="/classifier",
+    tags=["Classifier"],
+)
+app.include_router(
+    brand_model_controller.router,
+    prefix="/ner/brand",
+    tags=["NER Brand"],
+)
 # Mapping with Parsing
 app.include_router(
     mapping_with_parsing_controller.router,
-    tags=["Mapping with Parsing"],
     prefix="/mapping/with_parsing",
+    tags=["Mapping with Parsing"],
 )
 
 # Used Tokens
-app.include_router(used_token_controller.router, tags=["used_token"], prefix="/used_token")
+app.include_router(
+    used_token_controller.router,
+    prefix="/used_token",
+    tags=["Used Token"],
+)
 
 # Redis Tasks
-app.include_router(task_controller.router, tags=["task"], prefix="/task")
+app.include_router(
+    task_controller.router,
+    prefix="/task",
+    tags=["Task"],
+)
 
 # Ksr Nomenclature
-app.include_router(ksr_controller.router, tags=["ksr"], prefix="/ksr")
+app.include_router(
+    ksr_controller.router,
+    prefix="/ksr",
+    tags=["KSR"],
+)
 
 # Solution Imitation
 app.include_router(
     solution_imitation_controller.router,
-    tags=["Solution Imitation"],
     prefix="/solution_imitation",
+    tags=["Solution Imitation"],
 )
 
 # Emergency Class
 # Vysota Service
 app.include_router(
     vysota_order_classification_controller.router,
-    tags=["Orders Classification"],
     prefix="/classification/orders",
+    tags=["Orders Classification"],
 )
 
 # Unistroy Kafka Mapping
-app.include_router(kafka_controller.router, tags=["Kafka"], prefix="/kafka")
+app.include_router(
+    kafka_controller.router,
+    prefix="/kafka",
+    tags=["Kafka"],
+)
 
 
 @app.get("/healthcheck")
@@ -141,7 +212,7 @@ app = VersionedFastAPI(
             allow_methods=["POST", "GET", "PUT", "DELETE"],
             allow_headers=["*"],
         )
-    ]
+    ],
 )
 
 # @app.middleware("http")
