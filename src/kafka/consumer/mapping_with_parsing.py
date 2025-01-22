@@ -36,9 +36,9 @@ async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
 
     # TODO: send results_url only
     async for output_message in output_messages_list:
-        logger.debug(f"Unistroy Kafka Response (output message):\n{output_message}")
+        logger.debug(f"Unistroy Kafka Response (check-results message):\n{output_message}")
 
-        # Send message to Unistroy Kafka export-topic with results
+        # Send message to Unistroy Kafka link-topic with url to check results
         await send_message_to_kafka(
             message_body=output_message.dict(),
             topic=UNISTROY_MAPPING_LINK_OUTPUT_TOPIC,
