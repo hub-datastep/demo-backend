@@ -28,7 +28,7 @@ UNISTROY_USER_ID = 56
 
 
 def _get_results_url(iteration_id: str) -> str:
-    url = f"{FRONTEND_URL}/mapping/results/iteration/{iteration_id}"
+    url = f"{FRONTEND_URL}/mapping/result/iteration/{iteration_id}"
     return url
 
 
@@ -66,8 +66,11 @@ async def parse_and_map_utd_card(
             # Create mapping iteration
             iteration = MappingIteration(
                 id=iteration_id,
-                # TODO: set all UTD data to metadatas
-                metadatas={},
+                # Save all known UTD data
+                metadatas={
+                    **body,
+                    **utd_entity,
+                },
             )
             mapping_iteration_repository.create_iteration(iteration=iteration)
 
