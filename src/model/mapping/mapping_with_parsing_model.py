@@ -1,5 +1,4 @@
 import traceback
-from datetime import date
 from typing import Any, AsyncGenerator
 
 from fastapi import HTTPException
@@ -20,21 +19,24 @@ from model.user import user_model
 from repository.mapping import mapping_iteration_repository
 from scheme.file.utd_card_message_scheme import (
     UTDCardInputMessage,
-    UTDCardOutputMessage,
-    UTDCardStatus,
+    UTDCardCheckResultsOutputMessage,
 )
 from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
 from util.uuid import generate_uuid
 
 UNISTROY_USER_ID = 56
 
-RESULTS_URL_BASE = f"{FRONTEND_URL}/classifier/history?iteration_id="
+
+def _get_results_url(iteration_id: str) -> str:
+    url = f"{FRONTEND_URL}/mapping/results/iteration/{iteration_id}"
+    return url
 
 
 async def parse_and_map_utd_card(
     body: UTDCardInputMessage,
-) -> AsyncGenerator[UTDCardOutputMessage, Any]:
+) -> AsyncGenerator[UTDCardCheckResultsOutputMessage, Any]:
     try:
+        credit_slip_data = body.credit_slip_data
         first_utd_doc = body.documents[0]
         pdf_file_url = first_utd_doc.idn_link
         idn_file_guid = first_utd_doc.idn_file_guid
@@ -62,7 +64,11 @@ async def parse_and_map_utd_card(
             iteration_id = generate_uuid()
 
             # Create mapping iteration
-            iteration = MappingIteration(id=iteration_id)
+            iteration = MappingIteration(
+                id=iteration_id,
+                # TODO: set all UTD data to metadatas
+                metadatas={},
+            )
             mapping_iteration_repository.create_iteration(iteration=iteration)
 
             # Set index for each nomenclature
@@ -84,27 +90,37 @@ async def parse_and_map_utd_card(
                 parsed_materials_data=[],
             )
 
-            output_message = UTDCardOutputMessage(
-                **body.dict(exclude={"guid"}),
-                idn_card_guid=body.guid,
+            # TODO: move this to submit results endpoint
+            # output_message = UTDCardOutputMessage(
+            #     **body.dict(exclude={"guid"}),
+            #     idn_card_guid=body.guid,
+            #     guid=iteration_id,
+            #     status=UTDCardStatus.DONE,
+            #     # Mapping Data
+            #     materials=mapped_materials,
+            #     # Parsed Data
+            #     supplier_inn=utd_entity.supplier_inn,
+            #     idn_number=utd_entity.idn_number,
+            #     idn_date=utd_entity.idn_date,
+            #     # TODO: set parsed params from UTD pdf file
+            #     # ! Now it's mocked data
+            #     organization_inn="3305061878",
+            #     correction_idn_number="НО-12865РД/2",
+            #     correction_idn_date=date(2024, 8, 27),
+            #     contract_name="ДОГОВОР ПОСТАВКИ № 003/06-Лето от 13.09.2023",
+            #     contract_number="003/06-Лето",
+            #     contract_date=date(2024, 8, 27),
+            #     # URL to web interface with results
+            #     results_url=f"{RESULTS_URL_BASE}{iteration_id}",
+            # )
+
+            results_url = _get_results_url(iteration_id=iteration_id)
+            output_message = UTDCardCheckResultsOutputMessage(
                 guid=iteration_id,
-                status=UTDCardStatus.DONE,
-                # Mapping Data
-                materials=mapped_materials,
-                # Parsed Data
-                supplier_inn=utd_entity.supplier_inn,
-                idn_number=utd_entity.idn_number,
-                idn_date=utd_entity.idn_date,
-                # TODO: set parsed params from UTD pdf file
-                # ! Now it's mocked data
-                organization_inn="3305061878",
-                correction_idn_number="НО-12865РД/2",
-                correction_idn_date=date(2024, 8, 27),
-                contract_name="ДОГОВОР ПОСТАВКИ № 003/06-Лето от 13.09.2023",
-                contract_number="003/06-Лето",
-                contract_date=date(2024, 8, 27),
-                # URL to web interface with results
-                results_url=f"{RESULTS_URL_BASE}{iteration_id}",
+                idn_file_guid=idn_file_guid,
+                building_guid=credit_slip_data.building_guid,
+                material_category_guid=credit_slip_data.material_category_guid,
+                check_results_url=results_url,
             )
 
             yield output_message
