@@ -6,14 +6,14 @@ from infra.database import get_session
 from middleware.mode_middleware import TenantMode, modes_required
 from model.auth.auth_model import get_current_user
 from model.mapping.result import mapping_result_model, mapping_iteration_model
-from repository.mapping import mapping_result_repository
-from scheme.mapping.result.correct_nomenclature_search_scheme import (
-    SimilarNomenclatureSearch, SimilarNomenclature,
-)
 from scheme.mapping.result.mapping_iteration_scheme import IterationWithResults
 from scheme.mapping.result.mapping_result_scheme import (
     MappingResult,
     MappingResultUpdate,
+)
+from scheme.mapping.result.similar_nomenclature_search_scheme import (
+    SimilarNomenclatureSearch,
+    SimilarNomenclature,
 )
 from scheme.user.user_scheme import UserRead
 
@@ -33,7 +33,7 @@ def get_mapping_iteration_by_id(
     return mapping_iteration_model.get_iteration_by_id(iteration_id=iteration_id)
 
 
-@router.post("/correct_nomenclature/search", response_model=list[SimilarNomenclature])
+@router.post("/similar_nomenclatures", response_model=list[SimilarNomenclature])
 @version(1)
 @modes_required([TenantMode.CLASSIFIER])
 def get_similar_nomenclatures(
@@ -57,12 +57,15 @@ def get_similar_nomenclatures(
     )
 
 
-@router.put("/correct_nomenclature", response_model=MappingResult)
+@router.put("/correct_nomenclature", response_model=list[MappingResult])
 @version(1)
 @modes_required([TenantMode.CLASSIFIER])
-def save_correct_nomenclature(
+def update_mapping_results_list(
     body: MappingResultUpdate,
     session: Session = Depends(get_session),
     current_user: UserRead = Depends(get_current_user),
 ):
-    return mapping_result_repository.save_correct_nomenclature(body, session)
+    return mapping_result_model.update_mapping_results_list(
+        session=session,
+        body=body,
+    )

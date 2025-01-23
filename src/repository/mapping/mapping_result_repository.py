@@ -1,7 +1,15 @@
 from sqlmodel import Session
 
 from infra.database import engine
-from scheme.mapping.result.mapping_result_scheme import MappingResult, MappingResultUpdate
+from scheme.mapping.result.mapping_result_scheme import MappingResult
+
+
+def get_result_by_id(
+    session: Session,
+    result_id: int,
+) -> MappingResult | None:
+    mapping_result = session.get(MappingResult, result_id)
+    return mapping_result
 
 
 def create_mapping_results_list(mapping_results: list[MappingResult]):
@@ -16,15 +24,10 @@ def create_mapping_results_list(mapping_results: list[MappingResult]):
         return mapping_results
 
 
-def save_correct_nomenclature(nomenclature: MappingResultUpdate, session: Session) -> MappingResult:
-    mapping_result = get_mapping_result_by_id(nomenclature.id, session)
-    mapping_result.mapping_nomenclature_corrected = nomenclature.mapping_nomenclature_corrected
+def update_result(
+    session: Session,
+    mapping_result: MappingResult,
+) -> MappingResult:
     session.merge(mapping_result)
     session.commit()
     return mapping_result
-
-
-def get_mapping_result_by_id(mapping_result_id: int, session) -> MappingResult:
-    # TODO: raise exception when mapping_result is None
-    mapping_result_by_id = session.get(MappingResult, mapping_result_id)
-    return mapping_result_by_id

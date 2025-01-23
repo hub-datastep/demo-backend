@@ -1,21 +1,37 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from pandas import read_sql, DataFrame
 from sqlalchemy import text
 from sqlmodel import Session
 
 from model.mapping.result import mapping_iteration_model
 from model.tenant import tenant_model
-from repository.mapping import mapping_iteration_repository
-from repository.mapping.mapping_result_repository import (
-    create_mapping_results_list,
-)
+from repository.mapping import mapping_iteration_repository, mapping_result_repository
 from scheme.mapping.mapping_scheme import MappingOneNomenclatureRead
-from scheme.mapping.result.correct_nomenclature_search_scheme import (
-    SimilarNomenclatureSearch, SimilarNomenclature,
-)
 from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
-from scheme.mapping.result.mapping_result_scheme import MappingResult
+from scheme.mapping.result.mapping_result_scheme import MappingResult, MappingResultUpdate
+from scheme.mapping.result.similar_nomenclature_search_scheme import (
+    SimilarNomenclatureSearch,
+    SimilarNomenclature,
+)
 from scheme.user.user_scheme import UserRead
+
+
+def get_by_id(
+    session: Session,
+    result_id: int,
+) -> MappingResult:
+    mapping_result = mapping_result_repository.get_result_by_id(
+        session=session,
+        result_id=result_id,
+    )
+
+    if not mapping_result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Mapping Result with ID {result_id} not found"
+        )
+
+    return mapping_result
 
 
 def _fetch_similar_noms(
@@ -92,4 +108,31 @@ def save_mapping_results(
         )
         results_list.append(mapping_result)
 
-    return create_mapping_results_list(mapping_results=results_list)
+    return mapping_result_repository.create_mapping_results_list(mapping_results=results_list)
+
+
+def update_mapping_results_list(
+    session: Session,
+    body: MappingResultUpdate,
+) -> list[MappingResult]:
+    # Check if Mapping Iteration exists
+    iteration_id = body.iteration_id
+    mapping_iteration_model.get_iteration_by_id(
+        iteration_id=iteration_id,
+    )
+
+    corrected_results_list: list[MappingResult] = []
+    for corrected_result in body.corrected_results_list:
+        result_id = corrected_result.result_id
+        mapping_result = get_by_id(
+            session=session,
+            result_id=result_id,
+        )
+        mapping_result.corrected_nomenclature = corrected_result.nomenclature
+        update_result = mapping_result_repository.update_result(
+            session=session,
+            mapping_result=mapping_result,
+        )
+        corrected_results_list.append(update_result)
+
+    return corrected_results_list

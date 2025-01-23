@@ -18,9 +18,14 @@ class MappingResult(MappingResultBase, table=True):
     iteration: "MappingIteration" = Relationship(back_populates="results")
 
 
+class CorrectedResult(SQLModel):
+    result_id: int
+    nomenclature: "SimilarNomenclature"
+
+
 class MappingResultUpdate(SQLModel):
-    id: int
-    mapping_nomenclature_corrected: str
+    iteration_id: str
+    corrected_results_list: list[CorrectedResult]
 
 
 class InputModel(SQLModel):
@@ -35,5 +40,7 @@ class MappedCimModel(SQLModel):
 
 
 from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
+from scheme.mapping.result.similar_nomenclature_search_scheme import SimilarNomenclature
 
 MappingResult.update_forward_refs()
+CorrectedResult.update_forward_refs()
