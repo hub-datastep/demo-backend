@@ -141,3 +141,10 @@ class UTDCardCheckResultsOutputMessage(SQLModel):
     supplier_inn: str | None = None
     # Наименование договора поставки
     contract_name: str | None = None
+
+
+class UTDCardMetadatas(SQLModel):
+    input_message: UTDCardInputMessage
+    entity: UTDEntityWithParamsAndNoms
+    mapped_materials: list[MappedMaterial] | None
+    check_results_output_message: UTDCardCheckResultsOutputMessage

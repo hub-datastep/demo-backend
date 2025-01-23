@@ -34,7 +34,6 @@ async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
     # Run mapping with parsing and wait results
     output_messages_list = mapping_with_parsing_model.parse_and_map_utd_card(body=body)
 
-    # TODO: send results_url only
     async for output_message in output_messages_list:
         logger.debug(f"Unistroy Kafka Response (check-results message):\n{output_message}")
 
