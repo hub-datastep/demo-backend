@@ -19,7 +19,7 @@ from model.user import user_model
 from repository.mapping import mapping_iteration_repository
 from scheme.file.utd_card_message_scheme import (
     UTDCardInputMessage,
-    UTDCardCheckResultsOutputMessage,
+    UTDCardCheckResultsOutputMessage, UTDCardMetadatas,
 )
 from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
 from util.uuid import generate_uuid
@@ -63,17 +63,6 @@ async def parse_and_map_utd_card(
             # Generate mapping iteration key (UTD guid)
             iteration_id = generate_uuid()
 
-            # Create mapping iteration
-            iteration = MappingIteration(
-                id=iteration_id,
-                # Save all known UTD data
-                metadatas={
-                    **body,
-                    **utd_entity,
-                },
-            )
-            mapping_iteration_repository.create_iteration(iteration=iteration)
-
             # Set index for each nomenclature
             nomenclatures_list = utd_entity.nomenclatures_list
             nomenclatures_with_indexes_list = get_noms_with_indexes(nomenclatures_list)
@@ -87,6 +76,7 @@ async def parse_and_map_utd_card(
             )
             logger.debug(f"Mapping Results:\n{mapping_results}")
 
+            # Add parsed data to mapping results
             mapped_materials = add_parsed_data_to_mappings(
                 mapping_results=mapping_results,
                 # TODO: pass materials data from UTD
@@ -117,7 +107,9 @@ async def parse_and_map_utd_card(
             #     results_url=f"{RESULTS_URL_BASE}{iteration_id}",
             # )
 
+            # Init url to mapping results
             results_url = _get_results_url(iteration_id=iteration_id)
+
             output_message = UTDCardCheckResultsOutputMessage(
                 guid=iteration_id,
                 idn_file_guid=idn_file_guid,
@@ -125,6 +117,20 @@ async def parse_and_map_utd_card(
                 material_category_guid=credit_slip_data.material_category_guid,
                 check_results_url=results_url,
             )
+
+            # Create mapping iteration
+            metadatas = UTDCardMetadatas(
+                input_message=body,
+                entity=utd_entity,
+                mapped_materials=mapped_materials,
+                check_results_output_message=output_message,
+            )
+            iteration = MappingIteration(
+                id=iteration_id,
+                # Save all known UTD data
+                metadatas=metadatas.dict(),
+            )
+            mapping_iteration_repository.create_iteration(iteration=iteration)
 
             yield output_message
 
