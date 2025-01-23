@@ -28,6 +28,10 @@ class MappingResultUpdate(SQLModel):
     corrected_results_list: list[CorrectedResult]
 
 
+class MappingResultsUpload(SQLModel):
+    iteration_id: str
+
+
 class InputModel(SQLModel):
     model_name: str
     model_type: str

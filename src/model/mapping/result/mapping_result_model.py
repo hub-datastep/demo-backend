@@ -1,14 +1,28 @@
+from datetime import date
+
 from fastapi import HTTPException, status
+from loguru import logger
 from pandas import read_sql, DataFrame
 from sqlalchemy import text
 from sqlmodel import Session
 
+from infra.env import UNISTROY_MAPPING_RESULTS_OUTPUT_TOPIC
+from infra.kafka import send_message_to_kafka
 from model.mapping.result import mapping_iteration_model
 from model.tenant import tenant_model
 from repository.mapping import mapping_iteration_repository, mapping_result_repository
+from scheme.file.utd_card_message_scheme import (
+    UTDCardMetadatas,
+    UTDCardStatus,
+    UTDCardOutputMessage,
+)
 from scheme.mapping.mapping_scheme import MappingOneNomenclatureRead
 from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
-from scheme.mapping.result.mapping_result_scheme import MappingResult, MappingResultUpdate
+from scheme.mapping.result.mapping_result_scheme import (
+    MappingResult,
+    MappingResultUpdate,
+    MappingResultsUpload,
+)
 from scheme.mapping.result.similar_nomenclature_search_scheme import (
     SimilarNomenclatureSearch,
     SimilarNomenclature,
@@ -136,3 +150,50 @@ def update_mapping_results_list(
         corrected_results_list.append(update_result)
 
     return corrected_results_list
+
+
+async def upload_results_to_kafka(
+    body: MappingResultsUpload,
+) -> UTDCardOutputMessage:
+    iteration_id = body.iteration_id
+    iteration = mapping_iteration_model.get_iteration_by_id(iteration_id=iteration_id)
+
+    metadatas = UTDCardMetadatas(**iteration.metadatas)
+
+    input_message = metadatas.input_message
+    mapped_materials = metadatas.mapped_materials
+    utd_entity = metadatas.entity
+    check_results_output_message = metadatas.check_results_output_message
+
+    output_message = UTDCardOutputMessage(
+        **input_message.dict(exclude={"guid"}),
+        idn_card_guid=input_message.guid,
+        guid=iteration_id,
+        status=UTDCardStatus.DONE,
+        # Mapping Data
+        materials=mapped_materials,
+        # Parsed Data
+        supplier_inn=utd_entity.supplier_inn,
+        idn_number=utd_entity.idn_number,
+        idn_date=utd_entity.idn_date,
+        # TODO: set parsed params from UTD pdf file
+        # ! Now it's mocked data
+        organization_inn="3305061878",
+        correction_idn_number="НО-12865РД/2",
+        correction_idn_date=date(2024, 8, 27),
+        contract_name="ДОГОВОР ПОСТАВКИ № 003/06-Лето от 13.09.2023",
+        contract_number="003/06-Лето",
+        contract_date=date(2024, 8, 27),
+        # URL to web interface with results
+        results_url=check_results_output_message.check_results_url,
+    )
+
+    logger.debug(f"Unistroy Kafka Response (output message):\n{output_message}")
+
+    # Send message to Unistroy Kafka link-topic with url to check results
+    await send_message_to_kafka(
+        message_body=output_message.dict(),
+        topic=UNISTROY_MAPPING_RESULTS_OUTPUT_TOPIC,
+    )
+
+    return output_message

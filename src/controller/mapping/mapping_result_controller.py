@@ -6,10 +6,12 @@ from infra.database import get_session
 from middleware.mode_middleware import TenantMode, modes_required
 from model.auth.auth_model import get_current_user
 from model.mapping.result import mapping_result_model, mapping_iteration_model
+from scheme.file.utd_card_message_scheme import UTDCardOutputMessage
 from scheme.mapping.result.mapping_iteration_scheme import IterationWithResults
 from scheme.mapping.result.mapping_result_scheme import (
     MappingResult,
     MappingResultUpdate,
+    MappingResultsUpload,
 )
 from scheme.mapping.result.similar_nomenclature_search_scheme import (
     SimilarNomenclatureSearch,
@@ -65,7 +67,24 @@ def update_mapping_results_list(
     session: Session = Depends(get_session),
     current_user: UserRead = Depends(get_current_user),
 ):
+    """
+    Обновляет корректные номенклатуры в результатах маппинга.
+    """
     return mapping_result_model.update_mapping_results_list(
         session=session,
         body=body,
     )
+
+
+@router.post("/upload/kafka", response_model=UTDCardOutputMessage)
+@version(1)
+@modes_required([TenantMode.CLASSIFIER])
+def upload_results_to_kafka(
+    body: MappingResultsUpload,
+    session: Session = Depends(get_session),
+    current_user: UserRead = Depends(get_current_user),
+):
+    """
+    Отправляет проверенные результаты маппинга в Кафку Унистроя
+    """
+    return mapping_result_model.upload_results_to_kafka(body=body)
