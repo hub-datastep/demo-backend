@@ -42,7 +42,7 @@ def get_by_id(
     if not mapping_result:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Mapping Result with ID {result_id} not found"
+            detail=f"Mapping Result with ID {result_id} not found",
         )
 
     return mapping_result
@@ -92,8 +92,7 @@ def get_similar_nomenclatures(
         nomenclature_name=nomenclature_name,
     )
     similar_noms_list = [
-        SimilarNomenclature(**nom)
-        for nom in similar_noms_df.to_dict(orient="records")
+        SimilarNomenclature(**nom) for nom in similar_noms_df.to_dict(orient="records")
     ]
 
     return similar_noms_list
@@ -122,7 +121,9 @@ def save_mapping_results(
         )
         results_list.append(mapping_result)
 
-    return mapping_result_repository.create_mapping_results_list(mapping_results=results_list)
+    return mapping_result_repository.create_mapping_results_list(
+        mapping_results=results_list,
+    )
 
 
 def update_mapping_results_list(

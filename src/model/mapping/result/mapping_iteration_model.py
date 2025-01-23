@@ -7,7 +7,9 @@ from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
 def get_iteration_by_id(
     iteration_id: str,
 ) -> MappingIteration:
-    iteration = mapping_iteration_repository.get_iteration_by_id(iteration_id=iteration_id)
+    iteration = mapping_iteration_repository.get_iteration_by_id(
+        iteration_id=iteration_id,
+    )
 
     if not iteration:
         raise HTTPException(

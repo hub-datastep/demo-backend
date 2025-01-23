@@ -118,8 +118,11 @@ class UTDCardOutputMessage(SQLModel):
 
 
 class UTDEntityWithParamsAndNoms(SQLModel):
+    # Номер УПД
     idn_number: str | None = None
+    # Дата УПД
     idn_date: date | None = None
+    # ИНН поставщика
     supplier_inn: str | None = None
     pages_numbers_list: list[int] = []
     nomenclatures_list: list[str] | None = None
