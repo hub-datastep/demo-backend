@@ -14,7 +14,10 @@ from infra.env import (
 from infra.kafka import kafka_broker
 from util.uuid import generate_uuid
 
-app = FastStream(kafka_broker)
+app = FastStream(
+    kafka_broker,
+    title="NSI Fetch",
+)
 
 UNISTROY_KAFKA_NSI_CONSUMERS_SETTINGS = {
     "group_id": UNISTROY_KAFKA_NSI_CONSUMERS_GROUP,
@@ -36,7 +39,7 @@ def _save_to_json(file_path: str, data):
     # Create parent dirs if not exists
     os.makedirs(Path(file_path).parent, exist_ok=True)
 
-    with open(file_path, 'w') as f:
+    with open(file_path, "w") as f:
         json.dump(data, f, ensure_ascii=False)
 
 
