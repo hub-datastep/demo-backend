@@ -16,7 +16,6 @@ def get_iteration_by_id(
         )
 
         iteration = session.exec(st).first()
-        print(iteration)
 
         return iteration
 
