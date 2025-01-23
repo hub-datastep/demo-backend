@@ -79,7 +79,7 @@ def update_mapping_results_list(
 @router.post("/upload/kafka", response_model=UTDCardOutputMessage)
 @version(1)
 @modes_required([TenantMode.CLASSIFIER])
-def upload_results_to_kafka(
+async def upload_results_to_kafka(
     body: MappingResultsUpload,
     session: Session = Depends(get_session),
     current_user: UserRead = Depends(get_current_user),
@@ -87,4 +87,4 @@ def upload_results_to_kafka(
     """
     Отправляет проверенные результаты маппинга в Кафку Унистроя
     """
-    return mapping_result_model.upload_results_to_kafka(body=body)
+    return await mapping_result_model.upload_results_to_kafka(body=body)
