@@ -145,7 +145,7 @@ def update_mapping_results_list(
             session=session,
             result_id=result_id,
         )
-        mapping_result.corrected_nomenclature = corrected_result.nomenclature
+        mapping_result.corrected_nomenclature = corrected_result.nomenclature.dict()
         update_result = mapping_result_repository.update_result(
             session=session,
             mapping_result=mapping_result,
