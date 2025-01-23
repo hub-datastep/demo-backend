@@ -3,6 +3,7 @@ from fastapi_versioning import version
 from sqlmodel import Session
 
 from infra.database import get_session
+from middleware.kafka_middleware import with_kafka_broker_connection
 from middleware.mode_middleware import TenantMode, modes_required
 from model.auth.auth_model import get_current_user
 from model.mapping.result import mapping_result_model, mapping_iteration_model
@@ -79,6 +80,7 @@ def update_mapping_results_list(
 @router.post("/upload/kafka", response_model=UTDCardOutputMessage)
 @version(1)
 @modes_required([TenantMode.CLASSIFIER])
+@with_kafka_broker_connection
 async def upload_results_to_kafka(
     body: MappingResultsUpload,
     session: Session = Depends(get_session),
