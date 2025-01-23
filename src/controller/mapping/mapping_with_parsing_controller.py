@@ -3,7 +3,10 @@ from fastapi_versioning import version
 
 from model.auth.auth_model import get_current_user
 from model.mapping import mapping_with_parsing_model
-from scheme.file.utd_card_message_scheme import UTDCardInputMessage, UTDCardOutputMessage
+from scheme.file.utd_card_message_scheme import (
+    UTDCardInputMessage,
+    UTDCardOutputMessage,
+)
 from scheme.user.user_scheme import UserRead
 
 router = APIRouter()

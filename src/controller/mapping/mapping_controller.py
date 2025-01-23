@@ -4,7 +4,10 @@ from fastapi_versioning import version
 from middleware.mode_middleware import TenantMode, modes_required
 from model.auth.auth_model import get_current_user
 from model.mapping import mapping_model, mapping_cim_work_type_model
-from scheme.mapping.mapping_scheme import MappingNomenclaturesUpload, MappingNomenclaturesResultRead
+from scheme.mapping.mapping_scheme import (
+    MappingNomenclaturesUpload,
+    MappingNomenclaturesResultRead,
+)
 from scheme.mapping.result.mapping_result_scheme import (
     InputModel,
     MappedCimModel,
