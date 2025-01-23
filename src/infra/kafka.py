@@ -5,8 +5,11 @@ from faststream.kafka import KafkaBroker, KafkaRouter
 from faststream.security import SASLPlaintext
 
 from infra.env import (
-    UNISTROY_KAFKA_SERVERS, UNISTROY_KAFKA_USERNAME, UNISTROY_KAFKA_PASSWORD,
-    UNISTROY_IS_KAFKA_WITH_SSL, DATA_FOLDER_PATH,
+    UNISTROY_KAFKA_SERVERS,
+    UNISTROY_KAFKA_USERNAME,
+    UNISTROY_KAFKA_PASSWORD,
+    UNISTROY_IS_KAFKA_WITH_SSL,
+    DATA_FOLDER_PATH,
 )
 
 kafka_router = KafkaRouter()
