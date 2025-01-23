@@ -83,30 +83,6 @@ async def parse_and_map_utd_card(
                 parsed_materials_data=[],
             )
 
-            # TODO: move this to submit results endpoint
-            # output_message = UTDCardOutputMessage(
-            #     **body.dict(exclude={"guid"}),
-            #     idn_card_guid=body.guid,
-            #     guid=iteration_id,
-            #     status=UTDCardStatus.DONE,
-            #     # Mapping Data
-            #     materials=mapped_materials,
-            #     # Parsed Data
-            #     supplier_inn=utd_entity.supplier_inn,
-            #     idn_number=utd_entity.idn_number,
-            #     idn_date=utd_entity.idn_date,
-            #     # TODO: set parsed params from UTD pdf file
-            #     # ! Now it's mocked data
-            #     organization_inn="3305061878",
-            #     correction_idn_number="НО-12865РД/2",
-            #     correction_idn_date=date(2024, 8, 27),
-            #     contract_name="ДОГОВОР ПОСТАВКИ № 003/06-Лето от 13.09.2023",
-            #     contract_number="003/06-Лето",
-            #     contract_date=date(2024, 8, 27),
-            #     # URL to web interface with results
-            #     results_url=f"{RESULTS_URL_BASE}{iteration_id}",
-            # )
-
             # Init url to mapping results
             results_url = _get_results_url(iteration_id=iteration_id)
 
