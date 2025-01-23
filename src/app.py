@@ -164,7 +164,7 @@ app.include_router(
     tags=["Task"],
 )
 
-# Ksr Nomenclature
+# KSR Nomenclature
 app.include_router(
     ksr_controller.router,
     prefix="/ksr",
