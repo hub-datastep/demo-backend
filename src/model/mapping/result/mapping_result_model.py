@@ -1,4 +1,5 @@
 from datetime import date
+import re
 
 from fastapi import HTTPException, status
 from loguru import logger
@@ -55,6 +56,8 @@ def _fetch_similar_noms(
     limit: int | None = 10,
     offset: int | None = 0,
 ) -> DataFrame:
+    nomenclature_name = re.sub(r"\s+", "%", nomenclature_name)
+
     st = text(
         f"""
         SELECT "id", "name"
@@ -67,7 +70,6 @@ def _fetch_similar_noms(
     ).bindparams(
         nomenclature_name=f"%{nomenclature_name}%",
     )
-    print(f"SQL stmt: {st}")
 
     return read_sql(st, db_con_str)
 
@@ -102,7 +104,7 @@ def save_mapping_results(
     mappings_list: list[MappingOneNomenclatureRead],
     user_id: int,
     iteration_id: str,
-):
+) -> list[MappingResult]:
     # Check if iteration with this ID exists
     try:
         mapping_iteration_model.get_iteration_by_id(iteration_id=iteration_id)
