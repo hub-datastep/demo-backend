@@ -4,37 +4,69 @@ from sqlalchemy import text
 from sqlmodel import Session
 
 from model.mapping.result import mapping_iteration_model
+from model.tenant import tenant_model
 from repository.mapping import mapping_iteration_repository
 from repository.mapping.mapping_result_repository import (
     create_mapping_results_list,
 )
-from repository.tenant.tenant_repository import get_tenant_by_id
 from scheme.mapping.mapping_scheme import MappingOneNomenclatureRead
+from scheme.mapping.result.correct_nomenclature_search_scheme import (
+    SimilarNomenclatureSearch, SimilarNomenclature,
+)
 from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
 from scheme.mapping.result.mapping_result_scheme import MappingResult
 from scheme.user.user_scheme import UserRead
 
 
-def get_similar_nomenclatures(query: str, current_user: UserRead, session: Session) -> list[str]:
-    tenant = get_tenant_by_id(session, current_user.tenant_id)
-    tenant_db_uri = tenant.db_uri
-    nomenclatures_table_name = current_user.classifier_config.nomenclatures_table_name
-    similar_nomenclatures = _fetch_items(tenant_db_uri, nomenclatures_table_name, query)
-    similar_nomenclatures_list = similar_nomenclatures['name'].to_list()
-    return similar_nomenclatures_list
-
-
-def _fetch_items(db_con_str: str, table_name: str, query: str) -> DataFrame:
+def _fetch_similar_noms(
+    db_con_str: str,
+    table_name: str,
+    nomenclature_name: str,
+    limit: int | None = 10,
+    offset: int | None = 0,
+) -> DataFrame:
     st = text(
         f"""
-        SELECT "name"
+        SELECT "id", "name"
         FROM {table_name}
-        WHERE "name" ILIKE '%{query}%' AND "is_group" = FALSE
-        LIMIT 10
+        WHERE "name" ILIKE :nomenclature_name
+        AND "is_group" = FALSE
+        LIMIT {limit}
+        OFFSET {offset}
         """
+    ).bindparams(
+        nomenclature_name=f"%{nomenclature_name}%",
     )
+    print(f"SQL stmt: {st}")
 
     return read_sql(st, db_con_str)
+
+
+def get_similar_nomenclatures(
+    session: Session,
+    body: SimilarNomenclatureSearch,
+    user: UserRead,
+) -> list[SimilarNomenclature]:
+    tenant = tenant_model.get_tenant_by_id(
+        session=session,
+        tenant_id=user.tenant_id,
+    )
+    tenant_db_uri = tenant.db_uri
+
+    nomenclatures_table_name = user.classifier_config.nomenclatures_table_name
+
+    nomenclature_name = body.name
+    similar_noms_df = _fetch_similar_noms(
+        db_con_str=tenant_db_uri,
+        table_name=nomenclatures_table_name,
+        nomenclature_name=nomenclature_name,
+    )
+    similar_noms_list = [
+        SimilarNomenclature(**nom)
+        for nom in similar_noms_df.to_dict(orient="records")
+    ]
+
+    return similar_noms_list
 
 
 def save_mapping_results(
