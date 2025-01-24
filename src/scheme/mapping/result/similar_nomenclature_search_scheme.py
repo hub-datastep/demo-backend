@@ -8,3 +8,4 @@ class SimilarNomenclatureSearch(SQLModel):
 class SimilarNomenclature(SQLModel):
     id: int
     name: str
+    material_code: str
