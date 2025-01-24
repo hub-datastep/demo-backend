@@ -13,6 +13,7 @@ from model.mapping.result import mapping_iteration_model
 from model.tenant import tenant_model
 from repository.mapping import mapping_iteration_repository, mapping_result_repository
 from scheme.file.utd_card_message_scheme import (
+    MappedMaterial,
     UTDCardMetadatas,
     UTDCardStatus,
     UTDCardOutputMessage,
@@ -29,6 +30,13 @@ from scheme.mapping.result.similar_nomenclature_search_scheme import (
     SimilarNomenclature,
 )
 from scheme.user.user_scheme import UserRead
+
+
+SIMILAR_NOMS_COLUMNS = [
+    "id",
+    "name",
+    "material_code",
+]
 
 
 def get_by_id(
@@ -57,10 +65,11 @@ def _fetch_similar_noms(
     offset: int | None = 0,
 ) -> DataFrame:
     nomenclature_name = re.sub(r"\s+", "%", nomenclature_name)
+    columns_str = ", ".join(f'"{col}"' for col in SIMILAR_NOMS_COLUMNS)
 
     st = text(
         f"""
-        SELECT "id", "name"
+        SELECT {columns_str}
         FROM {table_name}
         WHERE "name" ILIKE :nomenclature_name
         AND "is_group" = FALSE
@@ -155,18 +164,50 @@ def update_mapping_results_list(
     return corrected_results_list
 
 
+def get_corrected_material_from_results(
+    mapping_results_list: list[MappingResult],
+    material: MappedMaterial,
+) -> MappedMaterial | None:
+    for mapping_result in mapping_results_list:
+        result = MappingOneNomenclatureRead(**mapping_result.result)
+
+        if (
+            material.material_guid == result.material_code
+            or material.idn_material_name == result.nomenclature
+            or material.number == result.row_number
+        ):
+            if mapping_result.corrected_nomenclature:
+                corrected_nomenclature = SimilarNomenclature(
+                    **mapping_result.corrected_nomenclature,
+                )
+                material.material_guid = corrected_nomenclature.material_code
+                break
+
+    return material
+
+
 async def upload_results_to_kafka(
     body: MappingResultsUpload,
 ) -> UTDCardOutputMessage:
     iteration_id = body.iteration_id
     iteration = mapping_iteration_model.get_iteration_by_id(iteration_id=iteration_id)
+    mapping_results_list = iteration.results
 
     metadatas = UTDCardMetadatas(**iteration.metadatas)
 
     input_message = metadatas.input_message
-    mapped_materials = metadatas.mapped_materials
     utd_entity = metadatas.entity
     check_results_output_message = metadatas.check_results_output_message
+
+    mapped_materials = metadatas.mapped_materials
+
+    # Replace with corrected materials
+    for i, material in enumerate(mapped_materials):
+        corrected_material = get_corrected_material_from_results(
+            mapping_results_list=mapping_results_list,
+            material=material,
+        )
+        mapped_materials[i] = corrected_material
 
     output_message = UTDCardOutputMessage(
         **input_message.dict(exclude={"guid"}),
