@@ -33,7 +33,7 @@ def add_parsed_data_to_mappings(
                     number=nom.row_number,
                     material_guid=nomenclature_guid,
                     idn_material_name=nom.nomenclature,
-                    similar_mappings=nom.similar_mappings,
+                    # similar_mappings=nom.similar_mappings,
                     # TODO: set parsed material data from 'parsed_data'
                     # ! Now it's mocked data
                     quantity=0.0,
