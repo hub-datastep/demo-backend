@@ -16,13 +16,15 @@ services:
       # Just to see .env in files viewer
       - ./.env:${DATA_FOLDER_PATH}/env-file
       - backend:${DATA_FOLDER_PATH}
+    depends_on:
+      - db
 
   mapping-with-parsing-consumers:
     image: datastep-backend
     restart: always
     command: bash -c "
-      cd /app/src/kafka/consumer
-      && faststream run --reload --host mapping_with_parsing:app"
+      cd /app/src
+      && faststream run --reload --host kafka/consumer/mapping_with_parsing:app"
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
@@ -34,8 +36,8 @@ services:
     image: datastep-backend
     restart: always
     command: bash -c "
-      cd /app/src/kafka/consumer
-      && faststream run --reload --host nsi_fetch:app"
+      cd /app/src
+      && faststream run --reload --host kafka/consumer/nsi_fetch:app"
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
@@ -91,6 +93,8 @@ services:
       - dbeaver:/opt/cloudbeaver/workspace
     ports:
       - "8988:8978"
+    depends_on:
+      - db
 
   volumes-viewer:
     image: hurlenko/filebrowser
@@ -128,6 +132,21 @@ services:
     ports:
       - "9092:9092"
 
+  kafka-ui:
+    image: provectuslabs/kafka-ui
+    ports:
+      - "9090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: ${KAFKA_UI_CLUSTER_0_NAME}
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: ${UNISTROY_KAFKA_SERVERS},
+      AUTH_TYPE: "LOGIN_FORM"
+      SPRING_SECURITY_USER_NAME: ${KAFKA_UI_USERNAME}
+      SPRING_SECURITY_USER_PASSWORD: ${KAFKA_UI_PASSWORD}
+    volumes:
+      - kafka-ui:/etc/kafkaui
+    depends_on:
+      - kafka
+
   logs-viewer:
     image: amir20/dozzle
     restart: always
@@ -149,3 +168,4 @@ volumes:
   chroma-db:
     driver: local
   volumes-viewer:
+  kafka-ui:
