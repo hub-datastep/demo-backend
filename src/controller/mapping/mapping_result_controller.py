@@ -7,8 +7,12 @@ from middleware.kafka_middleware import with_kafka_broker_connection
 from middleware.mode_middleware import TenantMode, modes_required
 from model.auth.auth_model import get_current_user
 from model.mapping.result import mapping_result_model, mapping_iteration_model
+from repository.mapping import mapping_iteration_repository
 from scheme.file.utd_card_message_scheme import UTDCardOutputMessage
-from scheme.mapping.result.mapping_iteration_scheme import IterationWithResults
+from scheme.mapping.result.mapping_iteration_scheme import (
+    IterationWithResults,
+    MappingIteration,
+)
 from scheme.mapping.result.mapping_result_scheme import (
     MappingResult,
     MappingResultUpdate,
@@ -21,6 +25,19 @@ from scheme.mapping.result.similar_nomenclature_search_scheme import (
 from scheme.user.user_scheme import UserRead
 
 router = APIRouter()
+
+
+@router.get("/iteration", response_model=list[MappingIteration])
+@version(1)
+@modes_required([TenantMode.CLASSIFIER])
+def get_iterations_list(
+    iteration_id: str | None = None,
+    current_user: UserRead = Depends(get_current_user),
+):
+    """
+    Получает все итерации маппинга.
+    """
+    return mapping_iteration_repository.get_iterations_list(iteration_id=iteration_id)
 
 
 @router.get("/iteration/{iteration_id}", response_model=IterationWithResults)
