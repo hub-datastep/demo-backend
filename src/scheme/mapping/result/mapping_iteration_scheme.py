@@ -5,8 +5,13 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import SQLModel, Field, Relationship
 
 
+class IterationMetadatasType:
+    UTD = "UTD"
+
+
 class MappingIterationBase(SQLModel):
     metadatas: dict | None = Field(sa_column=Column(JSONB))
+    type: str | None = Field(default=None)
     created_at: datetime | None = Field(default_factory=datetime.utcnow)
 
 

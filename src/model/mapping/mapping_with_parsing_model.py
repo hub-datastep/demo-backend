@@ -19,9 +19,13 @@ from model.user import user_model
 from repository.mapping import mapping_iteration_repository
 from scheme.file.utd_card_message_scheme import (
     UTDCardInputMessage,
-    UTDCardCheckResultsOutputMessage, UTDCardMetadatas,
+    UTDCardCheckResultsOutputMessage,
+    UTDCardMetadatas,
 )
-from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
+from scheme.mapping.result.mapping_iteration_scheme import (
+    IterationMetadatasType,
+    MappingIteration,
+)
 from util.uuid import generate_uuid
 
 UNISTROY_USER_ID = 56
@@ -105,6 +109,7 @@ async def parse_and_map_utd_card(
                 id=iteration_id,
                 # Save all known UTD data
                 metadatas=metadatas.dict(),
+                type=IterationMetadatasType.UTD,
             )
             mapping_iteration_repository.create_iteration(iteration=iteration)
 
