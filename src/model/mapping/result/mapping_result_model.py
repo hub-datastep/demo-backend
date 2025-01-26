@@ -1,5 +1,5 @@
-from datetime import date
 import re
+from datetime import date
 
 from fastapi import HTTPException, status
 from loguru import logger
@@ -7,7 +7,7 @@ from pandas import read_sql, DataFrame
 from sqlalchemy import text
 from sqlmodel import Session
 
-from infra.env import UNISTROY_MAPPING_RESULTS_OUTPUT_TOPIC
+from infra.env import env
 from infra.kafka import send_message_to_kafka
 from model.mapping.result import mapping_iteration_model
 from model.tenant import tenant_model
@@ -30,7 +30,6 @@ from scheme.mapping.result.similar_nomenclature_search_scheme import (
     SimilarNomenclature,
 )
 from scheme.user.user_scheme import UserRead
-
 
 SIMILAR_NOMS_COLUMNS = [
     "id",
@@ -237,7 +236,7 @@ async def upload_results_to_kafka(
     # Send message to Unistroy Kafka link-topic with url to check results
     await send_message_to_kafka(
         message_body=output_message.dict(),
-        topic=UNISTROY_MAPPING_RESULTS_OUTPUT_TOPIC,
+        topic=env.UNISTROY_MAPPING_RESULTS_OUTPUT_TOPIC,
     )
 
     return output_message

@@ -1,13 +1,14 @@
 from uuid import UUID
 
-from chromadb import Documents, EmbeddingFunction, Embeddings
-from chromadb import HttpClient
+from chromadb import Documents, EmbeddingFunction, Embeddings, HttpClient
 from chromadb.api.models.Collection import Collection
 from fastembed.embedding import TextEmbedding
-from rq.job import Job, get_current_job
+from rq.job import get_current_job
 from tqdm import tqdm
 
-from infra.env import CHROMA_HOST, CHROMA_PORT
+from infra.env import env
+
+
 # from scheme.mapping.synchronize_scheme import SyncNomenclaturesChromaPatch
 
 
@@ -28,7 +29,10 @@ def _cast_ids(ids: str | list[str] | UUID | list[UUID]):
 
 
 def get_chroma_client():
-    chroma_client = HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
+    chroma_client = HttpClient(
+        host=env.CHROMA_HOST,
+        port=env.CHROMA_PORT,
+    )
     return chroma_client
 
 

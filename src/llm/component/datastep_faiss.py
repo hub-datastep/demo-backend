@@ -1,17 +1,21 @@
 import shutil
 
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents import Document
 from langchain_openai import AzureOpenAIEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+from infra.env import env
 from llm.chain.datastep_docs_chain import get_chain_for_docs
 from llm.chain.datastep_knowledge_base_chain import get_chain_for_knowledge_base
 from llm.chain.datastep_search_relevant_description_chain import get_chain_for_relevant_description
-from infra.env import AZURE_DEPLOYMENT_NAME_EMBEDDINGS
 from scheme.file.file_scheme import KnowledgeBaseFile
 from util.files_paths import get_file_folder_path
+
+embeddingsDeployment = AzureOpenAIEmbeddings(
+    deployment=env.AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
+)
 
 
 def search_docs(storage_filename: str, query: str) -> tuple[str, int]:
@@ -19,9 +23,7 @@ def search_docs(storage_filename: str, query: str) -> tuple[str, int]:
 
     faiss_index = FAISS.load_local(
         f"{file_folder_path}/faiss",
-        AzureOpenAIEmbeddings(
-            azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
-        ),
+        embeddingsDeployment,
         allow_dangerous_deserialization=True,
     )
     docs: list[Document] = faiss_index.similarity_search(query, k=7)
@@ -37,9 +39,7 @@ def search_for_knowledge_base(storage_filename: str, query: str) -> str:
 
     faiss_index = FAISS.load_local(
         f"{file_folder_path}/faiss",
-        AzureOpenAIEmbeddings(
-            azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
-        ),
+        embeddingsDeployment,
         allow_dangerous_deserialization=True,
     )
     docs: list[Document] = faiss_index.similarity_search(query, k=7)
@@ -62,7 +62,9 @@ def doc_query(storage_filename: str, query: str) -> tuple[str, int]:
     return response, page
 
 
-def search_relevant_description(documents: list[KnowledgeBaseFile], query: str) -> KnowledgeBaseFile | None:
+def search_relevant_description(
+    documents: list[KnowledgeBaseFile], query: str
+) -> KnowledgeBaseFile | None:
     chain = get_chain_for_relevant_description()
 
     relevant_storage_filename = chain.run(
@@ -99,9 +101,7 @@ def save_document(storage_filename: str):
     pages = loader.load_and_split()
     faiss_index = FAISS.from_documents(
         pages,
-        AzureOpenAIEmbeddings(
-            azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
-        ),
+        embeddingsDeployment,
     )
     faiss_index.save_local(f"{file_folder_path}/faiss")
 
@@ -133,9 +133,7 @@ def save_document_for_knowledge_base(storage_filename: str):
 
     faiss_index = FAISS.from_documents(
         chunks,
-        AzureOpenAIEmbeddings(
-            azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
-        ),
+        embeddingsDeployment,
     )
     faiss_index.save_local(f"{file_folder_path}/faiss")
 
