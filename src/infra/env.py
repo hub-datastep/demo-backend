@@ -3,16 +3,12 @@ from distutils.util import strtobool
 
 from dotenv import load_dotenv
 
+from infra.environment_type import EnvironmentType
+
 load_dotenv()
 
-
-class Environment:
-    DEV = "development"
-    PROD = "production"
-
-
 ENVIRONMENT = os.getenv("ENVIRONMENT")
-IS_DEV_ENV = ENVIRONMENT == Environment.DEV
+IS_DEV_ENV = ENVIRONMENT == EnvironmentType.DEV
 
 FRONTEND_URL = os.getenv("FRONTEND_URL")
 
