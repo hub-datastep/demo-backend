@@ -4,10 +4,10 @@ from uuid import UUID
 
 import pandas as pd
 
-from datastep.chains.datastep_check_data_chain import check_data
-from datastep.chains.datastep_similar_queries import generate_similar_queries
-from datastep.chains.datastep_sql_chain import DatastepSqlChain
-from datastep.components.sql_database import DatastepSqlDatabase
+from llm.chain.datastep_check_data_chain import check_data
+from llm.chain.datastep_similar_queries import generate_similar_queries
+from llm.chain.datastep_sql_chain import DatastepSqlChain
+from llm.component.sql_database import DatastepSqlDatabase
 from scheme.prediction.database_prediction_config_scheme import DatabasePredictionConfig
 from scheme.prediction.prediction_scheme import DatabasePredictionQuery, DatabasePredictionRead
 from scheme.tenant.tenant_scheme import Tenant

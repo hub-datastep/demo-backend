@@ -8,7 +8,7 @@ from scheme.user.user_scheme import UserRead
 from repository.solution_imitation.solution_imitation_config_repository import (
     get_config_by_type_and_user_id,
 )
-from datastep.chains.solution_imitation_chain import (
+from llm.chain.solution_imitation_chain import (
     get_solution_imitation_chain,
     get_solution_imitation_prompt,
 )

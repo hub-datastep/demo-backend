@@ -5,9 +5,6 @@ import requests
 from fastapi import HTTPException, status
 from loguru import logger
 
-from datastep.chains.order_multi_classification.order_multi_classification_chain import (
-    get_order_class,
-)
 from infra.env import (
     DOMYLAND_AUTH_EMAIL,
     DOMYLAND_AUTH_PASSWORD,
@@ -15,6 +12,9 @@ from infra.env import (
 )
 from infra.order_classification import WAIT_TIME_IN_SEC
 from infra.vysota_uds_list import UDS_LIST
+from llm.chain.order_multi_classification.order_multi_classification_chain import (
+    get_order_class,
+)
 from model.order_classification.order_classification_history_model import (
     get_saved_record_by_order_id,
     save_order_classification_record,
@@ -52,7 +52,7 @@ AI_USER_ID = 15698
 ORDER_PROCESSED_BY_AI_MESSAGE = "ИИ классифицировал эту заявку как аварийную"
 
 
-def _normalize_resident_request_string(query: str) -> str:
+def normalize_resident_request_string(query: str) -> str:
     # Remove \n symbols
     removed_line_breaks_query = query.replace("\n", " ")
 
@@ -255,7 +255,9 @@ def _update_order_status_details(
 
     except Exception as e:
         error_str = str(e)
-        logger.error(f"Error occurred while updating order with ID {order_id}: {error_str}")
+        logger.error(
+            f"Error occurred while updating order with ID {order_id}: {error_str}"
+        )
         logger.error(f"Wait {WAIT_TIME_IN_SEC} sec and try again..")
         time.sleep(WAIT_TIME_IN_SEC)
 
@@ -352,21 +354,24 @@ def classify_order(
         if is_saved_record_exists:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Order with ID {order_id} was already classified, history record ID {saved_record.id}",
+                detail=f"Order with ID {order_id} was already classified, "
+                       f"history record ID {saved_record.id}",
             )
 
         # Check if order status is not "in progress"
         if order_status_id != OrderStatusID.PENDING:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Order with ID {order_id} has status ID {order_status_id}, but status ID {OrderStatusID.PENDING} required",
+                detail=f"Order with ID {order_id} has status ID {order_status_id}, "
+                       f"but status ID {OrderStatusID.PENDING} required",
             )
 
         # Check if order is new (created)
         if alert_type_id != AlertTypeID.NEW_ORDER:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Order with ID {order_id} has alert type ID {alert_type_id}, but status ID {AlertTypeID.NEW_ORDER} required",
+                detail=f"Order with ID {order_id} has alert type ID {alert_type_id}, "
+                       f"but status ID {AlertTypeID.NEW_ORDER} required",
             )
 
         config = get_default_config(
@@ -377,7 +382,8 @@ def classify_order(
         if config is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Default order classification config (with ID {DEFAULT_CONFIG_ID} and client '{client}') not found",
+                detail=f"Default order classification config "
+                       f"(with ID {DEFAULT_CONFIG_ID} and client '{client}') not found",
             )
 
         config_id = config.id
@@ -386,7 +392,10 @@ def classify_order(
         is_use_order_classification = config.is_use_order_classification
         # Is needed to update order in Domyland
         # (blocked by is_use_order_classification)
-        is_use_order_updating = config.is_use_order_updating and is_use_order_classification
+        is_use_order_updating = (
+            config.is_use_order_updating
+            and is_use_order_classification
+        )
 
         # Message for response fields disabled by config
         disabled_field_msg = (
@@ -428,17 +437,17 @@ def classify_order(
 
         # Check if resident address exists and not empty if enabled
         is_order_address_exists = order_address is not None
-        is_order_address_empty = is_order_address_exists and not bool(order_address.strip())
+        is_order_address_empty = (
+            is_order_address_exists
+            and not bool(order_address.strip())
+        )
 
         if not is_order_address_exists or is_order_address_empty:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Order with ID {order_id} has no address, cannot find responsible UDS",
+                detail=f"Order with ID {order_id} has no address, "
+                       f"cannot find responsible UDS",
             )
-
-        # Normalize order query for LLM chain
-        normalized_query = _normalize_resident_request_string(order_query)
-        history_record.order_normalized_query = normalized_query
 
         # Get classes with rules from config
         # And check if this param exists
@@ -447,19 +456,26 @@ def classify_order(
         if rules_by_classes is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Classes with rules and params in config with ID {config.id} not found"
+                detail=f"Classes with rules and params in config "
+                       f"with ID {config.id} not found"
             )
 
         # Run LLM to classify order
         if is_use_order_classification:
+            # Normalize order query for LLM chain
+            normalized_query = normalize_resident_request_string(order_query)
+
             llm_response = get_order_class(
                 order_query=normalized_query,
                 rules_by_classes=rules_by_classes,
                 client=client,
                 # verbose=True,
             )
-            order_class = llm_response.order_class.lower()
+            order_class = llm_response.most_relevant_class_response.order_class.lower()
+            query_summary = llm_response.query_summary
 
+            # Save order query summary as normalized
+            history_record.order_normalized_query = query_summary
             # Save full LLM response
             history_record.llm_response = llm_response.dict()
         else:
@@ -485,7 +501,8 @@ def classify_order(
             if responsible_users_ids is None:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Cannot find responsible UDS for order with ID {order_id} and address '{order_address}'",
+                    detail=f"Cannot find responsible UDS for order "
+                           f"with ID {order_id} and address '{order_address}'",
                 )
 
             # Get order class params
@@ -521,13 +538,20 @@ def classify_order(
 
                 # Message if skipped by class params
                 if not is_use_order_with_this_class_updating:
-                    updated_disabled_field_msg = f"{disabled_field_msg}; by params of class '{order_class}'"
+                    updated_disabled_field_msg = (
+                        f"{disabled_field_msg}; by params of class '{order_class}'"
+                    )
 
                     request_body = {"result": updated_disabled_field_msg}
                     response = {"result": updated_disabled_field_msg}
 
             history_record.order_update_request = request_body
             history_record.order_update_response = response
+        # else:
+        #     if not is_use_order_classification:
+        #         result = {"result": disabled_field_msg}
+        #         history_record.order_update_request = result
+        #         history_record.order_update_response = result
 
     except (HTTPException, Exception) as error:
         history_record.is_error = True
