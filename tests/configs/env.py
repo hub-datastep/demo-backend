@@ -3,7 +3,7 @@ from pydantic import BaseSettings
 
 from infra.environment_type import EnvironmentType
 from util.env_files import get_envfile_path
-from util.files_paths import find_path_to_file_or_dir
+from util.path_to_file_or_dir import find_path_to_file_or_dir
 
 _ENV_PATH = get_envfile_path(EnvironmentType.TEST)
 
