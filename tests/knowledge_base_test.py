@@ -1,9 +1,9 @@
 from loguru import logger
 
 from configs.env import env
-from services.api.kb_service import start_knowledge_base_prediction
+from services.api.knowledge_base_service import start_knowledge_base_prediction
 from services.google_sheets_service import get_test_cases, save_results_locally
-from utils.result_knowledge_base import process_results
+from utils.knowledge_base_results import process_results
 
 _RESULTS_SHEET_NAME = "Knowledge Base Results"
 
@@ -25,7 +25,7 @@ def run_tests():
     logger.info("Processing results..")
     processed_results = process_results(
         test_cases=test_cases_list,
-        api_results=results,
+        results=results,
     )
 
     save_results_locally(
