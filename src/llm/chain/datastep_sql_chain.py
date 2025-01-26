@@ -6,7 +6,7 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain_community.utilities import SQLDatabase
 from langchain_openai import AzureChatOpenAI
 
-from datastep.chains.datastep_sql2text_chain import describe_sql
+from llm.chain.datastep_sql2text_chain import describe_sql
 from infra.env import AZURE_DEPLOYMENT_NAME_DB_ASSISTANT
 from util.logger import async_log
 

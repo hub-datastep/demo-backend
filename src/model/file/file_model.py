@@ -10,8 +10,8 @@ from fastapi import UploadFile
 from langchain_community.document_loaders import PyPDFLoader
 from sqlmodel import Session
 
-from datastep.chains.datastep_file_description_chain import get_chain
-from datastep.components import datastep_faiss, datastep_multivector
+from llm.chain.datastep_file_description_chain import get_chain
+from llm.component import datastep_faiss, datastep_multivector
 from exception.file_not_found_exception import FileNotFoundException
 from infra.redis_queue import get_redis_queue, QueueName, MAX_JOB_TIMEOUT
 from repository.file import file_repository

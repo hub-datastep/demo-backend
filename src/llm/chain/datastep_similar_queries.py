@@ -1,4 +1,4 @@
-from datastep.components.sql_database import DatastepSqlDatabase
+from llm.component.sql_database import DatastepSqlDatabase
 from langchain.chains import LLMChain
 from langchain.prompts.prompt import PromptTemplate
 from langchain_openai import AzureChatOpenAI

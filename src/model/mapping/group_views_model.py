@@ -6,7 +6,7 @@ from loguru import logger
 from pandas import DataFrame, read_excel
 from tqdm import tqdm
 
-from datastep.chains.mapping_nomenclature_view_chain import get_chain
+from llm.chain.mapping_nomenclature_view_chain import get_chain
 from infra.env import DATA_FOLDER_PATH
 
 # Init tqdm for pandas

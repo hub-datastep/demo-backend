@@ -90,3 +90,9 @@ class OrderClassificationRequest(SQLModel):
 class MostRelevantClassLLMResponse(SQLModel):
     order_class: str
     comment: str
+
+
+class OrderClassificationLLMResponse(SQLModel):
+    most_relevant_class_response: MostRelevantClassLLMResponse
+    scores: str
+    query_summary: str
