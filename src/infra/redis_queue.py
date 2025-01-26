@@ -6,7 +6,7 @@ from rq.exceptions import NoSuchJobError
 from rq.job import Job
 from rq.queue import Queue
 
-from infra.env import REDIS_PASSWORD, REDIS_HOST, REDIS_PORT
+from infra.env import env
 
 # 1 day
 MAX_JOB_TIMEOUT = 60 * 60 * 24
@@ -31,15 +31,16 @@ QueuesEnum = Enum(
 
 
 def get_queues_list():
-    queues_list: list[str] = [value for key, value in vars(QueueName).items() if not key.startswith('__')]
+    queues_list: list[str] = [value for key, value in vars(QueueName).items() if
+                              not key.startswith('__')]
     return queues_list
 
 
 def get_redis_connection():
     redis = Redis(
-        host=REDIS_HOST,
-        port=REDIS_PORT,
-        password=REDIS_PASSWORD,
+        host=env.REDIS_HOST,
+        port=env.REDIS_PORT,
+        password=env.REDIS_PASSWORD,
     )
     return redis
 

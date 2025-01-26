@@ -19,7 +19,7 @@ from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from rq import get_current_job
 from rq.job import Job
 
-from infra.env import AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES, AZURE_DEPLOYMENT_NAME_EMBEDDINGS
+from infra.env import env
 from util.files_paths import get_file_folder_path
 
 MULTIVECTOR_PROMPT_TEMPLATE = """
@@ -80,13 +80,16 @@ def get_hypothetical_questions(docs):
     chain = (
         {"doc": lambda x: x.page_content}
         | ChatPromptTemplate.from_template(
-        "Generate a list of 3 hypothetical questions in russian that the below document could be used to answer:\n\n{doc}"
+        "Generate a list of 3 hypothetical questions in russian that the below document could be "
+        "used to answer:\n\n{doc}"
     )
         # | ChatOpenAI(max_retries=6, model="gpt-3.5-turbo-1106", request_timeout=10,
         #              openai_api_base=OPENAI_API_BASE).bind(
-        | AzureChatOpenAI(azure_deployment=AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES,
-                          max_retries=6,
-                          request_timeout=10).bind(
+        | AzureChatOpenAI(
+        deployment_name=env.AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES,
+        max_retries=6,
+        request_timeout=10
+    ).bind(
         functions=functions,
         function_call={"name": "hypothetical_questions"}
     )
@@ -94,10 +97,11 @@ def get_hypothetical_questions(docs):
     )
     job = get_current_job()
     try:
-        hypothetical_questions = chain.batch(docs, {
-            "max_concurrency": 6,
-            "callbacks": [UpdateTaskHandler(job)]}
-                                             )
+        hypothetical_questions = chain.batch(
+            docs, {
+                "max_concurrency": 6,
+                "callbacks": [UpdateTaskHandler(job)]}
+        )
         return hypothetical_questions
     except OutputParserException:
         pass
@@ -117,7 +121,7 @@ def get_vectorstore(storage_filename: str):
     return Chroma(
         persist_directory=chroma_folder_path,
         embedding_function=AzureOpenAIEmbeddings(
-            azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
+            deployment=env.AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
         ),
     )
 
@@ -153,7 +157,7 @@ def get_retriever_qa(retriever):
         input_variables=["context", "query"],
     )
     llm = AzureChatOpenAI(
-        azure_deployment=AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES,
+        deployment_name=env.AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES,
         max_retries=6,
         request_timeout=10,
     )
@@ -172,7 +176,9 @@ def save_chroma(storage_filename: str, docs, doc_ids):
 
     question_docs = []
     for i, question_list in enumerate(hypothetical_questions):
-        question_docs.extend([Document(page_content=s, metadata={ID_KEY: doc_ids[i]}) for s in question_list])
+        question_docs.extend(
+            [Document(page_content=s, metadata={ID_KEY: doc_ids[i]}) for s in question_list]
+        )
 
     file_folder_path = get_file_folder_path(storage_filename)
     chroma_folder_path = file_folder_path / "multivector" / "chroma"
@@ -181,7 +187,7 @@ def save_chroma(storage_filename: str, docs, doc_ids):
         question_docs,
         # OpenAIEmbeddings(),
         AzureOpenAIEmbeddings(
-            azure_deployment=AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
+            deployment=env.AZURE_DEPLOYMENT_NAME_EMBEDDINGS,
         ),
         persist_directory=str(chroma_folder_path)
     )
