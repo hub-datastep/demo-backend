@@ -17,12 +17,14 @@ from infra.redis_queue import MAX_JOB_TIMEOUT, QueueName, get_job, get_redis_que
 from model.classifier.classifier_retrain_model import TRAINING_COLUMNS
 from model.classifier.classifier_version_model import get_model_path
 from model.mapping.group_views_model import get_nomenclatures_views
-from model.mapping.mapping_result_model import save_mapping_result
+from model.mapping.result import mapping_result_model
 from model.ner.ner import ner_service
 from model.used_token.used_token_model import charge_used_tokens, count_used_tokens
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
-from scheme.mapping.mapping_scheme import (MappingNomenclaturesResultRead, MappingOneNomenclatureRead,
-                                           MappingOneNomenclatureUpload, MappingOneTargetRead)
+from scheme.mapping.mapping_scheme import (
+    MappingNomenclaturesResultRead, MappingOneNomenclatureRead,
+    MappingOneNomenclatureUpload, MappingOneTargetRead,
+)
 from scheme.task.task_scheme import JobIdRead
 from util.extract_keyword import extract_keyword
 from util.features_extraction import extract_features, get_noms_metadatas_with_features
@@ -58,22 +60,28 @@ def get_nomenclatures_groups(
     noms: DataFrame,
     model_id: str,
 ) -> list[str]:
-    model_path = get_model_path(model_id)
-    model_packages = joblib.load(model_path)
-    logger.info(f"model packages: {model_packages}")
+    try:
+        model_path = get_model_path(model_id)
+        model_packages = joblib.load(model_path)
+        logger.info(f"model packages: {model_packages}")
 
-    model = model_packages['model']
-    label_encoder = model_packages['label_encoder']
+        model = model_packages['model']
+        label_encoder = model_packages['label_encoder']
 
-    prediction_df = noms['nomenclature']
-    prediction_list = prediction_df.to_list()
+        prediction_df = noms['nomenclature']
+        prediction_list = prediction_df.to_list()
 
-    # Predict groups ids and encode them to groups names
-    predicted_groups = label_encoder.inverse_transform(
-        model.predict(prediction_list),
-    )
+        # Predict groups ids and encode them to groups names
+        predicted_groups = label_encoder.inverse_transform(
+            model.predict(prediction_list),
+        )
 
-    return predicted_groups
+        return predicted_groups
+    except ValueError:
+        raise Exception(
+            f"Model with ID '{model_id}' does not support params or DataFrame for prediction does "
+            f"not contains them"
+        )
 
 
 def _build_where_metadatas_old(
@@ -264,7 +272,7 @@ def create_mapping_job(
     most_similar_count: int,
     classifier_config: ClassifierConfig,
     tenant_id: int,
-    iteration_key: str,
+    iteration_id: str,
     previous_job_id: str | None = None,
 ) -> JobIdRead:
     queue = get_redis_queue(name=QueueName.MAPPING)
@@ -274,7 +282,7 @@ def create_mapping_job(
         most_similar_count,
         classifier_config,
         tenant_id,
-        iteration_key,
+        iteration_id,
         meta={
             "previous_nomenclature_id": previous_job_id
         },
@@ -290,7 +298,7 @@ def start_mapping(
     chunk_size: int,
     classifier_config: ClassifierConfig,
     tenant_id: int,
-    iteration_key: str | None = None,
+    iteration_id: str | None = None,
 ) -> JobIdRead:
     # Check if collection name exists in user's classifier config
     collection_name = classifier_config.chroma_collection_name
@@ -320,8 +328,8 @@ def start_mapping(
         )
 
     # Generate UUID for iteration
-    if iteration_key is None:
-        iteration_key = generate_uuid()
+    if iteration_id is None:
+        iteration_id = generate_uuid()
 
     # Split nomenclatures to chunks
     segments = split_nomenclatures_by_chunks(
@@ -336,7 +344,7 @@ def start_mapping(
             most_similar_count=most_similar_count,
             classifier_config=classifier_config,
             tenant_id=tenant_id,
-            iteration_key=iteration_key,
+            iteration_id=iteration_id,
         )
         last_job_id = job.job_id
 
@@ -348,9 +356,11 @@ def _map_nomenclatures_chunk(
     most_similar_count: int,
     classifier_config: ClassifierConfig,
     tenant_id: int,
-    iteration_key: str,
+    iteration_id: str,
 ) -> list[MappingOneNomenclatureRead]:
-    logger.info(f"Classifier config for user with ID {classifier_config.user_id}: {classifier_config}")
+    user_id = classifier_config.user_id
+
+    logger.info(f"Classifier config for user with ID {user_id}: {classifier_config}")
 
     job = get_current_job()
 
@@ -402,16 +412,11 @@ def _map_nomenclatures_chunk(
 
     # Run classification to get nomenclatures groups
     model_id = classifier_config.model_id
-    try:
-        noms['internal_group'] = get_nomenclatures_groups(
-            noms=noms,
-            model_id=model_id,
-            # is_use_params=is_use_params,
-        )
-    except ValueError:
-        raise Exception(
-            f"Model with ID '{model_id}' does not support params or DataFrame for prediction does not contains them"
-        )
+    noms['internal_group'] = get_nomenclatures_groups(
+        noms=noms,
+        model_id=model_id,
+        # is_use_params=is_use_params,
+    )
 
     # Get all noms params with group as metadatas list
     if is_use_params:
@@ -516,11 +521,10 @@ def _map_nomenclatures_chunk(
     result_nomenclatures = [MappingOneNomenclatureRead(**nom) for nom in noms_dict]
 
     # Save mapping results for feedback
-    user_id = classifier_config.user_id
-    save_mapping_result(
-        nomenclatures=result_nomenclatures,
+    mapping_result_model.save_mapping_results(
+        mappings_list=result_nomenclatures,
         user_id=user_id,
-        iteration_key=iteration_key,
+        iteration_id=iteration_id,
     )
 
     # Charge tenant used tokens for nomenclatures mapping

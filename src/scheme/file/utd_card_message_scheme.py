@@ -23,6 +23,8 @@ class CreditSlipData(SQLModel):
     building_guid: str
     # guid Генерального Подрядчика(сейчас это константа)
     gen_contractor_guid: str
+    # guid категории материалов
+    material_category_guid: str
 
 
 class UTDDocument(SQLModel):
@@ -34,7 +36,7 @@ class UTDDocument(SQLModel):
     idn_file_name: str
 
 
-# Модель входящих данных (сообщений из Кафки)
+# * Схема входного сообщения из Кафки
 class UTDCardInputMessage(SQLModel):
     # guid карточки подгрузки УПД (guid запроса)
     guid: str
@@ -62,7 +64,7 @@ class MappedMaterial(SQLModel):
     # Материалы НСИ, похожие на материал УПД
     # Если material_guid=null, тогда не передается
     # Если material_guid is not null, тогда передаем
-    similar_mappings: list[SimilarMapping] | None = None
+    # similar_mappings: list[SimilarMapping] | None = None
     # Количество полученного материала
     quantity: float | None = None
     # Цена материала за единицу
@@ -75,7 +77,7 @@ class MappedMaterial(SQLModel):
     vat_amount: float | None = None
 
 
-# Модели для выходных данных
+# * Схема выходного сообщения из Кафки
 class UTDCardOutputMessage(SQLModel):
     # Data from Input Message
     credit_slip_data: CreditSlipData
@@ -116,8 +118,36 @@ class UTDCardOutputMessage(SQLModel):
 
 
 class UTDEntityWithParamsAndNoms(SQLModel):
+    # Номер УПД
     idn_number: str | None = None
+    # Дата УПД
     idn_date: date | None = None
+    # ИНН поставщика
     supplier_inn: str | None = None
     pages_numbers_list: list[int] = []
     nomenclatures_list: list[str] | None = None
+
+
+# * Схема выходного сообщения из Кафки со ссылкой на результаты для проверки
+class UTDCardCheckResultsOutputMessage(SQLModel):
+    # guid карточки подгрузки УПД (guid запроса)
+    guid: str
+    # guid файла УПД
+    idn_file_guid: str
+    # guid объекта строительства
+    building_guid: str
+    # guid категории материалов
+    material_category_guid: str
+    # Ссылка на проверку результата
+    check_results_url: str
+    # ИНН поставщика
+    supplier_inn: str | None = None
+    # Наименование договора поставки
+    contract_name: str | None = None
+
+
+class UTDCardMetadatas(SQLModel):
+    input_message: UTDCardInputMessage
+    entity: UTDEntityWithParamsAndNoms
+    mapped_materials: list[MappedMaterial] | None
+    check_results_output_message: UTDCardCheckResultsOutputMessage
