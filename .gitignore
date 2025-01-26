@@ -1,5 +1,6 @@
 # Environment
-.env
+*.env*
+!.env.template
 venv/
 
 # Logs
@@ -15,6 +16,7 @@ __pycache__/
 # Mkdocs
 site/
 
+# Fastembed files
 data/fastembed/.locks
 data/fastembed/models--qdrant--multilingual-e5-large-onnx
 
