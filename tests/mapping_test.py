@@ -3,7 +3,7 @@ from loguru import logger
 from configs.env import env
 from services.api.mapping_service import start_mapping, wait_for_job_completion
 from services.google_sheets_service import get_test_cases, save_results_locally
-from utils.result_mapper import process_results
+from utils.mapping_results import process_results
 
 _RESULTS_SHEET_NAME = "Mapping Results"
 
@@ -43,8 +43,8 @@ def run_tests():
 
     logger.info("Processing results..")
     processed_results = process_results(
-        test_cases_list=test_cases_list,
-        mapping_results_list=results,
+        test_cases=test_cases_list,
+        results=results,
     )
 
     save_results_locally(
