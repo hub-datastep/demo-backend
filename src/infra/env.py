@@ -11,7 +11,7 @@ load_dotenv(dotenv_path=_ENV_PATH)
 
 
 class Env(BaseSettings):
-    ENVIRONMENT: str = EnvironmentType.DEV
+    ENVIRONMENT: EnvironmentType = EnvironmentType.DEV
 
     # noinspection PyPep8Naming
     @property
