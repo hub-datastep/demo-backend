@@ -1,9 +1,9 @@
 from langchain.chains.llm import LLMChain
-from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 
-from infra.env import AZURE_DEPLOYMENT_NAME_ORDER_CLASSIFICATION
+from infra.env import env
 from scheme.solution_imitation.solution_imitation_llm_output_scheme import LLMOutput
 
 parser = JsonOutputParser(pydantic_object=LLMOutput)
@@ -12,7 +12,7 @@ parser = JsonOutputParser(pydantic_object=LLMOutput)
 def _get_solution_imitation_structured_llm() -> AzureChatOpenAI:
     llm = AzureChatOpenAI(
         # TODO: add other deployment for this task
-        azure_deployment=AZURE_DEPLOYMENT_NAME_ORDER_CLASSIFICATION,
+        deployment_name=env.AZURE_DEPLOYMENT_NAME_ORDER_CLASSIFICATION,
         temperature=0,
         verbose=False,
     )
