@@ -13,8 +13,10 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
+      - ./.env.development:/app/.env.development
+      - ./.env.production:/app/.env.production
       # Just to see .env in files viewer
-      - ./.env:${DATA_FOLDER_PATH}/env-file
+      - ./.env:${DATA_FOLDER_PATH}/.env-file
       - backend:${DATA_FOLDER_PATH}
     depends_on:
       - db
@@ -28,6 +30,8 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
+      - ./.env.development:/app/.env.development
+      - ./.env.production:/app/.env.production
       - backend:${DATA_FOLDER_PATH}
     depends_on:
       - backend
@@ -41,6 +45,8 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
+      - ./.env.development:/app/.env.development
+      - ./.env.production:/app/.env.production
       - backend:${DATA_FOLDER_PATH}
     depends_on:
       - backend
@@ -61,6 +67,8 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
+      - ./.env.development:/app/.env.development
+      - ./.env.production:/app/.env.production
       - backend:${DATA_FOLDER_PATH}
     depends_on:
       - backend
