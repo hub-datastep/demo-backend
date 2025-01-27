@@ -2,7 +2,7 @@ from langchain.chains import LLMChain
 from langchain.prompts.prompt import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 
-from infra.env import AZURE_DEPLOYMENT_NAME_DB_ASSISTANT
+from infra.env import env
 from util.logger import async_log
 
 sql2text_template = """
@@ -27,7 +27,7 @@ sql2text_prompt = PromptTemplate(
 #     verbose=False,
 # )
 llm = AzureChatOpenAI(
-    azure_deployment=AZURE_DEPLOYMENT_NAME_DB_ASSISTANT,
+    deployment_name=env.AZURE_DEPLOYMENT_NAME_DB_ASSISTANT,
     temperature=0,
     verbose=False,
 )

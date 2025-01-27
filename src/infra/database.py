@@ -1,8 +1,8 @@
 from sqlmodel import create_engine, SQLModel, Session
 
-from infra.env import DB_CONNECTION_STRING
+from infra.env import env
 
-engine = create_engine(DB_CONNECTION_STRING, echo=True)
+engine = create_engine(env.DB_CONNECTION_STRING, echo=True)
 
 
 def create_db_and_tables():
