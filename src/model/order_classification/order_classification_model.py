@@ -7,7 +7,6 @@ from loguru import logger
 
 from infra.env import env
 from infra.order_classification import WAIT_TIME_IN_SEC
-from infra.vysota_uds_list import UDS_LIST
 from llm.chain.order_multi_classification.order_multi_classification_chain import (
     get_order_class,
 )
@@ -19,7 +18,10 @@ from repository.order_classification.order_classification_config_repository impo
     get_default_config,
     DEFAULT_CONFIG_ID,
 )
-from scheme.order_classification.order_classification_config_scheme import RulesWithParams
+from scheme.order_classification.order_classification_config_scheme import (
+    RulesWithParams,
+    ResponsibleUserWithAddresses,
+)
 from scheme.order_classification.order_classification_history_scheme import (
     OrderClassificationRecord,
 )
@@ -31,12 +33,9 @@ from scheme.order_classification.order_classification_scheme import (
     SummaryTitle,
     SummaryType,
 )
-from scheme.order_classification.uds_scheme import UDS
 
 DOMYLAND_API_BASE_URL = "https://sud-api.domyland.ru"
 DOMYLAND_APP_NAME = "Datastep"
-
-RESPONSIBLE_UDS_LIST = [UDS(**uds_data) for uds_data in UDS_LIST]
 
 # "Администрация" - DEPT ID 38
 RESPONSIBLE_DEPT_ID = 38
@@ -161,17 +160,17 @@ def _get_order_details_by_id(order_id: int) -> OrderDetails:
 #     return response_data, req_body
 
 
-def _get_responsible_users_ids_by_order_address(order_address: str) -> list[int] | None:
-    # Search responsible UDS for order
-    for uds_data in RESPONSIBLE_UDS_LIST:
-        uds_user_id = int(uds_data.user_id)
-        uds_address_list = uds_data.address_list
+def _get_responsible_user_by_order_address(
+    responsible_users_list: list[ResponsibleUserWithAddresses],
+    order_address: str,
+) -> ResponsibleUserWithAddresses | None:
+    for responsible_user in responsible_users_list:
+        addresses_list = responsible_user.address_list
 
-        # Check if order address contains UDS address
-        # It means that UDS is responsible for this order
-        for uds_address in uds_address_list:
-            if uds_address.lower() in order_address.lower():
-                return [uds_user_id]
+        # Check if responsible user addresses contains order address
+        for address in addresses_list:
+            if address.lower() in order_address.lower():
+                return responsible_user
 
     return None
 
@@ -383,7 +382,6 @@ def classify_order(
             )
 
         config_id = config.id
-        user_id = config.user_id
         # Is needed to classify order
         is_use_order_classification = config.is_use_order_classification
         # Is needed to update order in Domyland
@@ -488,18 +486,24 @@ def classify_order(
         # Update order emergency class in Domyland
         if is_emergency and is_use_order_classification:
             # Get responsible UDS user id
-            responsible_users_ids = _get_responsible_users_ids_by_order_address(
+            uds_list = [
+                ResponsibleUserWithAddresses(**uds_data)
+                for uds_data in config.responsible_users
+            ]
+            responsible_uds = _get_responsible_user_by_order_address(
+                responsible_users_list=uds_list,
                 order_address=order_address,
             )
-            # Convert list to str
-            history_record.uds_id = str(responsible_users_ids)
 
-            if responsible_users_ids is None:
+            # Check if responsible UDS is found
+            if responsible_uds is None:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Cannot find responsible UDS for order "
                            f"with ID {order_id} and address '{order_address}'",
                 )
+
+            history_record.responsible_user_id = responsible_uds.user_id
 
             # Get order class params
             class_params = _get_class_params(
@@ -511,14 +515,21 @@ def classify_order(
             if class_params is not None:
                 is_use_order_with_this_class_updating = class_params.is_use_order_updating
 
+            is_uds_disabled = responsible_uds.is_disabled
+
             # Update order responsible user is enabled
-            if is_use_order_updating and is_use_order_with_this_class_updating:
+            if (
+                is_use_order_updating
+                and is_use_order_with_this_class_updating
+                and not is_uds_disabled
+            ):
                 response, request_body = _update_order_status_details(
                     order_id=order_id,
                     responsible_dept_id=RESPONSIBLE_DEPT_ID,
                     # Update order status to "В работе"
                     order_status_id=OrderStatusID.IN_PROGRESS,
-                    responsible_users_ids=responsible_users_ids,
+                    # Set responsible user to UDS
+                    responsible_users_ids=[int(responsible_uds.user_id)],
                     # Update order inspector to AI Account
                     inspector_users_ids=[AI_USER_ID],
                 )
@@ -528,6 +539,7 @@ def classify_order(
                     order_id=order_id,
                     message=ORDER_PROCESSED_BY_AI_MESSAGE,
                 )
+            # If skip order updating, set required fields with message with reason
             else:
                 request_body = {"result": disabled_field_msg}
                 response = {"result": disabled_field_msg}
@@ -536,6 +548,16 @@ def classify_order(
                 if not is_use_order_with_this_class_updating:
                     updated_disabled_field_msg = (
                         f"{disabled_field_msg}; by params of class '{order_class}'"
+                    )
+
+                    request_body = {"result": updated_disabled_field_msg}
+                    response = {"result": updated_disabled_field_msg}
+
+                # Message if skipped by responsible user
+                elif is_uds_disabled:
+                    updated_disabled_field_msg = (
+                        f"{disabled_field_msg}; "
+                        f"by responsible user with ID '{responsible_uds.user_id}'"
                     )
 
                     request_body = {"result": updated_disabled_field_msg}
@@ -597,3 +619,16 @@ if __name__ == "__main__":
     #
     # users_ids_list = _get_responsible_users_ids_by_order_address(order_address)
     # logger.debug(f"Responsible users IDs: {users_ids_list}")
+
+    # config = get_default_config()
+    # logger.debug(f"Order Classification config:\n{config}\n")
+    #
+    # responsible_uds_list = [
+    #     UDS(**responsible_uds)
+    #     for responsible_uds in config.responsible_users
+    # ]
+    # logger.debug(f"Responsible UDS list:\n{responsible_uds_list}\n")
+
+    # df = DataFrame(responsible_uds_list)
+    # df["address_list"] = df["address_list"].apply(lambda x: "\n".join(x))
+    # df.to_excel(f"./ЕДС c адресам {datetime.now()}.xlsx", index=False)
