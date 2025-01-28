@@ -12,6 +12,7 @@ class OrderClassificationConfigBase(SQLModel):
     client: str | None = Field(default=None)
     is_use_order_classification: bool | None = Field(default=False)
     is_use_order_updating: bool | None = Field(default=False)
+    responsible_users: list[dict] | None = Field(default=None, sa_column=Column(JSONB))
 
 
 class OrderClassificationConfig(OrderClassificationConfigBase, table=True):
@@ -28,6 +29,16 @@ class RulesWithParams(SQLModel):
     exclusion_rules: list[str] | None = None
     is_use_classification: bool | None = None
     is_use_order_updating: bool | None = None
+
+
+class ResponsibleUser(SQLModel):
+    user_id: str
+    name: str | None = None
+    is_disabled: bool | None = None
+
+
+class ResponsibleUserWithAddresses(ResponsibleUser):
+    address_list: list[str]
 
 
 from scheme.user.user_scheme import User
