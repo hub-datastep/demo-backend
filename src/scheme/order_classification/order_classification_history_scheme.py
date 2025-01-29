@@ -21,7 +21,7 @@ class OrderClassificationRecordBase(SQLModel):
     order_class: str | None = None
     # UDS mapping data
     order_address: str | None = None
-    uds_id: str | None = None
+    responsible_user_id: str | None = None
     # Response from Domyland API
     order_update_request: dict | None = Field(default=None, sa_column=Column(JSONB))
     order_update_response: dict | None = Field(default=None, sa_column=Column(JSONB))

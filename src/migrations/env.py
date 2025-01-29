@@ -3,8 +3,7 @@ from logging.config import fileConfig
 
 from alembic import context
 from dotenv import load_dotenv
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
 # this is the Alembic Config object, which provides
@@ -52,7 +51,9 @@ from scheme.classifier.classifier_version_scheme import ClassifierVersion
 # noinspection PyUnresolvedReferences
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
 # noinspection PyUnresolvedReferences
-from scheme.mapping.mapping_results_scheme import MappingResult
+from scheme.mapping.result.mapping_result_scheme import MappingResult
+# noinspection PyUnresolvedReferences
+from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
 # noinspection PyUnresolvedReferences
 from scheme.used_token.used_token_scheme import UsedToken
 # noinspection PyUnresolvedReferences

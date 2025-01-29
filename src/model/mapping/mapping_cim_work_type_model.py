@@ -1,7 +1,7 @@
 import json
 
-from datastep.chains.datastep_cim_mapping_chain import get_chain_for_cim
-from scheme.mapping.mapping_results_scheme import InputModel, MappedCimModel
+from llm.chain.datastep_cim_mapping_chain import get_chain_for_cim
+from scheme.mapping.result.mapping_result_scheme import InputModel, MappedCimModel
 
 
 def get_work_types() -> list:
