@@ -28,7 +28,7 @@ jobs:
             git pull
 
             echo "Stop all containers"
-            docker compose stop
+            docker compose down
             
             echo "Clear docker cache"
             docker system prune -f
