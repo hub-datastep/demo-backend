@@ -489,6 +489,13 @@ def classify_order(
 
         # Update order emergency class in Domyland
         if is_emergency and is_use_order_classification:
+            # Check if responsible users is set in config
+            if config.responsible_users is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Responsible users is not set in config with ID {config_id}",
+                )
+
             # Get responsible UDS user id
             uds_list = [
                 ResponsibleUserWithAddresses(**uds_data)
