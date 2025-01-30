@@ -38,7 +38,7 @@ class SummaryTitle:
 class OrderSummary(SQLModel):
     type: str | None = None
     title: str | None = None
-    value: str | None = None
+    value: str | int | None = None
 
 
 class Order(SQLModel):
@@ -54,7 +54,7 @@ class Order(SQLModel):
 class OrderForm(SQLModel):
     id: int
     type: str
-    typeId: int | None
+    typeId: int | None = None
     title: str
     value: int | str
 
@@ -68,10 +68,25 @@ class Service(SQLModel):
     orderForm: list[OrderForm]
 
 
+class Resident(SQLModel):
+    id: int
+    firstName: str
+    lastName: str
+    middleName: str | None = None
+    fullName: str | None = None
+    image: str | None = None
+    customerTypeId: int | None = None
+    phoneNumber: str | None = None
+    lastActivity: int | None = None
+    sex: str | None = None
+    customerStatus: str | None = None
+
+
 class OrderDetails(SQLModel):
     order: Order
     # List of order params
     service: Service
+    customer: Resident
 
 
 class OrderData(SQLModel):
@@ -81,9 +96,9 @@ class OrderData(SQLModel):
 
 
 class OrderClassificationRequest(SQLModel):
-    alertId: str | None
+    alertId: str | None = None
     alertTypeId: int
-    timestamp: int | None
+    timestamp: int | None = None
     data: OrderData
 
 
