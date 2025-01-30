@@ -32,6 +32,7 @@ from scheme.order_classification.order_classification_scheme import (
     OrderStatusID,
     SummaryTitle,
     SummaryType,
+    Resident,
 )
 
 DOMYLAND_API_BASE_URL = "https://sud-api.domyland.ru"
@@ -42,6 +43,8 @@ RESPONSIBLE_DEPT_ID = 38
 
 # DataStep AI User ID - 15698
 AI_USER_ID = 15698
+
+ORDER_CLIENT_CHAT_TARGET_TYPE_ID = 2
 
 # Message to mark AI processed orders (in internal chat)
 ORDER_PROCESSED_BY_AI_MESSAGE = "ИИ классифицировал эту заявку как аварийную"
@@ -75,11 +78,15 @@ def _get_domyland_headers(auth_token: str | None = None):
     }
 
 
-def _get_auth_token() -> str:
+def _get_auth_token(
+    username: str,
+    password: str,
+    tenant_name: str,
+) -> str:
     req_body = {
-        "email": env.DOMYLAND_AUTH_AI_ACCOUNT_EMAIL,
-        "password": env.DOMYLAND_AUTH_AI_ACCOUNT_PASSWORD,
-        "tenantName": env.DOMYLAND_AUTH_AI_ACCOUNT_TENANT_NAME,
+        "email": username,
+        "password": password,
+        "tenantName": tenant_name,
     }
 
     response = requests.post(
@@ -98,9 +105,31 @@ def _get_auth_token() -> str:
     return auth_token
 
 
+def _get_ai_account_auth_token():
+    """
+    Account for AI and classification.
+    """
+    return _get_auth_token(
+        username=DOMYLAND_AUTH_AI_ACCOUNT_EMAIL,
+        password=DOMYLAND_AUTH_AI_ACCOUNT_PASSWORD,
+        tenant_name=DOMYLAND_AUTH_AI_ACCOUNT_TENANT_NAME,
+    )
+
+
+def _get_public_account_auth_token():
+    """
+    Kind of Public Account for communication with residents.
+    """
+    return _get_auth_token(
+        username=DOMYLAND_AUTH_PUBLIC_ACCOUNT_EMAIL,
+        password=DOMYLAND_AUTH_PUBLIC_ACCOUNT_PASSWORD,
+        tenant_name=DOMYLAND_AUTH_PUBLIC_ACCOUNT_TENANT_NAME,
+    )
+
+
 def _get_order_details_by_id(order_id: int) -> OrderDetails:
     # Authorize in Domyland API
-    auth_token = _get_auth_token()
+    auth_token = _get_ai_account_auth_token()
 
     # Update order status
     response = requests.get(
@@ -227,7 +256,7 @@ def _update_order_status_details(
         # prev_order_status_details = _get_order_status_details(order_id)
 
         # Authorize in Domyland API
-        auth_token = _get_auth_token()
+        auth_token = _get_ai_account_auth_token()
 
         req_body = {
             # # Save all prev params from order status details (not needed to update)
@@ -273,9 +302,12 @@ def _update_order_status_details(
         )
 
 
-def _send_message_to_internal_chat(order_id: int, message: str) -> tuple[dict, dict]:
+def _send_message_to_internal_chat(
+    order_id: int,
+    message: str,
+) -> tuple[dict, dict]:
     # Authorize in Domyland API
-    auth_token = _get_auth_token()
+    auth_token = _get_ai_account_auth_token()
 
     req_body = {
         "orderId": order_id,
@@ -300,30 +332,53 @@ def _send_message_to_internal_chat(order_id: int, message: str) -> tuple[dict, d
     return response_data, req_body
 
 
-# def _get_order_emergency(
-#     prompt: str,
-#     client: str,
-#     query: str,
-# ) -> str:
-#     try:
-#         chain = get_order_classification_chain(
-#             prompt_template=prompt,
-#             client=client,
-#         )
-#         order_emergency: str = chain.run(query=query)
-#         return order_emergency
-#     except RateLimitError:
-#         logger.info(f"Wait {WAIT_TIME_IN_SEC} seconds and try again")
-#         time.sleep(WAIT_TIME_IN_SEC)
-#         logger.info(
-#             f"Timeout passed, try to classify order '{query}' of '{client}' again"
-#         )
+def _send_message_to_resident_chat(
+    order_id: int,
+    message: str,
+) -> tuple[dict, dict]:
+    # Authorize in Domyland API
+    auth_token = _get_public_account_auth_token()
 
-#         return _get_order_emergency(
-#             prompt=prompt,
-#             client=client,
-#             query=query,
-#         )
+    req_params = {
+        "targetId": order_id,
+        "targetTypeId": ORDER_CLIENT_CHAT_TARGET_TYPE_ID,
+    }
+    req_body = {
+        "text": message,
+    }
+
+    # Send message to internal chat
+    response = requests.post(
+        url=f"{DOMYLAND_API_BASE_URL}/chat",
+        json=req_body,
+        params=req_params,
+        headers=_get_domyland_headers(auth_token),
+    )
+    response_data = response.json()
+
+    if not response.ok:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Order client chat POST: {response_data}",
+        )
+
+    return response_data, req_body
+
+
+def _format_message_to_resident(
+    template: str,
+    resident: Resident,
+) -> str:
+    """
+    Format message to resident with its data.
+    """
+
+    resident_name = f"{resident.firstName} {resident.lastName}"
+
+    formatted_msg = template.format(
+        resident_name=resident_name,
+    )
+    return formatted_msg
 
 
 def classify_order(
@@ -357,7 +412,7 @@ def classify_order(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Order with ID {order_id} was already classified, "
-                f"history record ID {saved_record.id}",
+                       f"history record ID {saved_record.id}",
             )
 
         # Check if order status is not "in progress"
@@ -365,7 +420,7 @@ def classify_order(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Order with ID {order_id} has status ID {order_status_id}, "
-                f"but status ID {OrderStatusID.PENDING} required",
+                       f"but status ID {OrderStatusID.PENDING} required",
             )
 
         # Check if order is new (created)
@@ -373,7 +428,7 @@ def classify_order(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Order with ID {order_id} has alert type ID {alert_type_id}, "
-                f"but status ID {AlertTypeID.NEW_ORDER} required",
+                       f"but status ID {AlertTypeID.NEW_ORDER} required",
             )
 
         config = get_default_config(
@@ -385,7 +440,7 @@ def classify_order(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Default order classification config "
-                f"(with ID {DEFAULT_CONFIG_ID} and client '{client}') not found",
+                       f"(with ID {DEFAULT_CONFIG_ID} and client '{client}') not found",
             )
 
         config_id = config.id
@@ -394,7 +449,8 @@ def classify_order(
         # Is needed to update order in Domyland
         # (blocked by is_use_order_classification)
         is_use_order_updating = (
-            config.is_use_order_updating and is_use_order_classification
+            config.is_use_order_updating
+            and is_use_order_classification
         )
 
         # Message for response fields disabled by config
@@ -437,15 +493,16 @@ def classify_order(
 
         # Check if resident address exists and not empty if enabled
         is_order_address_exists = order_address is not None
-        is_order_address_empty = is_order_address_exists and not bool(
-            order_address.strip()
+        is_order_address_empty = (
+            is_order_address_exists
+            and not bool(order_address.strip())
         )
 
         if not is_order_address_exists or is_order_address_empty:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Order with ID {order_id} has no address, "
-                f"cannot find responsible UDS",
+                       f"cannot find responsible UDS",
             )
 
         # Get classes with rules from config
@@ -456,7 +513,7 @@ def classify_order(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Classes with rules and params in config "
-                f"with ID {config.id} not found",
+                       f"with ID {config.id} not found"
             )
 
         # Run LLM to classify order
@@ -512,7 +569,7 @@ def classify_order(
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Cannot find responsible UDS for order "
-                    f"with ID {order_id} and address '{order_address}'",
+                           f"with ID {order_id} and address '{order_address}'",
                 )
 
             history_record.responsible_user_id = responsible_uds.user_id
@@ -525,9 +582,7 @@ def classify_order(
 
             is_use_order_with_this_class_updating = None
             if class_params is not None:
-                is_use_order_with_this_class_updating = (
-                    class_params.is_use_order_updating
-                )
+                is_use_order_with_this_class_updating = class_params.is_use_order_updating
 
             is_uds_disabled = responsible_uds.is_disabled
 
@@ -553,6 +608,25 @@ def classify_order(
                     order_id=order_id,
                     message=ORDER_PROCESSED_BY_AI_MESSAGE,
                 )
+
+                message_to_resident_template = config.message_to_resident_template
+                is_send_message_to_resident = (
+                    config.is_send_message_to_resident
+                    and message_to_resident_template is not None
+                )
+                resident = order_details.customer
+
+                # Send message to resident to show that order is processing
+                if is_send_message_to_resident:
+                    message_to_resident = _format_message_to_resident(
+                        template=message_to_resident_template,
+                        resident=resident,
+                    )
+
+                    _send_message_to_resident_chat(
+                        order_id=order_id,
+                        message=message_to_resident,
+                    )
             # If skip order updating, set required fields with message with reason
             else:
                 request_body = {"result": disabled_field_msg}
@@ -611,7 +685,7 @@ def classify_order(
 if __name__ == "__main__":
     # Test order id - 3196509
     # Real order id - 3191519
-    order_id = 3197122
+    # order_id = 3197122
 
     # order_details = _get_order_details_by_id(order_id)
     # logger.debug(f"Order '{order_id}' details: {order_details}")
@@ -646,3 +720,10 @@ if __name__ == "__main__":
     # df = DataFrame(responsible_uds_list)
     # df["address_list"] = df["address_list"].apply(lambda x: "\n".join(x))
     # df.to_excel(f"./ЕДС c адресам {datetime.now()}.xlsx", index=False)
+
+    # Order ID for client chat test
+    order_id = 3301805
+    # _send_message_to_resident_chat(
+    #     order_id=order_id,
+    #     message="Test message",
+    # )
