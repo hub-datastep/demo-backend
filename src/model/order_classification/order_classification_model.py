@@ -6,9 +6,12 @@ from fastapi import HTTPException, status
 from loguru import logger
 
 from infra.env import (
-    DOMYLAND_AUTH_EMAIL,
-    DOMYLAND_AUTH_PASSWORD,
-    DOMYLAND_AUTH_TENANT_NAME,
+    DOMYLAND_AUTH_AI_ACCOUNT_EMAIL,
+    DOMYLAND_AUTH_AI_ACCOUNT_PASSWORD,
+    DOMYLAND_AUTH_AI_ACCOUNT_TENANT_NAME,
+    DOMYLAND_AUTH_PUBLIC_ACCOUNT_EMAIL,
+    DOMYLAND_AUTH_PUBLIC_ACCOUNT_PASSWORD,
+    DOMYLAND_AUTH_PUBLIC_ACCOUNT_TENANT_NAME,
 )
 from infra.order_classification import WAIT_TIME_IN_SEC
 from llm.chain.order_multi_classification.order_multi_classification_chain import (
@@ -36,6 +39,7 @@ from scheme.order_classification.order_classification_scheme import (
     OrderStatusID,
     SummaryTitle,
     SummaryType,
+    Resident,
 )
 
 DOMYLAND_API_BASE_URL = "https://sud-api.domyland.ru"
@@ -46,6 +50,8 @@ RESPONSIBLE_DEPT_ID = 38
 
 # DataStep AI User ID - 15698
 AI_USER_ID = 15698
+
+ORDER_CLIENT_CHAT_TARGET_TYPE_ID = 2
 
 # Message to mark AI processed orders (in internal chat)
 ORDER_PROCESSED_BY_AI_MESSAGE = "ИИ классифицировал эту заявку как аварийную"
@@ -79,11 +85,15 @@ def _get_domyland_headers(auth_token: str | None = None):
     }
 
 
-def _get_auth_token() -> str:
+def _get_auth_token(
+    username: str,
+    password: str,
+    tenant_name: str,
+) -> str:
     req_body = {
-        "email": DOMYLAND_AUTH_EMAIL,
-        "password": DOMYLAND_AUTH_PASSWORD,
-        "tenantName": DOMYLAND_AUTH_TENANT_NAME,
+        "email": username,
+        "password": password,
+        "tenantName": tenant_name,
     }
 
     response = requests.post(
@@ -102,9 +112,31 @@ def _get_auth_token() -> str:
     return auth_token
 
 
+def _get_ai_account_auth_token():
+    """
+    Account for AI and classification.
+    """
+    return _get_auth_token(
+        username=DOMYLAND_AUTH_AI_ACCOUNT_EMAIL,
+        password=DOMYLAND_AUTH_AI_ACCOUNT_PASSWORD,
+        tenant_name=DOMYLAND_AUTH_AI_ACCOUNT_TENANT_NAME,
+    )
+
+
+def _get_public_account_auth_token():
+    """
+    Kind of Public Account for communication with residents.
+    """
+    return _get_auth_token(
+        username=DOMYLAND_AUTH_PUBLIC_ACCOUNT_EMAIL,
+        password=DOMYLAND_AUTH_PUBLIC_ACCOUNT_PASSWORD,
+        tenant_name=DOMYLAND_AUTH_PUBLIC_ACCOUNT_TENANT_NAME,
+    )
+
+
 def _get_order_details_by_id(order_id: int) -> OrderDetails:
     # Authorize in Domyland API
-    auth_token = _get_auth_token()
+    auth_token = _get_ai_account_auth_token()
 
     # Update order status
     response = requests.get(
@@ -198,6 +230,7 @@ def _get_responsible_user_by_order_address(
 #
 #     return response_data
 
+
 def _get_class_params(
     rules_by_classes: dict,
     class_name_to_find: str,
@@ -224,7 +257,7 @@ def _update_order_status_details(
         # prev_order_status_details = _get_order_status_details(order_id)
 
         # Authorize in Domyland API
-        auth_token = _get_auth_token()
+        auth_token = _get_ai_account_auth_token()
 
         req_body = {
             # # Save all prev params from order status details (not needed to update)
@@ -270,9 +303,12 @@ def _update_order_status_details(
         )
 
 
-def _send_message_to_internal_chat(order_id: int, message: str) -> tuple[dict, dict]:
+def _send_message_to_internal_chat(
+    order_id: int,
+    message: str,
+) -> tuple[dict, dict]:
     # Authorize in Domyland API
-    auth_token = _get_auth_token()
+    auth_token = _get_ai_account_auth_token()
 
     req_body = {
         "orderId": order_id,
@@ -297,30 +333,53 @@ def _send_message_to_internal_chat(order_id: int, message: str) -> tuple[dict, d
     return response_data, req_body
 
 
-# def _get_order_emergency(
-#     prompt: str,
-#     client: str,
-#     query: str,
-# ) -> str:
-#     try:
-#         chain = get_order_classification_chain(
-#             prompt_template=prompt,
-#             client=client,
-#         )
-#         order_emergency: str = chain.run(query=query)
-#         return order_emergency
-#     except RateLimitError:
-#         logger.info(f"Wait {WAIT_TIME_IN_SEC} seconds and try again")
-#         time.sleep(WAIT_TIME_IN_SEC)
-#         logger.info(
-#             f"Timeout passed, try to classify order '{query}' of '{client}' again"
-#         )
+def _send_message_to_resident_chat(
+    order_id: int,
+    message: str,
+) -> tuple[dict, dict]:
+    # Authorize in Domyland API
+    auth_token = _get_public_account_auth_token()
 
-#         return _get_order_emergency(
-#             prompt=prompt,
-#             client=client,
-#             query=query,
-#         )
+    req_params = {
+        "targetId": order_id,
+        "targetTypeId": ORDER_CLIENT_CHAT_TARGET_TYPE_ID,
+    }
+    req_body = {
+        "text": message,
+    }
+
+    # Send message to internal chat
+    response = requests.post(
+        url=f"{DOMYLAND_API_BASE_URL}/chat",
+        json=req_body,
+        params=req_params,
+        headers=_get_domyland_headers(auth_token),
+    )
+    response_data = response.json()
+
+    if not response.ok:
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Order client chat POST: {response_data}",
+        )
+
+    return response_data, req_body
+
+
+def _format_message_to_resident(
+    template: str,
+    resident: Resident,
+) -> str:
+    """
+    Format message to resident with its data.
+    """
+
+    resident_name = f"{resident.firstName} {resident.lastName}"
+
+    formatted_msg = template.format(
+        resident_name=resident_name,
+    )
+    return formatted_msg
 
 
 def classify_order(
@@ -550,6 +609,25 @@ def classify_order(
                     order_id=order_id,
                     message=ORDER_PROCESSED_BY_AI_MESSAGE,
                 )
+
+                message_to_resident_template = config.message_to_resident_template
+                is_send_message_to_resident = (
+                    config.is_send_message_to_resident
+                    and message_to_resident_template is not None
+                )
+                resident = order_details.customer
+
+                # Send message to resident to show that order is processing
+                if is_send_message_to_resident:
+                    message_to_resident = _format_message_to_resident(
+                        template=message_to_resident_template,
+                        resident=resident,
+                    )
+
+                    _send_message_to_resident_chat(
+                        order_id=order_id,
+                        message=message_to_resident,
+                    )
             # If skip order updating, set required fields with message with reason
             else:
                 request_body = {"result": disabled_field_msg}
@@ -608,7 +686,7 @@ def classify_order(
 if __name__ == "__main__":
     # Test order id - 3196509
     # Real order id - 3191519
-    order_id = 3197122
+    # order_id = 3197122
 
     # order_details = _get_order_details_by_id(order_id)
     # logger.debug(f"Order {order_id} details: {order_details}")
@@ -643,3 +721,10 @@ if __name__ == "__main__":
     # df = DataFrame(responsible_uds_list)
     # df["address_list"] = df["address_list"].apply(lambda x: "\n".join(x))
     # df.to_excel(f"./ЕДС c адресам {datetime.now()}.xlsx", index=False)
+
+    # Order ID for client chat test
+    order_id = 3301805
+    # _send_message_to_resident_chat(
+    #     order_id=order_id,
+    #     message="Test message",
+    # )
