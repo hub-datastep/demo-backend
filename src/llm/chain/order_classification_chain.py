@@ -3,7 +3,7 @@ from langchain.chains.llm import LLMChain
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 
-from infra.env import IS_DEV_ENV, AZURE_DEPLOYMENT_NAME_ORDER_CLASSIFICATION
+from infra.env import env
 from infra.order_classification_clients_credentials import (
     ORDER_CLASSIFICATION_CLIENTS_CREDENTIALS,
 )
@@ -27,7 +27,7 @@ def _get_client_credentials(client: str) -> ClientCredentials:
 
 def get_llm_by_client_credentials(client: str | None = None) -> AzureChatOpenAI:
     # Create LLM with client Azure OpenAI credentials
-    if not IS_DEV_ENV or client is not None:
+    if not env.IS_DEV_ENV or client is not None:
         client_credentials = _get_client_credentials(client)
 
         llm = AzureChatOpenAI(
@@ -40,7 +40,7 @@ def get_llm_by_client_credentials(client: str | None = None) -> AzureChatOpenAI:
     # Create LLM with development Azure OpenAI credentials
     else:
         llm = AzureChatOpenAI(
-            deployment_name=AZURE_DEPLOYMENT_NAME_ORDER_CLASSIFICATION,
+            deployment_name=env.AZURE_DEPLOYMENT_NAME_ORDER_CLASSIFICATION,
             temperature=0,
             verbose=False,
         )

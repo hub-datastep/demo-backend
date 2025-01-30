@@ -6,8 +6,8 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain_community.utilities import SQLDatabase
 from langchain_openai import AzureChatOpenAI
 
+from infra.env import env
 from llm.chain.datastep_sql2text_chain import describe_sql
-from infra.env import AZURE_DEPLOYMENT_NAME_DB_ASSISTANT
 from util.logger import async_log
 
 datastep_sql_chain_template = """
@@ -28,7 +28,8 @@ Give examples from the question and remember them.
 
 
 Step 3:
-According to this scheme, determine in the table whether all the data types from the previous answer are in the table?
+According to this scheme, determine in the table
+whether all the data types from the previous answer are in the table?
 
 Only use the following table:
 {table_info}
@@ -48,14 +49,8 @@ class DatastepSqlChain:
     ):
         self.sql_database = sql_database
 
-        # llm = ChatOpenAI(
-        #     openai_api_base=OPENAI_API_BASE,
-        #     model_name=MODEL_NAME,
-        #     temperature=temperature,
-        #     verbose=verbose,
-        # )
         llm = AzureChatOpenAI(
-            azure_deployment=AZURE_DEPLOYMENT_NAME_DB_ASSISTANT,
+            deployment_name=env.AZURE_DEPLOYMENT_NAME_DB_ASSISTANT,
             temperature=0,
             verbose=False,
         )
@@ -79,7 +74,7 @@ class DatastepSqlChain:
             query=query,
             table_info=table_info,
             current_date=str(datetime.date.today()),
-            limit=limit
+            limit=limit,
         )
         match = re.search("SQL: (.+)", response)
 

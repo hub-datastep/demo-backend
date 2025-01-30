@@ -1,14 +1,10 @@
 from datetime import datetime
 
 from loguru import logger
-from pandas import DataFrame
 from sqlmodel import Session
 from tqdm import tqdm
 
-from configs.env import (
-    TESTS_ORDER_CLASSIFICATION_SPREADSHEET_NAME,
-    TESTS_ORDER_CLASSIFICATION_TABLE_NAME, TESTS_ORDER_CLASSIFICATION_CONFIG_USER_ID,
-)
+from configs.env import env
 from infra.database import engine
 from llm.chain.order_multi_classification.order_multi_classification_chain import (
     get_order_class,
@@ -17,38 +13,26 @@ from model.order_classification.order_classification_config_model import (
     get_order_classification_config_by_user_id
 )
 from model.order_classification.order_classification_model import normalize_resident_request_string
-from services.google_sheets_service import read_sheet
+from services.google_sheets_service import get_test_cases, save_results_locally
+
+_RESULTS_SHEET_NAME = "Order Classification Results"
 
 
-def _get_test_cases():
-    return read_sheet(
-        TESTS_ORDER_CLASSIFICATION_SPREADSHEET_NAME,
-        TESTS_ORDER_CLASSIFICATION_TABLE_NAME,
-        None,
+def run_tests():
+    logger.info("Getting Test Cases..")
+    test_cases_list = get_test_cases(
+        spreadsheet_name=env.TESTS_SPREADSHEET_NAME,
+        sheet_name=env.TESTS_TABLE_NAME,
     )
-
-
-def _save_results(results_list: list):
-    results_df = DataFrame(results_list)
-
-    now_time = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
-    new_sheet_name = f"Order Classification Results {now_time}"
-    file_path = f"{new_sheet_name}.xlsx"
-
-    results_df.to_excel(file_path, index=False)
-    logger.info(f"Результаты тестов успешно сохранены: {file_path}")
-
-
-if __name__ == "__main__":
-    test_cases_list = _get_test_cases()
     logger.info(f"Test Cases count: {len(test_cases_list)}")
 
-    logger.info(f"Getting config with User ID {TESTS_ORDER_CLASSIFICATION_CONFIG_USER_ID}..")
+    logger.info(f"Getting config with User ID {env.TESTS_CONFIG_USER_ID}..")
     with Session(engine) as session:
         config = get_order_classification_config_by_user_id(
             session=session,
-            user_id=TESTS_ORDER_CLASSIFICATION_CONFIG_USER_ID,
+            user_id=env.TESTS_CONFIG_USER_ID,
         )
+        logger.info(f"User config: {config}..")
 
     rules_by_classes = config.rules_by_classes
 
@@ -61,7 +45,6 @@ if __name__ == "__main__":
             continue
 
         start_time = datetime.now()
-
         try:
             order_class_response = get_order_class(
                 order_query=normalize_resident_request_string(order_query),
@@ -91,4 +74,11 @@ if __name__ == "__main__":
         }
         results_list.append(classified_order)
 
-    _save_results(results_list)
+    save_results_locally(
+        new_sheet_name=_RESULTS_SHEET_NAME,
+        processed_results=results_list,
+    )
+
+
+if __name__ == "__main__":
+    run_tests()

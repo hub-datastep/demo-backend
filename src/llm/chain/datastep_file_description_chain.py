@@ -2,7 +2,7 @@ from langchain.chains.llm import LLMChain
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 
-from infra.env import AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT
+from infra.env import env
 
 DESCRIPTION_PROMPT_TEMPLATE = """
 You are an expert in analyzing and summarizing documents. 
@@ -19,7 +19,7 @@ You must answer in Russian.
 
 def get_chain():
     llm = AzureChatOpenAI(
-        azure_deployment=AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT,
+        deployment_name=env.AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT,
         temperature=0,
         verbose=True,
     )

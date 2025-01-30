@@ -1,12 +1,13 @@
-from llm.component.sql_database import DatastepSqlDatabase
 from langchain.chains import LLMChain
 from langchain.prompts.prompt import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 
-from infra.env import AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES
+from infra.env import env
+from llm.component.sql_database import DatastepSqlDatabase
 from util.logger import async_log
 
-similar_queries_template = """По данной схеме таблицы и составь 4 похожих вопроса на данный.
+similar_queries_template = """
+По данной схеме таблицы и составь 4 похожих вопроса на данный.
 
 Вопрос:
 {query}
@@ -23,14 +24,8 @@ def get_chain():
         template=similar_queries_template,
         input_variables=["query", "table_info"]
     )
-    # llm = ChatOpenAI(
-    #     model_name=SIMILAR_QUERIES_MODEL_NAME,
-    #     openai_api_base=OPENAI_API_BASE,
-    #     temperature=0.8,
-    #     verbose=False,
-    # )
     llm = AzureChatOpenAI(
-        azure_deployment=AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES,
+        deployment_name=env.AZURE_DEPLOYMENT_NAME_SIMILAR_QUERIES,
         temperature=0.8,
         verbose=False,
     )
@@ -43,7 +38,10 @@ def parse_similar_queries(similar_queries: str) -> list[str]:
 
 
 @async_log("Генерация похожих вопросов")
-async def generate_similar_queries(query: str, database: DatastepSqlDatabase, turn_on: bool) -> list[str]:
+async def generate_similar_queries(
+    query: str,
+    database: DatastepSqlDatabase, turn_on: bool,
+) -> list[str]:
     if not turn_on:
         return []
 

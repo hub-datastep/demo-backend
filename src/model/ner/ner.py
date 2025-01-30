@@ -1,11 +1,11 @@
 import httpx
 from loguru import logger
 
-from infra.env import NER_SERVICE_URL
+from infra.env import env
 
 
 class NERServiceClient:
-    def __init__(self, url: str = NER_SERVICE_URL, chunk_size: int = 100, timeout: int = 100):
+    def __init__(self, url: str = env.NER_SERVICE_URL, chunk_size: int = 100, timeout: int = 100):
         self._client = httpx.Client()
         self._chunk_size = chunk_size
         self._timeout = timeout

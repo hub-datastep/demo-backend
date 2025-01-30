@@ -2,13 +2,13 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from infra.env import DATA_FOLDER_PATH
+from infra.env import env
 
 
 def get_file_folder_path(filename: str) -> Path:
     # Split the filename into name and extension
     file_folder_name, _ = os.path.splitext(filename)
-    return Path(f"{DATA_FOLDER_PATH}/{file_folder_name}")
+    return Path(f"{env.DATA_FOLDER_PATH}/{file_folder_name}")
 
 
 def get_file_storage_path(filename: str) -> Path:

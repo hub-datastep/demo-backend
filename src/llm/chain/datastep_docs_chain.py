@@ -2,11 +2,12 @@ from langchain.chains.llm import LLMChain
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 
-from infra.env import AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT
+from infra.env import env
 
 DOCS_PROMPT_TEMPLATE = """
 You are a lawyer specializing in the field of legal documents,
-you understand various types of legal documentation like contracts, charters, regulations and others.
+you understand various types of legal documentation like
+contracts, charters, regulations and others.
 You clearly understand the contents of the documents and perfectly answer questions about them.
 Determine the type and scope of the legal document to answer the question.
 Highlight the key points and terms of the document to answer the question.
@@ -28,14 +29,8 @@ Your answer:
 
 
 def get_chain_for_docs():
-    # TODO: попробовать 3.5-instruct
-    # llm = ChatOpenAI(
-    #     temperature=0,
-    #     model_name=DB_MODEL_NAME,
-    #     openai_api_base=OPENAI_API_BASE
-    # )
     llm = AzureChatOpenAI(
-        azure_deployment=AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT,
+        deployment_name=env.AZURE_DEPLOYMENT_NAME_DOCS_ASSISTANT,
         temperature=0,
         verbose=True,
     )

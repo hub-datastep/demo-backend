@@ -6,9 +6,8 @@ import pdfplumber
 from fastapi import UploadFile
 from loguru import logger
 
-from infra.env import DATA_FOLDER_PATH
+from infra.env import env
 from util.files_paths import get_filename_with_postfix
-
 
 NOMENCLATURE_COLUMN_NAME = "Наименование и техническая характеристика"
 NOM_COL_NAME = "Номенклатура на вход"
@@ -21,7 +20,7 @@ def _clean_text(text: str) -> str:
 def _save_file(file_object: UploadFile) -> str:
     file_name = file_object.filename
     filename_with_postfix = get_filename_with_postfix(file_name)
-    file_path = f"{DATA_FOLDER_PATH}/specs/{filename_with_postfix}"
+    file_path = f"{env.DATA_FOLDER_PATH}/specs/{filename_with_postfix}"
     file_folder_path = Path(file_path).parent
 
     # Create dir if not exists

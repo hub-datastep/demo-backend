@@ -3,10 +3,12 @@ from pathlib import Path
 
 from fastapi import HTTPException, status
 
-from infra.env import DATA_FOLDER_PATH
-from repository.classifier.classifier_version_repository import get_classifier_versions, \
-    delete_classifier_version_in_db, \
-    get_classifier_version_by_model_id
+from infra.env import env
+from repository.classifier.classifier_version_repository import (
+    get_classifier_versions,
+    delete_classifier_version_in_db,
+    get_classifier_version_by_model_id,
+)
 from scheme.classifier.classifier_version_scheme import ClassifierVersionRead
 
 
@@ -21,7 +23,7 @@ def get_classifiers_list() -> list[ClassifierVersionRead]:
 
 
 def get_model_path(model_id: str, check_path: bool = True) -> str:
-    model_path = f"{DATA_FOLDER_PATH}/model_{model_id}.pkl"
+    model_path = f"{env.DATA_FOLDER_PATH}/model_{model_id}.pkl"
 
     if check_path and not Path(model_path).exists():
         raise Exception(f"Model with ID {model_id} not found locally.")

@@ -1,31 +1,38 @@
-import os
-
 from dotenv import load_dotenv
+from pydantic import BaseSettings
 
+from util.path_to_file_or_dir import find_path_to_file_or_dir
+
+# _ENV_PATH = get_envfile_path(EnvironmentType.TEST)
+
+# load_dotenv(dotenv_path=_ENV_PATH)
 load_dotenv()
 
-TESTS_API_URL = os.getenv('TESTS_API_URL')
-TESTS_AUTH_USERNAME = os.getenv('TESTS_AUTH_USERNAME')
-TESTS_AUTH_PASSWORD = os.getenv('TESTS_AUTH_PASSWORD')
 
-assert TESTS_API_URL, "TESTS_API_URL is not set in .env"
-assert TESTS_AUTH_USERNAME, "TESTS_AUTH_USERNAME is not set in .env"
-assert TESTS_AUTH_PASSWORD, "TESTS_AUTH_PASSWORD is not set in .env"
+class Env(BaseSettings):
 
-# Mapping
-TESTS_MAPPING_SPREADSHEET_NAME = os.getenv('TESTS_MAPPING_SPREADSHEET_NAME')
-TESTS_MAPPING_TEST_CASES_TABLE_NAME = os.getenv('TESTS_MAPPING_TEST_CASES_TABLE_NAME')
+    # API
+    TESTS_API_URL: str = "http://localhost:8090/api/v1"
+    TESTS_AUTH_USERNAME: str
+    TESTS_AUTH_PASSWORD: str
 
-# URL для авторизации и API
-AUTH_URL = f"{TESTS_API_URL}/auth/sign_in"
+    DATA_FOLDER_PATH: str = find_path_to_file_or_dir("data")
 
-# Order Classification Test
-TESTS_ORDER_CLASSIFICATION_SPREADSHEET_NAME = os.getenv(
-    "TESTS_ORDER_CLASSIFICATION_SPREADSHEET_NAME"
-)
-TESTS_ORDER_CLASSIFICATION_TABLE_NAME = os.getenv(
-    "TESTS_ORDER_CLASSIFICATION_TABLE_NAME"
-)
-TESTS_ORDER_CLASSIFICATION_CONFIG_USER_ID = int(
-    os.getenv("TESTS_ORDER_CLASSIFICATION_CONFIG_USER_ID")
-)
+    # Google Sheets
+    TESTS_SPREADSHEET_NAME: str
+    TESTS_TABLE_NAME: str
+
+    # Orders Classification Config
+    TESTS_CONFIG_USER_ID: int | None
+
+    # API Authorization
+    def get_api_route_url(self, route: str) -> str:
+        return f"{self.TESTS_API_URL}/{route}"
+
+    # noinspection PyPep8Naming
+    @property
+    def GOOGLE_CREDENTIALS_PATH(self) -> str:
+        return f"{self.DATA_FOLDER_PATH}/datastep-google-credentials.json"
+
+
+env = Env()

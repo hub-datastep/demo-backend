@@ -4,14 +4,16 @@ from langchain.chains import LLMChain
 from langchain.prompts.prompt import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 
+from infra.env import env
 from llm.component.sql_database import DatastepSqlDatabase
-from infra.env import AZURE_DEPLOYMENT_NAME_DB_ASSISTANT
 from util.logger import async_log
 
 check_data_template = """Пройди все шаги по порядку.
 
 Шаг 1:
-Напиши, какие типы данных нужны для ответа на этот вопрос? Например, география, физические свойства, числовые значения и так далее. Приведи примеры из вопроса
+Напиши, какие типы данных нужны для ответа на этот вопрос?
+Например, география, физические свойства, числовые значения и так далее.
+Приведи примеры из вопроса
 
 Вопрос: {query}
 
@@ -26,13 +28,16 @@ check_data_template = """Пройди все шаги по порядку.
 {table_info}
 
 Some of the columns in the table:
-"Тип документа" — income or debiting; possible values are "Списание", "Поступление"
-"План/Факт" — possible values are "План", "Факт". Use "Факт" if there is not stated other in the query.
-"Сумма" — actual transfer amount of money, this column can be used to evaluate net profit.
-"Сумма договора" — contract amount.
-"Период" — date of the payment. Do not use FORMAT with this column.
-"Контрагент" — name of the counterpart/company/organization, this column can be used to detect company.
-"Группа статей ДДС" — purpose of the payment, this column can be used to detect insurance payment or wage fund.
+- "Тип документа" — income or debiting; possible values are "Списание", "Поступление"
+- "План/Факт" — possible values are "План", "Факт".
+Use "Факт" if there is not stated other in the query.
+- "Сумма" — actual transfer amount of money, this column can be used to evaluate net profit.
+- "Сумма договора" — contract amount.
+- "Период" — date of the payment. Do not use FORMAT with this column.
+- "Контрагент" — name of the counterpart/company/organization,
+this column can be used to detect company.
+- "Группа статей ДДС" — purpose of the payment, this column can be used to detect insurance payment 
+or wage fund.
 
 Используй формат:
 Тип данных:
@@ -43,7 +48,8 @@ Some of the columns in the table:
 
 Используй формат:
 sql_possibility: можно ли составить SQL, да или нет
-decision_description: описание твоего решения, можно ли составить SQL. Если нельзя, напиши конкретно почему
+decision_description: описание твоего решения, можно ли составить SQL.
+Если нельзя, напиши конкретно почему
 
 Шаг 4 [опционально]:
 Если нельзя составить SQL, предложи 4 альтернативных вопроса, которые обходят ограничения из шага 3.
@@ -85,7 +91,7 @@ def get_chain():
     #     verbose=True,
     # )
     llm = AzureChatOpenAI(
-        azure_deployment=AZURE_DEPLOYMENT_NAME_DB_ASSISTANT,
+        deployment_name=env.AZURE_DEPLOYMENT_NAME_DB_ASSISTANT,
         temperature=0,
         verbose=True,
     )
@@ -111,7 +117,11 @@ def parse_alternative_queries(alternative_queries) -> list[str]:
 
 
 @async_log("Проверка, есть ли в базе нужная для ответа информация")
-async def check_data(query: str, database: DatastepSqlDatabase, turn_on: bool) -> tuple[str, str, list[str]]:
+async def check_data(
+    query: str,
+    database: DatastepSqlDatabase,
+    turn_on: bool,
+) -> tuple[str, str, list[str]]:
     if not turn_on:
         return "", "", []
 
