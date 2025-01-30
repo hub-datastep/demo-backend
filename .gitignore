@@ -21,7 +21,7 @@ data/fastembed/.locks
 data/fastembed/models--qdrant--multilingual-e5-large-onnx
 
 # Google Credentials
-datastep-google-credentials.json
+*.json
 
 # Classifier files
 data/model_*
