@@ -13,14 +13,12 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
-      - ./.env.development:/app/.env.development
-      - ./.env.production:/app/.env.production
-      # Just to see .env in files viewer
-      - ./.env:${DATA_FOLDER_PATH}/.env-file
+      # - ./.env.development:/app/.env.development
+      # - ./.env.production:/app/.env.production
       - backend:${DATA_FOLDER_PATH}
     env_file:
       - .env
-      - .env.${ENVIRONMENT}
+      # - .env.${ENVIRONMENT}
     depends_on:
       - db
 
@@ -33,12 +31,12 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
-      - ./.env.development:/app/.env.development
-      - ./.env.production:/app/.env.production
+      # - ./.env.development:/app/.env.development
+      # - ./.env.production:/app/.env.production
       - backend:${DATA_FOLDER_PATH}
     env_file:
       - .env
-      - .env.${ENVIRONMENT}
+      # - .env.${ENVIRONMENT}
     depends_on:
       - backend
 
@@ -51,12 +49,12 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
-      - ./.env.development:/app/.env.development
-      - ./.env.production:/app/.env.production
+      # - ./.env.development:/app/.env.development
+      # - ./.env.production:/app/.env.production
       - backend:${DATA_FOLDER_PATH}
     env_file:
       - .env
-      - .env.${ENVIRONMENT}
+      # - .env.${ENVIRONMENT}
     depends_on:
       - backend
 
@@ -70,7 +68,7 @@ services:
       - redis-server:${DATA_FOLDER_PATH}
     env_file:
       - .env
-      - .env.${ENVIRONMENT}
+      # - .env.${ENVIRONMENT}
 
   rq-worker:
     image: datastep-backend
@@ -79,12 +77,12 @@ services:
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
-      - ./.env.development:/app/.env.development
-      - ./.env.production:/app/.env.production
+      # - ./.env.development:/app/.env.development
+      # - ./.env.production:/app/.env.production
       - backend:${DATA_FOLDER_PATH}
     env_file:
       - .env
-      - .env.${ENVIRONMENT}
+      # - .env.${ENVIRONMENT}
     depends_on:
       - backend
       - redis-server
@@ -97,7 +95,7 @@ services:
       - RQ_DASHBOARD_REDIS_URL=redis://:${REDIS_PASSWORD}@${REDIS_HOST}:${REDIS_PORT}
     env_file:
       - .env
-      - .env.${ENVIRONMENT}
+      # - .env.${ENVIRONMENT}
     depends_on:
       - redis-server
 
@@ -113,7 +111,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     env_file:
       - .env
-      - .env.${ENVIRONMENT}
+      # - .env.${ENVIRONMENT}
 
   dbeaver:
     image: dbeaver/cloudbeaver
@@ -133,6 +131,8 @@ services:
     volumes:
       - backend:/data
       - volumes-viewer:/config
+      # Just to see .env in files viewer
+      - ./.env:/data/.env-file
 
   chroma-db:
     image: chromadb/chroma
@@ -175,7 +175,7 @@ services:
       SPRING_SECURITY_USER_PASSWORD: ${KAFKA_UI_PASSWORD}
     env_file:
       - .env
-      - .env.${ENVIRONMENT}
+      # - .env.${ENVIRONMENT}
     depends_on:
       - kafka
 

@@ -2,12 +2,12 @@ from dotenv import load_dotenv
 from pydantic import BaseSettings
 
 from infra.environment_type import EnvironmentType
-from util.env_files import get_envfile_path
 from util.path_to_file_or_dir import find_path_to_file_or_dir
 
-_ENV_PATH = get_envfile_path()
+# _ENV_PATH = get_envfile_path()
 
-load_dotenv(dotenv_path=_ENV_PATH)
+# load_dotenv(dotenv_path=_ENV_PATH)
+load_dotenv()
 
 
 class Env(BaseSettings):
@@ -45,9 +45,14 @@ class Env(BaseSettings):
     DATA_FOLDER_PATH: str = find_path_to_file_or_dir("data")
 
     # Domyland Credentials
-    DOMYLAND_AUTH_EMAIL: str
-    DOMYLAND_AUTH_PASSWORD: str
-    DOMYLAND_AUTH_TENANT_NAME: str
+    # AI Account
+    DOMYLAND_AUTH_AI_ACCOUNT_EMAIL: str
+    DOMYLAND_AUTH_AI_ACCOUNT_PASSWORD: str
+    DOMYLAND_AUTH_AI_ACCOUNT_TENANT_NAME: str
+    # Public Account
+    DOMYLAND_AUTH_PUBLIC_ACCOUNT_EMAIL: str
+    DOMYLAND_AUTH_PUBLIC_ACCOUNT_PASSWORD: str
+    DOMYLAND_AUTH_PUBLIC_ACCOUNT_TENANT_NAME: str
 
     # Vysota Azure OpenAI Credentials
     VYSOTA_AZURE_OPENAI_ENDPOINT: str
