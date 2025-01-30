@@ -1,13 +1,12 @@
 from dotenv import load_dotenv
 from pydantic import BaseSettings
 
-from infra.environment_type import EnvironmentType
-from util.env_files import get_envfile_path
 from util.path_to_file_or_dir import find_path_to_file_or_dir
 
-_ENV_PATH = get_envfile_path(EnvironmentType.TEST)
+# _ENV_PATH = get_envfile_path(EnvironmentType.TEST)
 
-load_dotenv(dotenv_path=_ENV_PATH)
+# load_dotenv(dotenv_path=_ENV_PATH)
+load_dotenv()
 
 
 class Env(BaseSettings):
