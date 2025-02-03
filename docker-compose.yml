@@ -6,7 +6,7 @@ services:
     restart: always
     command: bash -c "
       cd /app/src
-      && python -m alembic upgrade head
+      && alembic upgrade head
       && python3 /app/src/app.py"
     ports:
       - "8090:8080"
@@ -19,12 +19,10 @@ services:
     depends_on:
       - db
 
-  mapping-with-parsing-consumers:
+  mapping-with-parsing-consumer:
     image: datastep-backend
     restart: always
-    command: bash -c "
-      cd /app/src/kafka/consumer
-      && faststream run --reload --host mapping_with_parsing:app"
+    command: python3 /app/src/kafka/consumer/mapping_with_parsing.py
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
@@ -35,9 +33,7 @@ services:
   nsi-fetch-consumer:
     image: datastep-backend
     restart: always
-    command: bash -c "
-      cd /app/src/kafka/consumer
-      && faststream run --reload --host nsi_fetch:app"
+    command: python3 /app/src/kafka/consumer/nsi_fetch.py
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
