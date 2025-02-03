@@ -10,7 +10,9 @@ from scheme.mapping.mapping_scheme import (
 WAIT_RESULTS_TIME_IN_SEC = 30
 
 
-def get_noms_with_indexes(nomenclatures_list: list[str]):
+def get_noms_with_indexes(
+    nomenclatures_list: list[str],
+) -> list[MappingOneNomenclatureUpload]:
     nomenclatures_list_with_indexes = [
         MappingOneNomenclatureUpload(
             row_number=i + 1,
@@ -20,7 +22,9 @@ def get_noms_with_indexes(nomenclatures_list: list[str]):
     return nomenclatures_list_with_indexes
 
 
-def _wait_until_results_finish(job_id: str):
+def _wait_until_results_finish(
+    job_id: str,
+) -> list[MappingNomenclaturesResultRead]:
     while True:
         results_list = mapping_model.get_all_jobs(job_id=job_id)
         is_all_jobs_finished = all(

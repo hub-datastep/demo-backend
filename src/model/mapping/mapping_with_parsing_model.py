@@ -61,15 +61,23 @@ async def parse_and_map_utd_card(
 
         for utd_entity in utd_entities_with_params_and_noms:
             logger.debug(
-                f"UTD Entity '{utd_entity.idn_number}' with params and noms:\n{utd_entity}"
+                f"UTD Entity '{utd_entity.idn_number}' "
+                f"with params and noms:\n{utd_entity}"
             )
 
             # Generate mapping iteration key (UTD guid)
             iteration_id = generate_uuid()
 
+            # Get materials names list
+            materials_with_params = utd_entity.nomenclatures_list
+            nomenclatures_list = [
+                nom.idn_material_name
+                for nom in materials_with_params
+            ]
             # Set index for each nomenclature
-            nomenclatures_list = utd_entity.nomenclatures_list
-            nomenclatures_with_indexes_list = get_noms_with_indexes(nomenclatures_list)
+            nomenclatures_with_indexes_list = get_noms_with_indexes(
+                nomenclatures_list=nomenclatures_list,
+            )
 
             # Start mapping and wait results
             mapping_results = start_mapping_and_wait_results(
@@ -80,11 +88,10 @@ async def parse_and_map_utd_card(
             )
             logger.debug(f"Mapping Results:\n{mapping_results}")
 
-            # Add parsed data to mapping results
+            # Combine parsed materials and mapping results
             mapped_materials = add_parsed_data_to_mappings(
+                parsed_materials=materials_with_params,
                 mapping_results=mapping_results,
-                # TODO: pass materials data from UTD
-                parsed_materials_data=[],
             )
 
             # Init url to mapping results
