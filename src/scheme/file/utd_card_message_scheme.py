@@ -6,11 +6,6 @@ from sqlmodel import SQLModel
 Все параметры, которые могут быть 'None' - парсятся из УПД PDF файла
 """
 
-DATETIME_JSON_ENCODERS = {
-    datetime: lambda v: v.isoformat(),
-    date: lambda v: v.isoformat(),
-}
-
 
 class UTDCardStatus:
     DONE = "DONE"
@@ -30,9 +25,6 @@ class CreditSlipData(SQLModel):
     gen_contractor_guid: str
     # guid категории материалов
     material_category_guid: str | None = None
-
-    class Config:
-        json_encoders = DATETIME_JSON_ENCODERS
 
 
 class UTDDocument(SQLModel):
@@ -106,10 +98,6 @@ class UTDEntityParams(SQLModel):
     contract_number: str | None = None
     # Дата договора поставки
     contract_date: date | None = None
-
-    # * To serialize datetime, date params
-    class Config:
-        json_encoders = DATETIME_JSON_ENCODERS
 
 
 # * Схема выходного сообщения из Кафки
