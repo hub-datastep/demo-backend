@@ -46,6 +46,8 @@ def create_iteration(iteration: MappingIteration) -> MappingIteration:
 
 def update_iteration(iteration: MappingIteration) -> MappingIteration:
     with Session(engine) as session:
-        session.merge(iteration)
+        # session.merge(iteration)
+        session.add(iteration)
         session.commit()
+        session.refresh(iteration)
         return iteration
