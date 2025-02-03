@@ -24,7 +24,7 @@ class CreditSlipData(SQLModel):
     # guid Генерального Подрядчика(сейчас это константа)
     gen_contractor_guid: str
     # guid категории материалов
-    material_category_guid: str
+    material_category_guid: str | None = None
 
 
 class UTDDocument(SQLModel):
