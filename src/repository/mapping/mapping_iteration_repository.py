@@ -38,6 +38,14 @@ def get_iteration_by_id(
 
 def create_iteration(iteration: MappingIteration) -> MappingIteration:
     with Session(engine) as session:
+        session.add(iteration)
+        session.commit()
+        session.refresh(iteration)
+        return iteration
+
+
+def update_iteration(iteration: MappingIteration) -> MappingIteration:
+    with Session(engine) as session:
         session.merge(iteration)
         session.commit()
         return iteration
