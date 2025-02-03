@@ -1,3 +1,4 @@
+import asyncio
 from faststream import FastStream
 from loguru import logger
 
@@ -47,3 +48,7 @@ async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
             message_body=output_message.dict(),
             topic=UNISTROY_MAPPING_LINK_OUTPUT_TOPIC,
         )
+
+
+if __name__ == "__main__":
+    asyncio.run(app.run())

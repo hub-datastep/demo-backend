@@ -7,6 +7,7 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 ENV PATH="/root/.local/bin:${PATH}"
+ENV PYTHONPATH="/app/src"
 
 WORKDIR /app
 
