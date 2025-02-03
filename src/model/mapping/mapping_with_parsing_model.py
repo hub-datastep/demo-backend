@@ -71,8 +71,7 @@ async def parse_and_map_utd_card(
             # Get materials names list
             materials_with_params = utd_entity.nomenclatures_list
             nomenclatures_list = [
-                nom.idn_material_name
-                for nom in materials_with_params
+                nom.idn_material_name for nom in materials_with_params
             ]
             # Set index for each nomenclature
             nomenclatures_with_indexes_list = get_noms_with_indexes(
