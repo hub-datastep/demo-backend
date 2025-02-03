@@ -26,8 +26,7 @@ def get_iteration_by_id(
 def create_or_update_iteration(
     iteration: MappingIteration,
 ) -> MappingIteration:
-    logger.debug(f"Mapping Iteration:\n{iteration.dict()}")
-    logger.debug(f"Iteration Metadatas:\n{iteration.metadatas}")
+    logger.debug(f"Mapping Iteration:\n{iteration}")
 
     try:
         # Try to get iteration by id
