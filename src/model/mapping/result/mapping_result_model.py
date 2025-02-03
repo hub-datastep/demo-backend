@@ -11,7 +11,7 @@ from infra.env import env
 from infra.kafka import send_message_to_kafka
 from model.mapping.result import mapping_iteration_model
 from model.tenant import tenant_model
-from repository.mapping import mapping_iteration_repository, mapping_result_repository
+from repository.mapping import mapping_result_repository
 from scheme.file.utd_card_message_scheme import (
     MappedMaterial,
     UTDCardMetadatas,
@@ -114,12 +114,11 @@ def save_mapping_results(
     iteration_id: str,
 ) -> list[MappingResult]:
     # Check if iteration with this ID exists
-    try:
-        mapping_iteration_model.get_iteration_by_id(iteration_id=iteration_id)
-    except HTTPException:
-        # Create iteration if not exists to not lose results
-        iteration = MappingIteration(id=iteration_id)
-        mapping_iteration_repository.create_iteration(iteration=iteration)
+    # If not, create to save results
+    iteration = MappingIteration(id=iteration_id)
+    mapping_iteration_model.create_or_update_iteration(
+        iteration=iteration,
+    )
 
     results_list = []
     for mapping in mappings_list:
@@ -223,7 +222,7 @@ async def upload_results_to_kafka(
         **utd_entity.dict(
             exclude={
                 "pages_numbers_list",
-                "nomenclatures_list"
+                "nomenclatures_list",
             },
         ),
         # URL to web interface with results

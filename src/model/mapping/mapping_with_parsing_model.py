@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 import traceback
 from typing import Any, AsyncGenerator
 
@@ -15,8 +16,8 @@ from model.mapping.mapping_execute_model import (
     get_noms_with_indexes,
     start_mapping_and_wait_results,
 )
+from model.mapping.result import mapping_iteration_model
 from model.user import user_model
-from repository.mapping import mapping_iteration_repository
 from scheme.file.utd_card_message_scheme import (
     UTDCardInputMessage,
     UTDCardCheckResultsOutputMessage,
@@ -115,9 +116,12 @@ async def parse_and_map_utd_card(
                 id=iteration_id,
                 # Save all known UTD data
                 metadatas=metadatas.dict(),
-                type=IterationMetadatasType.UTD,
+                type=IterationMetadatasType.UTD.value,
+                created_at=datetime.now(UTC),
             )
-            mapping_iteration_repository.create_iteration(iteration=iteration)
+            mapping_iteration_model.create_or_update_iteration(
+                iteration=iteration,
+            )
 
             yield output_message
 
