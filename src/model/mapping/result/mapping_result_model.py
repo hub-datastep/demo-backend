@@ -1,4 +1,3 @@
-from datetime import date
 import re
 
 from fastapi import HTTPException, status
@@ -30,7 +29,6 @@ from scheme.mapping.result.similar_nomenclature_search_scheme import (
     SimilarNomenclature,
 )
 from scheme.user.user_scheme import UserRead
-
 
 SIMILAR_NOMS_COLUMNS = [
     "id",
@@ -171,11 +169,13 @@ def get_corrected_material_from_results(
     for mapping_result in mapping_results_list:
         result = MappingOneNomenclatureRead(**mapping_result.result)
 
+        # Find material in mapping results
         if (
             material.material_guid == result.material_code
             or material.idn_material_name == result.nomenclature
             or material.number == result.row_number
         ):
+            # Check if corrected nomenclature is set
             if mapping_result.corrected_nomenclature:
                 corrected_nomenclature = SimilarNomenclature(
                     **mapping_result.corrected_nomenclature,
@@ -190,7 +190,9 @@ async def upload_results_to_kafka(
     body: MappingResultsUpload,
 ) -> UTDCardOutputMessage:
     iteration_id = body.iteration_id
-    iteration = mapping_iteration_model.get_iteration_by_id(iteration_id=iteration_id)
+    iteration = mapping_iteration_model.get_iteration_by_id(
+        iteration_id=iteration_id,
+    )
     mapping_results_list = iteration.results
 
     metadatas = UTDCardMetadatas(**iteration.metadatas)
@@ -217,17 +219,12 @@ async def upload_results_to_kafka(
         # Mapping Data
         materials=mapped_materials,
         # Parsed Data
-        supplier_inn=utd_entity.supplier_inn,
-        idn_number=utd_entity.idn_number,
-        idn_date=utd_entity.idn_date,
-        # TODO: set parsed params from UTD pdf file
-        # ! Now it's mocked data
-        organization_inn="3305061878",
-        correction_idn_number="НО-12865РД/2",
-        correction_idn_date=date(2024, 8, 27),
-        contract_name="ДОГОВОР ПОСТАВКИ № 003/06-Лето от 13.09.2023",
-        contract_number="003/06-Лето",
-        contract_date=date(2024, 8, 27),
+        **utd_entity.dict(
+            exclude={
+                "pages_numbers_list",
+                "nomenclatures_list"
+            },
+        ),
         # URL to web interface with results
         results_url=check_results_output_message.check_results_url,
     )
