@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
+
 from fastapi import HTTPException, status
+from loguru import logger
 
 from repository.mapping import mapping_iteration_repository
 from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
@@ -24,6 +26,9 @@ def get_iteration_by_id(
 def create_or_update_iteration(
     iteration: MappingIteration,
 ) -> MappingIteration:
+    logger.debug(f"Mapping Iteration:\n{iteration.dict()}")
+    logger.debug(f"Iteration Metadatas:\n{iteration.metadatas}")
+
     try:
         # Try to get iteration by id
         db_iteration = get_iteration_by_id(iteration_id=iteration.id)
@@ -32,7 +37,6 @@ def create_or_update_iteration(
         db_iteration.metadatas = iteration.metadatas
         db_iteration.type = iteration.type
         # Just to now catch error with JSON and datetime
-        db_iteration.created_at = datetime.now(UTC)
         iteration = mapping_iteration_repository.update_iteration(
             iteration=db_iteration,
         )
