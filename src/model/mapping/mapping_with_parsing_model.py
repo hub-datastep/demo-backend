@@ -117,7 +117,6 @@ async def parse_and_map_utd_card(
                 # Save all known UTD data
                 metadatas=metadatas.dict(),
                 type=IterationMetadatasType.UTD.value,
-                created_at=datetime.now(UTC),
             )
             mapping_iteration_model.create_or_update_iteration(
                 iteration=iteration,
