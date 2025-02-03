@@ -120,7 +120,7 @@ class UTDCardOutputMessage(UTDEntityParams):
     error_message: str | None = None
 
     # URL to web interface with results
-    results_url: str
+    results_url: str | None = None
 
 
 class UTDEntityWithParamsAndNoms(UTDEntityParams):
@@ -137,7 +137,7 @@ class UTDCardCheckResultsOutputMessage(SQLModel):
     # guid объекта строительства
     building_guid: str
     # guid категории материалов
-    material_category_guid: str
+    material_category_guid: str | None = None
     # Ссылка на проверку результата
     check_results_url: str
     # ИНН поставщика
