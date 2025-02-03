@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from fastapi import HTTPException, status
 
 from repository.mapping import mapping_iteration_repository
@@ -35,6 +36,7 @@ def create_or_update_iteration(
         )
     except HTTPException:
         # Create iteration if not exists to not lose results
+        iteration.created_at = datetime.now(UTC)
         iteration = mapping_iteration_repository.create_iteration(
             iteration=iteration,
         )
