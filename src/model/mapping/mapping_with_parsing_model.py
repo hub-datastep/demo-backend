@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+import json
 import traceback
 from typing import Any, AsyncGenerator
 
@@ -115,7 +115,9 @@ async def parse_and_map_utd_card(
             iteration = MappingIteration(
                 id=iteration_id,
                 # Save all known UTD data
-                metadatas=metadatas.dict(),
+                # ! Convert obj to json-str, then json-str to dict
+                # ! To serialize params with type datetime, date, etc.
+                metadatas=json.loads(metadatas.json()),
                 type=IterationMetadatasType.UTD.value,
             )
             mapping_iteration_model.create_or_update_iteration(
