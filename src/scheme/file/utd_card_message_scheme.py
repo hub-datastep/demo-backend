@@ -6,6 +6,11 @@ from sqlmodel import SQLModel
 Все параметры, которые могут быть 'None' - парсятся из УПД PDF файла
 """
 
+DATETIME_JSON_ENCODERS = {
+    datetime: lambda v: v.isoformat(),
+    date: lambda v: v.isoformat(),
+}
+
 
 class UTDCardStatus:
     DONE = "DONE"
@@ -25,6 +30,9 @@ class CreditSlipData(SQLModel):
     gen_contractor_guid: str
     # guid категории материалов
     material_category_guid: str | None = None
+
+    class Config:
+        json_encoders = DATETIME_JSON_ENCODERS
 
 
 class UTDDocument(SQLModel):
@@ -49,8 +57,7 @@ class SimilarMapping(SQLModel):
     nomenclature_guid: str
     # Наименование материала НСИ
     nomenclature: str
-    # Степень семантической схожести названия материала УПД с материалов НСИ
-    # От 0 до 1
+    # Степень семантической схожести названия материала УПД с материалов НСИ. От 0 до 1
     similarity_score: float
 
 
@@ -99,6 +106,10 @@ class UTDEntityParams(SQLModel):
     contract_number: str | None = None
     # Дата договора поставки
     contract_date: date | None = None
+
+    # * To serialize datetime, date params
+    class Config:
+        json_encoders = DATETIME_JSON_ENCODERS
 
 
 # * Схема выходного сообщения из Кафки
