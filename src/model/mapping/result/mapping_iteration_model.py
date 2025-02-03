@@ -31,6 +31,8 @@ def create_or_update_iteration(
         # Update iteration
         db_iteration.metadatas = iteration.metadatas
         db_iteration.type = iteration.type
+        # Just to now catch error with JSON and datetime
+        db_iteration.created_at = datetime.now(UTC)
         iteration = mapping_iteration_repository.update_iteration(
             iteration=db_iteration,
         )
