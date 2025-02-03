@@ -23,8 +23,6 @@ def get_iteration_by_id(
 def create_or_update_iteration(
     iteration: MappingIteration,
 ) -> MappingIteration:
-    iteration: MappingIteration | None = None
-
     try:
         # Try to get iteration by id
         db_iteration = get_iteration_by_id(iteration_id=iteration.id)

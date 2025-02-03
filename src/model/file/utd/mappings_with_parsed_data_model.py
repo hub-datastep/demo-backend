@@ -56,13 +56,15 @@ def add_parsed_data_to_mappings(
 
         # Get number from mapped nomenclature
         nom_number = -1
+        material_guid = "-1"
         if mapped_nom:
+            # Get material number
             nom_number = mapped_nom.row_number
 
-        # Get material guid from mapped nomenclature
-        material_guid = _get_material_code_from_mappings(
-            mapped_nom=mapped_nom,
-        )
+            # Get material guid from mapped nomenclature
+            material_guid = _get_material_code_from_mappings(
+                mapped_nom=mapped_nom,
+            )
 
         output_materials.append(
             MappedMaterial(
