@@ -200,7 +200,9 @@ def get_correction_params(pages_text: str) -> tuple[str, str] | None:
     return correction_number, correction_date
 
 
-def get_contract_params(pages_text: str) -> tuple[str, str, str] | None:
+def get_contract_params(
+    pages_text: str,
+) -> tuple[str | None, str | None, str | None]:
     """
     Parse contract name and date from UTD pages text
     """
@@ -212,8 +214,8 @@ def get_contract_params(pages_text: str) -> tuple[str, str, str] | None:
 
     # Patterns
     contract_pattern = (
-        r"(?:Основание передачи|Основания передачи).*Договор №\s*(\S+)\s*(\S+)\s*"
-        r"от\s*(\d{2}\.\d{2}\.\d{4}|(\d{1,2})\s([а-яА-ЯёЁ]+)\s(\d{4}))"
+        r"(основ.+передач.+сдач.+получ.+при[её]м)\S*\s*((.+)\s*"
+        r"от\s*(\d{1,2}\.\d{1,2}\.\d{2,4}|(\d{1,2})\s([а-яА-ЯёЁ]+)\s(\d{2,4})))"
     )
 
     # Parse Param
@@ -223,8 +225,7 @@ def get_contract_params(pages_text: str) -> tuple[str, str, str] | None:
         flags=re.IGNORECASE,
     )
     if contract_match:
-        contract_number = contract_match.group(1)
         contract_name = contract_match.group(2)
-        contract_date = contract_match.group(3)
+        contract_date = contract_match.group(4)
 
     return contract_number, contract_name, contract_date
