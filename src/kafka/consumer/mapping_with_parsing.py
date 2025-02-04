@@ -1,4 +1,5 @@
 import asyncio
+
 from faststream import FastStream
 from loguru import logger
 
@@ -47,6 +48,7 @@ async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
         await send_message_to_kafka(
             message_body=output_message.dict(),
             topic=UNISTROY_MAPPING_LINK_OUTPUT_TOPIC,
+            key=output_message.guid,
         )
 
 
