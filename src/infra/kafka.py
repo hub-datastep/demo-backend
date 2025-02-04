@@ -44,8 +44,10 @@ kafka_broker = create_kafka_broker()
 async def send_message_to_kafka(
     message_body: Any,
     topic: str,
+    key: str | None = None,
 ):
     await kafka_broker.publish(
         message_body,
         topic=topic,
+        key=key,
     )
