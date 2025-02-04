@@ -273,5 +273,5 @@ if __name__ == "__main__":
                         else:
                             print(f"        {key1}: {val1}")
             else:
-                print(f"{key}: {val}")
+                print(f"{key}: {val}, Type: {type(val)}")
         print()
