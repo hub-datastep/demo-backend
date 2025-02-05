@@ -1,18 +1,23 @@
-def process_results(test_cases, api_results):
-    processed_results = []
+from scheme.prediction.prediction_scheme import KnowledgeBasePredictionRead
 
-    for idx, api_result in enumerate(api_results):
+
+def process_results(
+    test_cases: list[dict],
+    results: list[KnowledgeBasePredictionRead],
+) -> list[dict]:
+    processed_results: list[dict] = []
+
+    for idx, result in enumerate(results):
         test_case = test_cases[idx]
 
         # Сравнение номенклатур и групп
         expected_filename = test_case['Ожидаемый файл']
         expected_answer = test_case['Ожидаемый ответ']
-        actual_filename = api_result['filename']
+        actual_filename = result.filename
 
-        if api_result['answer']:
-            actual_answer = api_result['answer']
-        else:
-            actual_answer = ""
+        actual_answer = None
+        if result.answer:
+            actual_answer = result.answer
 
         # Определение корректности
         correct_filename = expected_filename == actual_filename

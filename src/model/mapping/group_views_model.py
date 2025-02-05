@@ -6,8 +6,8 @@ from loguru import logger
 from pandas import DataFrame, read_excel
 from tqdm import tqdm
 
+from infra.env import env
 from llm.chain.mapping_nomenclature_view_chain import get_chain
-from infra.env import DATA_FOLDER_PATH
 
 # Init tqdm for pandas
 tqdm.pandas()
@@ -17,7 +17,7 @@ tqdm.pandas()
 а не по НСИшной (group)
 """
 
-GROUP_VIEWS_TABLE_PATH = f"{DATA_FOLDER_PATH}/levelgroup-group-views.xlsx"
+GROUP_VIEWS_TABLE_PATH = f"{env.DATA_FOLDER_PATH}/levelgroup-group-views.xlsx"
 GROUP_VIEWS_SHEET_NAME = "Group-Group-Views"
 
 
@@ -27,13 +27,19 @@ def get_group_views(group: str, groups_view_df: DataFrame) -> str:
     count_of_rows_with_views = len(filtered_df)
     # For tests
     # filtered_df = groups_view_df[groups_view_df['Группа в НСИ'] == group]
-    logger.debug(f"Count of rows with views for '{group}' in column 'Внутренняя Группа': {count_of_rows_with_views}")
+    logger.debug(
+        f"Count of rows with views for '{group}' in column 'Внутренняя Группа': "
+        f"{count_of_rows_with_views}"
+    )
 
     if filtered_df.empty:
         filtered_df = groups_view_df[groups_view_df['Группа из НСИ'] == group]
         count_of_rows_with_views = len(filtered_df)
 
-        logger.debug(f"Count of rows with views for '{group}' in column 'Группа из НСИ': {count_of_rows_with_views}")
+        logger.debug(
+            f"Count of rows with views for '{group}' in column 'Группа из НСИ': "
+            f"{count_of_rows_with_views}"
+        )
 
     # Соединяем все Виды в строку через запятую
     result = ";".join(filtered_df['Список Видов'].astype(str))
@@ -98,7 +104,8 @@ def get_nomenclatures_views(nomenclatures: DataFrame):
 
 
 if __name__ == "__main__":
-    table_path = "/home/syrnnik/Documents/Syrnnik/BandaWorks/Datastep/demo-backend/src/model/mapping/Mapping Results 2024-10-07 20-42-56.xlsx"
+    table_path = ("/home/syrnnik/Documents/Syrnnik/BandaWorks/Datastep/demo-backend/src/model"
+                  "/mapping/Mapping Results 2024-10-07 20-42-56.xlsx")
 
     results_df = read_excel(table_path)
 
@@ -109,5 +116,6 @@ if __name__ == "__main__":
     noms_df = get_nomenclatures_views(noms_df)
 
     noms_df.to_excel(
-        "/home/syrnnik/Documents/Syrnnik/BandaWorks/Datastep/demo-backend/src/model/mapping/out-Mapping Results 2024-10-07 20-42-56.xlsx"
+        "/home/syrnnik/Documents/Syrnnik/BandaWorks/Datastep/demo-backend/src/model/mapping/out"
+        "-Mapping Results 2024-10-07 20-42-56.xlsx"
     )

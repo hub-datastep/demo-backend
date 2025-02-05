@@ -3,11 +3,7 @@ import asyncio
 from faststream import FastStream
 from loguru import logger
 
-from infra.env import (
-    UNISTROY_MAPPING_INPUT_TOPIC,
-    UNISTROY_KAFKA_CONSUMERS_GROUP,
-    UNISTROY_MAPPING_LINK_OUTPUT_TOPIC,
-)
+from infra.env import env
 from infra.kafka import kafka_broker, send_message_to_kafka
 from model.mapping import mapping_with_parsing_model
 from scheme.file.utd_card_message_scheme import UTDCardInputMessage
@@ -18,7 +14,7 @@ app = FastStream(
 )
 
 KAFKA_DEFAULT_SETTINGS = {
-    "group_id": UNISTROY_KAFKA_CONSUMERS_GROUP,
+    "group_id": env.UNISTROY_KAFKA_CONSUMERS_GROUP,
     # Получать 1 сообщение (False) или несколько сразу (True)
     "batch": False,
     # Кол-во обрабатываемых сообщений за раз
@@ -30,7 +26,7 @@ KAFKA_DEFAULT_SETTINGS = {
 # Unistroy UTD PDF files Mapping Subscriber
 # Gets messages from topic
 @kafka_broker.subscriber(
-    UNISTROY_MAPPING_INPUT_TOPIC,
+    env.UNISTROY_MAPPING_INPUT_TOPIC,
     **KAFKA_DEFAULT_SETTINGS,
 )
 async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
@@ -47,7 +43,7 @@ async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
         # Send message to Unistroy Kafka link-topic with url to check results
         await send_message_to_kafka(
             message_body=output_message.dict(),
-            topic=UNISTROY_MAPPING_LINK_OUTPUT_TOPIC,
+            topic=env.UNISTROY_MAPPING_LINK_OUTPUT_TOPIC,
             key=output_message.guid,
         )
 

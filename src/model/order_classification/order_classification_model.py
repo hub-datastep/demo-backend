@@ -5,11 +5,7 @@ import requests
 from fastapi import HTTPException, status
 from loguru import logger
 
-from infra.env import (
-    DOMYLAND_AUTH_EMAIL,
-    DOMYLAND_AUTH_PASSWORD,
-    DOMYLAND_AUTH_TENANT_NAME,
-)
+from infra.env import env
 from infra.order_classification import WAIT_TIME_IN_SEC
 from llm.chain.order_multi_classification.order_multi_classification_chain import (
     get_order_class,
@@ -81,9 +77,9 @@ def _get_domyland_headers(auth_token: str | None = None):
 
 def _get_auth_token() -> str:
     req_body = {
-        "email": DOMYLAND_AUTH_EMAIL,
-        "password": DOMYLAND_AUTH_PASSWORD,
-        "tenantName": DOMYLAND_AUTH_TENANT_NAME,
+        "email": env.DOMYLAND_AUTH_EMAIL,
+        "password": env.DOMYLAND_AUTH_PASSWORD,
+        "tenantName": env.DOMYLAND_AUTH_TENANT_NAME,
     }
 
     response = requests.post(
