@@ -1,5 +1,4 @@
 import re
-from datetime import date
 
 from fastapi import HTTPException, status
 from loguru import logger
