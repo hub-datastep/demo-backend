@@ -1,3 +1,5 @@
+import asyncio
+
 from faststream import FastStream
 from loguru import logger
 
@@ -42,4 +44,9 @@ async def unistroy_mapping_with_parsing_consumer(body: UTDCardInputMessage):
         await send_message_to_kafka(
             message_body=output_message.dict(),
             topic=env.UNISTROY_MAPPING_LINK_OUTPUT_TOPIC,
+            key=output_message.guid,
         )
+
+
+if __name__ == "__main__":
+    asyncio.run(app.run())

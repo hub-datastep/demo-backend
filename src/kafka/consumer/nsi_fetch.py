@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 from datetime import datetime
@@ -22,7 +23,7 @@ UNISTROY_KAFKA_NSI_CONSUMERS_SETTINGS = {
 }
 
 
-def _get_path_for_files():
+def _get_path_for_files() -> tuple[str, str]:
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
     uuid = generate_uuid()
     messages_path = f"{env.DATA_FOLDER_PATH}/unistroy/kafka-nsi/{now}"
@@ -30,7 +31,7 @@ def _get_path_for_files():
     return messages_path, uuid
 
 
-def _save_to_json(file_path: str, data):
+def _save_to_json(file_path: str, data) -> None:
     # Create parent dirs if not exists
     os.makedirs(Path(file_path).parent, exist_ok=True)
 
@@ -62,3 +63,7 @@ async def get_all_materials(body):
     files_path, uuid = _get_path_for_files()
     materials_path = f"{files_path}/materials/{uuid}.json"
     _save_to_json(materials_path, body)
+
+
+if __name__ == "__main__":
+    asyncio.run(app.run())

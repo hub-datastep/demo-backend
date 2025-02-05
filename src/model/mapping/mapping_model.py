@@ -575,3 +575,10 @@ def is_job_finished(job_status: str) -> bool:
         return True
 
     return False
+
+
+def is_job_failed(job_status: str) -> bool:
+    if job_status == JobStatus.FAILED:
+        return True
+
+    return False

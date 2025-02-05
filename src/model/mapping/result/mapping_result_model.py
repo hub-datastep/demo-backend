@@ -11,7 +11,7 @@ from infra.env import env
 from infra.kafka import send_message_to_kafka
 from model.mapping.result import mapping_iteration_model
 from model.tenant import tenant_model
-from repository.mapping import mapping_iteration_repository, mapping_result_repository
+from repository.mapping import mapping_result_repository
 from scheme.file.utd_card_message_scheme import (
     MappedMaterial,
     UTDCardMetadatas,
@@ -114,12 +114,11 @@ def save_mapping_results(
     iteration_id: str,
 ) -> list[MappingResult]:
     # Check if iteration with this ID exists
-    try:
-        mapping_iteration_model.get_iteration_by_id(iteration_id=iteration_id)
-    except HTTPException:
-        # Create iteration if not exists to not lose results
-        iteration = MappingIteration(id=iteration_id)
-        mapping_iteration_repository.create_iteration(iteration=iteration)
+    # If not, create to save results
+    iteration = MappingIteration(id=iteration_id)
+    mapping_iteration_model.create_or_update_iteration(
+        iteration=iteration,
+    )
 
     results_list = []
     for mapping in mappings_list:
@@ -170,11 +169,13 @@ def get_corrected_material_from_results(
     for mapping_result in mapping_results_list:
         result = MappingOneNomenclatureRead(**mapping_result.result)
 
+        # Find material in mapping results
         if (
             material.material_guid == result.material_code
             or material.idn_material_name == result.nomenclature
             or material.number == result.row_number
         ):
+            # Check if corrected nomenclature is set
             if mapping_result.corrected_nomenclature:
                 corrected_nomenclature = SimilarNomenclature(
                     **mapping_result.corrected_nomenclature,
@@ -189,7 +190,9 @@ async def upload_results_to_kafka(
     body: MappingResultsUpload,
 ) -> UTDCardOutputMessage:
     iteration_id = body.iteration_id
-    iteration = mapping_iteration_model.get_iteration_by_id(iteration_id=iteration_id)
+    iteration = mapping_iteration_model.get_iteration_by_id(
+        iteration_id=iteration_id,
+    )
     mapping_results_list = iteration.results
 
     metadatas = UTDCardMetadatas(**iteration.metadatas)
@@ -216,17 +219,12 @@ async def upload_results_to_kafka(
         # Mapping Data
         materials=mapped_materials,
         # Parsed Data
-        supplier_inn=utd_entity.supplier_inn,
-        idn_number=utd_entity.idn_number,
-        idn_date=utd_entity.idn_date,
-        # TODO: set parsed params from UTD pdf file
-        # ! Now it's mocked data
-        organization_inn="3305061878",
-        correction_idn_number="НО-12865РД/2",
-        correction_idn_date=date(2024, 8, 27),
-        contract_name="ДОГОВОР ПОСТАВКИ № 003/06-Лето от 13.09.2023",
-        contract_number="003/06-Лето",
-        contract_date=date(2024, 8, 27),
+        **utd_entity.dict(
+            exclude={
+                "pages_numbers_list",
+                "nomenclatures_list",
+            },
+        ),
         # URL to web interface with results
         results_url=check_results_output_message.check_results_url,
     )

@@ -1,5 +1,7 @@
 import time
 
+from fastapi import HTTPException, status
+
 from model.mapping import mapping_model
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
 from scheme.mapping.mapping_scheme import (
@@ -10,26 +12,43 @@ from scheme.mapping.mapping_scheme import (
 WAIT_RESULTS_TIME_IN_SEC = 30
 
 
-def get_noms_with_indexes(nomenclatures_list: list[str]):
+def get_noms_with_indexes(
+    nomenclatures_list: list[str],
+) -> list[MappingOneNomenclatureUpload]:
     nomenclatures_list_with_indexes = [
         MappingOneNomenclatureUpload(
             row_number=i + 1,
             nomenclature=nom,
-        ) for i, nom in enumerate(nomenclatures_list)
+        )
+        for i, nom in enumerate(nomenclatures_list)
     ]
     return nomenclatures_list_with_indexes
 
 
-def _wait_until_results_finish(job_id: str):
+def _wait_until_results_finish(
+    job_id: str,
+) -> list[MappingNomenclaturesResultRead]:
     while True:
         results_list = mapping_model.get_all_jobs(job_id=job_id)
+
+        # Check if results finished
         is_all_jobs_finished = all(
             mapping_model.is_job_finished(nom_result.general_status)
             for nom_result in results_list
         )
-
         if is_all_jobs_finished:
             return results_list
+
+        # Check if all jobs failed
+        is_all_jobs_failed = all(
+            mapping_model.is_job_failed(nom_result.general_status)
+            for nom_result in results_list
+        )
+        if is_all_jobs_failed:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="All mapping jobs failed",
+            )
 
         time.sleep(WAIT_RESULTS_TIME_IN_SEC)
 

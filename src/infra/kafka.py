@@ -44,8 +44,15 @@ kafka_broker = create_kafka_broker()
 async def send_message_to_kafka(
     message_body: Any,
     topic: str,
+    key: str | None = None,
 ):
+    # Convert key to bytes if key defined
+    b_key: bytes | None = None
+    if key:
+        b_key = key.encode()
+
     await kafka_broker.publish(
         message_body,
         topic=topic,
+        key=b_key,
     )

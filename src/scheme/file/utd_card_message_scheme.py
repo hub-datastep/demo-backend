@@ -24,7 +24,7 @@ class CreditSlipData(SQLModel):
     # guid Генерального Подрядчика(сейчас это константа)
     gen_contractor_guid: str
     # guid категории материалов
-    material_category_guid: str
+    material_category_guid: str | None = None
 
 
 class UTDDocument(SQLModel):
@@ -49,22 +49,13 @@ class SimilarMapping(SQLModel):
     nomenclature_guid: str
     # Наименование материала НСИ
     nomenclature: str
-    # Степень семантической схожести названия материала УПД с материалов НСИ
-    # От 0 до 1
+    # Степень семантической схожести названия материала УПД с материалов НСИ. От 0 до 1
     similarity_score: float
 
 
-class MappedMaterial(SQLModel):
-    # Номер по списку
-    number: int
+class MaterialWithParams(SQLModel):
     # Наименование материала как в УПД
     idn_material_name: str
-    # guid материала (из справочника НСИ)
-    material_guid: str | None = None
-    # Материалы НСИ, похожие на материал УПД
-    # Если material_guid=null, тогда не передается
-    # Если material_guid is not null, тогда передаем
-    # similar_mappings: list[SimilarMapping] | None = None
     # Количество полученного материала
     quantity: float | None = None
     # Цена материала за единицу
@@ -77,8 +68,40 @@ class MappedMaterial(SQLModel):
     vat_amount: float | None = None
 
 
+class MappedMaterial(MaterialWithParams):
+    # Номер по списку
+    number: int
+    # guid материала (из справочника НСИ)
+    material_guid: str | None = None
+    # Материалы НСИ, похожие на материал УПД
+    # Если material_guid=null, тогда не передается
+    # Если material_guid is not null, тогда передаем
+    # similar_mappings: list[SimilarMapping] | None = None
+
+
+class UTDEntityParams(SQLModel):
+    # Номер УПД
+    idn_number: str | None = None
+    # Дата УПД
+    idn_date: date | None = None
+    # ИНН организации (покупатель со стороны Унистрой)
+    organization_inn: str | None = None
+    # ИНН поставщика
+    supplier_inn: str | None = None
+    # Номер исправления УПД (Integrated Delivery Note)
+    correction_idn_number: str | None = None
+    # Дата исправления УПД
+    correction_idn_date: date | None = None
+    # Наименование договора поставки
+    contract_name: str | None = None
+    # Номер договора поставки
+    contract_number: str | None = None
+    # Дата договора поставки
+    contract_date: date | None = None
+
+
 # * Схема выходного сообщения из Кафки
-class UTDCardOutputMessage(SQLModel):
+class UTDCardOutputMessage(UTDEntityParams):
     # Data from Input Message
     credit_slip_data: CreditSlipData
     documents: list[UTDDocument]
@@ -92,40 +115,16 @@ class UTDCardOutputMessage(SQLModel):
     guid: str | None = None
     # Статус распознавания
     status: str
-    # ИНН организации (покупатель со стороны Унистрой)
-    organization_inn: str | None = None
-    # ИНН поставщика
-    supplier_inn: str | None = None
-    # Номер УПД
-    idn_number: str | None = None
-    # Дата УПД
-    idn_date: date | None = None
-    # Номер исправления УПД (Integrated Delivery Note)
-    correction_idn_number: str | None = None
-    # Дата исправления УПД
-    correction_idn_date: date | None = None
-    # Наименование договора поставки
-    contract_name: str | None = None
-    # Номер договора поставки
-    contract_number: str | None = None
-    # Дата договора поставки
-    contract_date: date | None = None
     # Сообщение об ошибке
     error_message: str | None = None
 
     # URL to web interface with results
-    results_url: str
+    results_url: str | None = None
 
 
-class UTDEntityWithParamsAndNoms(SQLModel):
-    # Номер УПД
-    idn_number: str | None = None
-    # Дата УПД
-    idn_date: date | None = None
-    # ИНН поставщика
-    supplier_inn: str | None = None
+class UTDEntityWithParamsAndNoms(UTDEntityParams):
     pages_numbers_list: list[int] = []
-    nomenclatures_list: list[str] | None = None
+    nomenclatures_list: list[MaterialWithParams] | None = None
 
 
 # * Схема выходного сообщения из Кафки со ссылкой на результаты для проверки
@@ -137,7 +136,7 @@ class UTDCardCheckResultsOutputMessage(SQLModel):
     # guid объекта строительства
     building_guid: str
     # guid категории материалов
-    material_category_guid: str
+    material_category_guid: str | None = None
     # Ссылка на проверку результата
     check_results_url: str
     # ИНН поставщика

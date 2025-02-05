@@ -1,90 +1,74 @@
 import re
-from datetime import datetime, date
 from io import BytesIO
 
 import pdfplumber
 from fastapi import HTTPException, status
 from pdfplumber import PDF
 
-from scheme.file.utd_card_message_scheme import UTDEntityWithParamsAndNoms
-
-# Ключевые слова для поиска столбцов с наименованием товара
-_KEYWORDS = [
-    "Наименование товара",
-    "Товары (работы, услуги)",
-    "Наименование товара (описание выполненных работ, оказанных услуг), имущественного права",
-]
-
-_MONTHS_NAME_AND_NUMBER_STR = {
-    "января": "01",
-    "февраля": "02",
-    "марта": "03",
-    "апреля": "04",
-    "мая": "05",
-    "июня": "06",
-    "июля": "07",
-    "августа": "08",
-    "сентября": "09",
-    "октября": "10",
-    "ноября": "11",
-    "декабря": "12",
-}
-
-_PARAMS_PATTERNS = {
-    "supplier_inn": r"ИНН[\/КПП продавца]*[:\s]*([0-9]{10})",
-}
-
-_UTD_NUMBER_PATTERN = r"Счет-фактура\s*№\s*([\w-]+)"
-
-_UTD_DATE_PATTERN = (
-    r"Счет-фактура[^\n]*?от\s*(\d{1,2}[\.\s][а-яА-Я]+[\.\s]\d{4}|\d{2}\.\d{2}\.\d{4})"
+from model.file.utd.utd_entity_params_parsing import (
+    normalize_date,
+    format_param,
+    get_organization_inn,
+    get_supplier_inn,
+    get_contract_params,
+    get_correction_params, get_utd_number, get_utd_date_str,
+)
+from scheme.file.utd_card_message_scheme import (
+    UTDEntityWithParamsAndNoms,
+    MaterialWithParams, UTDEntityParams,
 )
 
-
-def _normalize_date(date_str: str) -> date | None:
-    """Функция для нормализации дат в формате DD.MM.YYYY и тип datetime.date"""
-
-    date_match = re.search(r"(\d{1,2})\s+([а-яА-Я]+)\s+(\d{4})", date_str)
-    if date_match:
-        day = date_match.group(1)
-        month_name = date_match.group(2)
-        year = date_match.group(3)
-
-        month_num_str = _MONTHS_NAME_AND_NUMBER_STR.get(month_name.lower())
-        if month_num_str:
-            normalized_date = datetime.strptime(
-                f"{day}.{month_num_str}.{year}", "%d.%m.%Y"
-            ).date()
-        else:
-            # Handle case where month name is not found
-            normalized_date = None
-    else:
-        # Handle case where no valid date is found
-        normalized_date = None
-
-    return normalized_date
+# Ключевые слова для поиска столбцов с наименованием товара
+_HEADERS_KEYWORDS = [
+    "Наименование товара",
+    "Товары (работы, услуги)",
+    "Наименование товара (описание выполненных работ, оказанных услуг), "
+    "имущественного права",
+]
 
 
 def extract_params_from_page_text(
     page_text: str,
-) -> UTDEntityWithParamsAndNoms:
+) -> UTDEntityParams:
     page_text = re.sub(r"\s+", " ", page_text)
 
-    extracted_params = UTDEntityWithParamsAndNoms()
+    extracted_params = UTDEntityParams()
 
-    # Get other IDN params
-    for param_name, pattern in _PARAMS_PATTERNS.items():
-        match = re.search(pattern, page_text, re.IGNORECASE)
-        param_value = match.group(1) if match else None
-        setattr(extracted_params, param_name, param_value)
+    # Get UTD number
+    utd_number = get_utd_number(page_text)
+    if utd_number is not None:
+        extracted_params.idn_number = utd_number
 
-    # Get IDN date
-    utd_date_str_match = re.search(_UTD_DATE_PATTERN, page_text, re.IGNORECASE)
-    utd_date_str = utd_date_str_match.group(1) if utd_date_str_match else None
+    # Get UTD date
+    utd_date_str = get_utd_date_str(page_text)
     if utd_date_str is not None:
-        extracted_params.idn_date = _normalize_date(
-            date_str=utd_date_str,
-        )
+        extracted_params.idn_date = normalize_date(date_str=utd_date_str)
+
+    # Get organization INN
+    organization_inn = get_organization_inn(page_text)
+    if organization_inn is not None:
+        extracted_params.organization_inn = organization_inn
+
+    # Get supplier INN
+    supplier_inn = get_supplier_inn(page_text)
+    if supplier_inn is not None:
+        extracted_params.supplier_inn = supplier_inn
+
+    # Get correction number and date
+    correction_number, correction_date = get_correction_params(page_text)
+    if correction_number is not None:
+        extracted_params.correction_idn_number = correction_number
+    if correction_date is not None:
+        extracted_params.correction_idn_date = normalize_date(date_str=correction_date)
+
+    # Get contract name and date
+    contract_number, contract_name, contract_date = get_contract_params(page_text)
+    if contract_number is not None:
+        extracted_params.contract_number = contract_number
+    if contract_name is not None:
+        extracted_params.contract_name = contract_name
+    if contract_date is not None:
+        extracted_params.contract_date = normalize_date(date_str=contract_date)
 
     return extracted_params
 
@@ -100,8 +84,8 @@ def extract_noms_from_pages(
     pdf: PDF,
     pages_numbers_list: list[int],
     idn_file_guid: str,
-) -> list[str]:
-    nomenclatures_list = []
+) -> list[MaterialWithParams]:
+    nomenclatures_with_params_list: list[MaterialWithParams] = []
 
     # Текущая строка заголовка
     current_header = None
@@ -121,20 +105,23 @@ def extract_noms_from_pages(
                 continue
 
             # Очистка строки заголовка
-            header_row = [_clean_column_name(cell) if cell else "" for cell in table[0]]
+            header_row = [
+                _clean_column_name(cell)
+                if cell else ""
+                for cell in table[0]
+            ]
 
             # Проверка, содержит ли строка заголовка ключевые слова
             is_header_row_contains_any_keyword = any(
-                any(keyword in cell for keyword in _KEYWORDS)
+                any(keyword in cell for keyword in _HEADERS_KEYWORDS)
                 for cell in header_row
             )
             if is_header_row_contains_any_keyword:
                 # Найден новый заголовок, сбрасываем текущие данные
                 current_header = header_row
                 header_indices = [
-                    i
-                    for i, cell in enumerate(header_row)
-                    if any(keyword in cell for keyword in _KEYWORDS)
+                    i for i, cell in enumerate(header_row)
+                    if any(keyword in cell for keyword in _HEADERS_KEYWORDS)
                 ]
                 combined_table_rows.extend(table[1:])
             elif current_header:
@@ -145,25 +132,43 @@ def extract_noms_from_pages(
                     # Структура не соответствует, возможно, новая таблица
                     current_header = None
                     header_indices = []
-            else:
-                # Нет заголовка и нет текущего заголовка, пропускаем таблицу
-                pass
 
         # Извлечение данных из combined_table_rows с использованием header_indices
         for row in combined_table_rows:
             for index in header_indices:
-                if len(row) > index and row[index]:
-                    cleaned_value = row[index].strip().replace("\n", " ")
-                    nomenclatures_list.append(cleaned_value)
+                material_name = row[index]
+
+                if len(row) > index and material_name:
+                    material_name = material_name.strip().replace("\n", " ")
+
+                    if len(material_name) > 2:
+                        # Get params values by index from material index
+                        quantity = row[index + 4]
+                        price = row[index + 5]
+                        cost = row[index + 6]
+                        vat_rate = row[index + 8]
+                        vat_amount = row[index + 9]
+
+                        nomenclatures_with_params_list.append(
+                            MaterialWithParams(
+                                idn_material_name=material_name,
+                                quantity=format_param(quantity),
+                                price=format_param(price),
+                                cost=format_param(cost),
+                                vat_rate=format_param(vat_rate),
+                                vat_amount=format_param(vat_amount),
+                            )
+                        )
 
     # If no nomenclatures was parsed
-    if len(nomenclatures_list) == 0:
+    if len(nomenclatures_with_params_list) == 0:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Failed to parse nomenclatures from PDF file with IDN file guid '{idn_file_guid}'",
+            detail=f"Failed to parse nomenclatures from PDF file "
+                   f"with IDN file guid '{idn_file_guid}'",
         )
 
-    return nomenclatures_list
+    return nomenclatures_with_params_list
 
 
 def get_entities_with_params(
@@ -175,23 +180,32 @@ def get_entities_with_params(
     for page_number, page in enumerate(pdf.pages):
         page_text = page.extract_text()
 
-        # Search UTD number on page
-        utd_entity_match = re.search(_UTD_NUMBER_PATTERN, page_text)
-        # If found, set new UTD number as last
-        if utd_entity_match:
-            last_utd_number = utd_entity_match.group(1)
-            # Get params of new UTD entity
-            utd_params = extract_params_from_page_text(
-                page_text=page_text,
+        # Get UTD params of page
+        utd_params = extract_params_from_page_text(
+            page_text=page_text,
+        )
+
+        if utd_params.idn_number is not None:
+            last_utd_number = utd_params.idn_number
+            utd_entities.append(
+                UTDEntityWithParamsAndNoms(**utd_params.dict())
             )
-            # Update UTD number and add it to entities list
-            utd_params.idn_number = last_utd_number
-            utd_entities.append(utd_params)
 
         # Add page to UTD entity pages list
-        for entity in utd_entities:
+        for i, entity in enumerate(utd_entities):
             if entity.idn_number == last_utd_number:
+                # Update entity empty params with parsed params
+                entity_dict = entity.dict()
+                utd_params_dict = utd_params.dict()
+                for key, value in entity_dict.items():
+                    if value is None and key in utd_params_dict:
+                        entity_dict[key] = utd_params_dict[key]
+
+                # Recreate entity object
+                entity = UTDEntityWithParamsAndNoms(**entity_dict)
                 entity.pages_numbers_list.append(page_number)
+
+                utd_entities[i] = entity
 
     return utd_entities
 
@@ -221,5 +235,43 @@ def extract_entities_with_params_and_noms(
         else:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"PDF file with IDN file guid '{idn_file_guid}' is scan, but text is required.",
+                detail=f"PDF file with IDN file guid '{idn_file_guid}' is scan, "
+                       f"but text is required.",
             )
+
+
+if __name__ == "__main__":
+    pdf_file = "/home/syrnnik/Downloads/unistroy/UPDs-17-09-2024/УПД Царево 1.1, 1.2.pdf"
+
+    # Test only entities with params parsing
+    # with pdfplumber.open(pdf_file) as pdf:
+    #     for entity in get_entities_with_params(pdf=pdf):
+    #         entity = entity.dict()
+    #         for key, val in entity.items():
+    #             print(f"{key}: {val}")
+    #         print()
+
+    # for entity in extract_entities_with_params_and_noms(
+    #     pdf_file=pdf_file,
+    #     idn_file_guid="test",
+    # ):
+    #     pass
+
+    # Test all params parsing
+    for entity in extract_entities_with_params_and_noms(
+        pdf_file=pdf_file,
+        idn_file_guid="test",
+    ):
+        entity = entity.dict()
+        for key, val in entity.items():
+            if key == "nomenclatures_list":
+                print(f"{key}:")
+                for nom in val:
+                    for key1, val1 in nom.items():
+                        if key1 == "idn_material_name":
+                            print(f"    {key1}: {val1}")
+                        else:
+                            print(f"        {key1}: {val1}")
+            else:
+                print(f"{key}: {val}, Type: {type(val)}")
+        print()
