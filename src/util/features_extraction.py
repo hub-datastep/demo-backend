@@ -196,7 +196,7 @@ def extract_match(pattern: str, text: str) -> str:
 
     return result
 
-def extract_features(
+def get_noms_metadatas_with_features(
     df_noms_with_features: DataFrame,
     noms_name: str = "name",
     noms_group: str = "internal_group",
@@ -226,8 +226,8 @@ def extract_features(
     expanded_df = df_noms_with_features.copy()  # Копируем исходный DataFrame для модификации
     
     for _, row in df_noms_with_features.iterrows():
-        nom = row["NOMs"]
-        group_name = row["GROUP"]
+        nom = row[noms_name]
+        group_name = row[noms_group]
 
         # Получаем набор регулярных выражений для текущей группы
         group_patterns = features_regex_patterns_for_class.get(group_name, {})
@@ -245,7 +245,7 @@ def extract_features(
     return expanded_df
 
 
-
+# TODO смотреть здесь
 def get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[dict]:
     metadatas = []
 
