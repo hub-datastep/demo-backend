@@ -28,6 +28,7 @@ data/fastembed/models--qdrant--multilingual-e5-large-onnx
 # Except them not in data folder
 !data/**/*.xlsx
 
+# TO-DO files
 *[Tt][Oo][Dd][Oo]*
 
 # Classifier files
