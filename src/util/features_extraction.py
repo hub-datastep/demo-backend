@@ -162,6 +162,9 @@ FEATURES_REGEX_PATTERNS_FOR_CLASS = {
 }
 
 
+KEY_FEATURES_REGEX_PATTERNS_FOR_CLASS = list(FEATURES_REGEX_PATTERNS_FOR_CLASS.keys())
+
+
 
 def extract_match(pattern: str, text: str) -> str:
     # Extract param by pattern
@@ -209,47 +212,39 @@ def extract_features(nomenclatures: DataFrame) -> DataFrame:
 
 def get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[dict]:
 
-    # Разделяем сложную строку на несколько шагов
-    results = []
-    print("LODIO 2:", results)
+    # Инициализация массива для хранения метаданных
+    metadatas = []
 
     for _, row in df_noms_with_features.iterrows():
         nom = row["name"]
         group_name = row["internal_group"]
+        if group_name in KEY_FEATURES_REGEX_PATTERNS_FOR_CLASS:
+            # Получаем набор регулярных выражений для текущей группы
+            group_patterns = FEATURES_REGEX_PATTERNS_FOR_CLASS.get(group_name, {})
 
-        # Получаем набор регулярных выражений для текущей группы
-        group_patterns = FEATURES_REGEX_PATTERNS_FOR_CLASS.get(group_name, {})
+            # Применяем регулярки к NOM
+            features_dict = {}
+            for feature_name, pattern in group_patterns.items():
+                match = re.search(pattern, str(nom))
+                if match:
+                    features_dict[feature_name] = match.group(0).lower()
 
-        # Применяем регулярки к NOM
-        features_dict = {}
-        for feature_name, pattern in group_patterns.items():
-            match = re.search(pattern, str(nom))
-            if match:
-                # Сохраняем всё совпадение (group(0)), 
-                # либо, при необходимости, какую-то определённую группу: match.group(1)
-                features_dict[feature_name] = match.group(0).lower()
+            metadatas.append(features_dict)
+        else:
+            # Извлечение значений регулярных выражений
+            # Возвращает объект вида {regex_name: nomenclature_param}
+            regex_values = row[FEATURES_REGEX_PATTERNS.keys()].to_dict()
 
+            # regex_values.update({
+            #     "brand": row['brand']
+            # })
+
+            metadatas.append(regex_values)
 
         
-        # Формируем итоговую запись
-        # result_item = features_dict if features_dict else None
-        # results.append(result_item)
-        results.append(features_dict)
-    print("LODIO 2:", results)
-    return results
+    return metadatas
 
 
-    # for _, row in df_noms_with_features.iterrows():
-    #     print(row['internal_group'])
-    #     # Извлечение значений регулярных выражений
-    #     # Возвращает объект вида {regex_name: nomenclature_param}
-    #     regex_values = row[FEATURES_REGEX_PATTERNS.keys()].to_dict()
-
-    #     # regex_values.update({
-    #     #     "brand": row['brand']
-    #     # })
-        
-
-    #     metadatas.append(regex_values)
-    # 
-    # return metadatas
+if __name__ == "__main__":
+    KEY_FEATURES_REGEX_PATTERNS_FOR_CLASS = list(FEATURES_REGEX_PATTERNS_FOR_CLASS.keys())
+    print(KEY_FEATURES_REGEX_PATTERNS_FOR_CLASS)
