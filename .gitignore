@@ -20,8 +20,15 @@ site/
 data/fastembed/.locks
 data/fastembed/models--qdrant--multilingual-e5-large-onnx
 
-# Google Credentials
+# Google Credentials and other JSON files
 *.json
+
+# Excel & Google Sheet files
+*.xlsx
+# Except them not in data folder
+!data/**/*.xlsx
+
+*[Tt][Oo][Dd][Oo]*
 
 # Classifier files
 data/model_*
