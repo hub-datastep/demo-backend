@@ -40,6 +40,18 @@ services:
       - backend
       - redis-server
 
+  volumes-viewer:
+    image: hurlenko/filebrowser
+    restart: always
+    ports:
+      - "9080:8080"
+    volumes:
+      - backend:/data
+      - volumes-viewer:/config
+      # Just to see .env in files viewer
+      - ./.env:/data/.env-file
+
 volumes:
   backend:
   redis-server:
+  volumes-viewer:

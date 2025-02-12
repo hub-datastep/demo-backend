@@ -1,8 +1,7 @@
 import re
 
-from pandas import DataFrame, concat, ExcelWriter
+from pandas import DataFrame
 from tqdm import tqdm
-import numpy as np
 
 tqdm.pandas()
 
@@ -163,6 +162,7 @@ FEATURES_REGEX_PATTERNS_FOR_CLASS = {
 }
 
 
+
 def extract_match(pattern: str, text: str) -> str:
     # Extract param by pattern
     match = re.search(pattern, text, flags=re.IGNORECASE)
@@ -196,90 +196,60 @@ def extract_match(pattern: str, text: str) -> str:
 
     return result
 
-def get_noms_metadatas_with_features(
-    df_noms_with_features: DataFrame,
-    noms_name: str = "name",
-    noms_group: str = "internal_group",
-    features_regex_patterns_for_class: dict = FEATURES_REGEX_PATTERNS_FOR_CLASS
-) -> DataFrame:
-    """
-    Функция формирует метаданные (результаты регулярных выражений) по каждой строке df_noms_with_features и добавляет их в новый DataFrame.
-    
-    :param df_noms_with_features: DataFrame с колонками [NOMs, GROUP] (минимально необходимые).
-    :param features_regex_patterns_for_class: словарь вида:
-        {
-          "Бетон Материалы": {
-              "прочность": r"(M|М)-?\d+",
-              "температура": r"\(-\s?\d+С\)"
-              # и т.д.
-          },
-          "Щитовое оборудование Материалы": {
-              "тип_щита": r"Щ[ОСЭ].*",
-              "этажность": r"\d+\s?квартир"
-              # и т.д.
-          },
-          ...
-        }
-        
-    :return: DataFrame с добавленными столбцами для каждого свойства
-    """
-    expanded_df = df_noms_with_features.copy()  # Копируем исходный DataFrame для модификации
-    
+
+def extract_features(nomenclatures: DataFrame) -> DataFrame:
+    # Применяем регулярные выражения для извлечения характеристик
+    for param_name, pattern in FEATURES_REGEX_PATTERNS.items():
+        nomenclatures[param_name] = nomenclatures['name'].progress_apply(
+            lambda nom_name: extract_match(pattern, nom_name)
+        )
+
+    return nomenclatures
+
+
+def get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[dict]:
+
+    # Разделяем сложную строку на несколько шагов
+    results = []
+    print("LODIO 2:", results)
+
     for _, row in df_noms_with_features.iterrows():
-        nom = row[noms_name]
-        group_name = row[noms_group]
+        nom = row["name"]
+        group_name = row["internal_group"]
 
         # Получаем набор регулярных выражений для текущей группы
-        group_patterns = features_regex_patterns_for_class.get(group_name, {})
+        group_patterns = FEATURES_REGEX_PATTERNS_FOR_CLASS.get(group_name, {})
 
-        # Применяем регулярки к NOM и добавляем в новые столбцы
+        # Применяем регулярки к NOM
+        features_dict = {}
         for feature_name, pattern in group_patterns.items():
             match = re.search(pattern, str(nom))
             if match:
-                # Если есть совпадение, сохраняем его
-                expanded_df.at[_, feature_name] = match.group(0).lower()
-            else:
-                # Если совпадения нет, присваиваем NaN
-                expanded_df.at[_, feature_name] = np.nan
-
-    return expanded_df
+                # Сохраняем всё совпадение (group(0)), 
+                # либо, при необходимости, какую-то определённую группу: match.group(1)
+                features_dict[feature_name] = match.group(0).lower()
 
 
-# TODO смотреть здесь
-def get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[dict]:
-    metadatas = []
+        
+        # Формируем итоговую запись
+        # result_item = features_dict if features_dict else None
+        # results.append(result_item)
+        results.append(features_dict)
+    print("LODIO 2:", results)
+    return results
 
-    # Разделяем сложную строку на несколько шагов
-    for _, row in df_noms_with_features.iterrows():
-        # Извлечение значений регулярных выражений
-        # Возвращает объект вида {regex_name: nomenclature_param}
-        regex_values = row[FEATURES_REGEX_PATTERNS.keys()].to_dict()
 
-        # regex_values.update({
-        #     "brand": row['brand']
-        # })
+    # for _, row in df_noms_with_features.iterrows():
+    #     print(row['internal_group'])
+    #     # Извлечение значений регулярных выражений
+    #     # Возвращает объект вида {regex_name: nomenclature_param}
+    #     regex_values = row[FEATURES_REGEX_PATTERNS.keys()].to_dict()
 
-        metadatas.append(regex_values)
+    #     # regex_values.update({
+    #     #     "brand": row['brand']
+    #     # })
+        
 
-    return metadatas
-
-if __name__=="__main__":
-    # Пример тестового набора данных
-    data = {
-        "internal_group": ["Бетон Материалы", "Водоснабжение и Канализация", "Лифтовое оборудование Материалы"],
-        "name": [
-            "М-100 (температура +20С) W4 F500 АБН-24м B7,5",  # Пример с разными признаками из группы "Бетон Материалы"
-            "SN10 ID200 OD315 3600х6980 SDR11 - 200х18,2",  # Пример из группы "Водоснабжение и Канализация"
-            "г/п 500кг 3 остановки 1,5м/с Без МП",  # Пример из группы "Лифтовое оборудование Материалы"
-        ]
-    }
-
-    # Создаем DataFrame
-    nomenclatures = DataFrame(data)
-
-    # Применяем функцию
-    extracted_features = extract_features(nomenclatures)
-
-    extracted_features.to_excel('output.xlsx', index=False)  
-    # Выводим результат
-    print(extracted_features)
+    #     metadatas.append(regex_values)
+    # 
+    # return metadatas
