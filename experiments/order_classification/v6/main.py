@@ -4,7 +4,21 @@ from langchain.chains import LLMChain
 from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
 
-from order_classification.v6.modules.prompt import PROMPT_TEMPLATE
+PROMPT_TEMPLATE = """
+Заявка жильца:
+```
+{query}
+```
+
+Прочитай заявку жильца и убери из неё:
+- Срочность (необходимость немедленного решения).
+- Агрессию, раздражение, ругательства, оскорбления, угрозы.
+Важно, чтобы заявка звучала нейтрально, а не агрессивно или срочно.
+
+Твоей ответ должен содержать только содержание заявки жильца.
+
+Содержание заявки жильца:
+"""
 
 
 def format_order_query(order_query: str) -> str:
