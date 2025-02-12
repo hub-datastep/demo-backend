@@ -2,7 +2,9 @@ from pydantic import BaseSettings
 
 
 class Env(BaseSettings):
-    OPENAI_API_KEY_ORDER_CLASSIFICATION_EVALUATION: str
+    MODEL_NAME: str
+    API_KEY: str
+    AZURE_ENDPOINT: str
 
 
 env = Env()
