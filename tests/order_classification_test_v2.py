@@ -12,13 +12,11 @@ from tqdm import tqdm
 from configs.env import env
 from services.google_sheets_service import get_test_cases
 
-# сохраняем минимальное кол-во связанности с внешним кодом, чтобы тест кейсы не
-# зависели от другой логики
-# поэтому даже эти переменные не через env вытаскиваем, а прям тут записываем
 TESTS_ORDER_CLASSIFICATION_SPREADSHEET_NAME = env.TESTS_SPREADSHEET_NAME
 TESTS_ORDER_CLASSIFICATION_TABLE_NAME = env.TESTS_TABLE_NAME
 
-# Эмулируем правила для теста. В реальном сценарии — загрузка из базы данных
+# Эмулируем правила для теста.
+# В реальном сценарии — загрузка из базы данных
 RULES_BY_CLASSES = {
     "Охрана": {
         "rules": [
@@ -149,6 +147,12 @@ TESTING_CONFIG = {
     "TESTS_ORDER_CLASSIFICATION_TABLE_NAME": TESTS_ORDER_CLASSIFICATION_TABLE_NAME,
 }
 
+# Колонки, которые обязательно должны быть в тест-кейсах
+REQUIRED_COLUMNS = [
+    "Order Query",
+    "Correct Class",
+]
+
 
 def load_test_cases() -> list[dict]:
     """
@@ -172,30 +176,27 @@ def load_test_cases() -> list[dict]:
 def is_test_case_valid(test_case: dict) -> bool:
     """
     Проверяет наличие обязательных полей в тест-кейсе.
+
     :param test_case: Один тест-кейс.
+
     :return: True, если кейс валиден, иначе False.
     """
-    required_fields = ["Order Query", "Correct Class"]
 
     # Проверка на наличие полей
-    for field in required_fields:
-        if field not in test_case or not test_case[field] or str(
-            test_case[field]
-        ).strip() == "":
-            logger.warning(f"Тест-кейс невалиден: отсутствует или пустое поле '{field}'.")
+    for column in REQUIRED_COLUMNS:
+        # Проверяем, что у тест-кейса есть необходимые колонки
+        if (
+            column not in test_case
+            or not test_case[column]
+            or str(test_case[column]).strip() == ""
+        ):
+            logger.warning(f"Тест-кейс невалиден: отсутствует или пустое поле '{column}'")
             return False
 
-    # # нужно чтобы был отмечен класс для тестирования - там будет 50 кейсов примерно
-    # качетсвенные
-    # if str(test_case["Класс для тестирования"]).strip() == "":
-    #     logger.warning(f"Тест-кейс невалиден: поле '{field}' пустое или содержит
-    #     только пробелы.")
-    #     return False
-
-    # отфильтровываем кейсы которые требуют уточнения
-    if str(test_case["Класс для тестирования"]) == "Требует уточнения":
-        logger.warning(f"Тест-кейс невалиден: поле '{field}' = 'Требует уточнения'.")
-        return False
+        # Отфильтровываем кейсы, которые требуют уточнения
+        if str(test_case["Класс для тестирования"]) == "Требует уточнения":
+            logger.warning(f"Тест-кейс невалиден: поле '{column}' = 'Требует уточнения'")
+            return False
 
     return True
 
@@ -203,8 +204,10 @@ def is_test_case_valid(test_case: dict) -> bool:
 def load_prediction_function(module_name: str, function_name: str):
     """
     Динамически загружает функцию предсказания из указанного модуля.
+
     :param module_name: Название модуля (файл в папке experiments).
     :param function_name: Имя функции в модуле.
+
     :return: Ссылка на функцию.
     """
     try:
@@ -215,12 +218,14 @@ def load_prediction_function(module_name: str, function_name: str):
         raise
 
 
-def process_test_case(test_case: dict, predict_function, **kwargs) -> dict:
+def process_test_case(test_case: dict, predict_function: callable, **kwargs) -> dict:
     """
     Обрабатывает тест-кейс с использованием переданной функции предсказания.
+
     :param test_case: Один тест-кейс.
     :param predict_function: Функция предсказания.
     :param kwargs: Дополнительные аргументы для функции предсказания.
+
     :return: Результаты выполнения с динамическими параметрами.
     """
     order_query = test_case["Order Query"]
@@ -242,7 +247,8 @@ def process_test_case(test_case: dict, predict_function, **kwargs) -> dict:
             "Order Query": order_query,
             "Correct Class": test_case["Correct Class"],
             "Predicted Class": prediction_result[
-                "most_relevant_class_response"].order_class,
+                "most_relevant_class_response"
+            ].order_class,
             "Processing Time": f"{processing_time} сек",
             "Test Case ID": test_case["Test Case ID"],
             "Order ID": test_case["Order ID"]
@@ -273,6 +279,7 @@ def process_test_case(test_case: dict, predict_function, **kwargs) -> dict:
 def evaluate_predictions(results: list):
     """
     Оценивает результаты предсказаний на основе основных метрик.
+
     :param results: Список тест-кейсов с полями Predicted Class и Correct Class.
     """
     # Извлечение истинных и предсказанных классов
@@ -310,8 +317,10 @@ def add_success_metric(result: dict) -> dict:
     """
     if result["Predicted Class"] == result["Correct Class"]:
         result["Success Metric"] = 1
-    elif result["Predicted Class"] == "Обычная" and result[
-        "Correct Class"] == "Другой класс":
+    elif (
+        result["Predicted Class"] == "Обычная"
+        and result["Correct Class"] == "Другой класс"
+    ):
         result["Success Metric"] = 1
     else:
         result["Success Metric"] = 0
@@ -321,7 +330,9 @@ def add_success_metric(result: dict) -> dict:
 def calculate_overall_metrics(results: list) -> dict:
     """
     Подсчитывает общие метрики (Accuracy, Precision, Recall, F1-score).
+
     :param results: Список тест-кейсов с результатами предсказаний.
+
     :return: Словарь с метриками.
     """
     true_classes = [res["Correct Class"] for res in results]
@@ -339,10 +350,14 @@ def calculate_overall_metrics(results: list) -> dict:
 
 
 def save_results_to_excel(
-    results: list, metrics: dict, config: dict, file_name: str = None
+    results: list,
+    metrics: dict,
+    config: dict,
+    file_name: str = None,
 ):
     """
     Сохраняет результаты тестов и метрики в xlsx-файл.
+
     :param results: Список результатов тестирования.
     :param metrics: Общие метрики тестирования.
     :param config: Конфигурация тестирования.
@@ -409,7 +424,7 @@ def append_result_to_excel(file_name: str, result: dict):
     logger.info(f"Результат добавлен в файл: {file_name}")
 
 
-def calculate_overall_metrics(results_file: str) -> dict:
+def _calculate_overall_metrics(results_file: str) -> dict:
     """
     Подсчитывает метрики по всем результатам из xlsx-файла.
     """
@@ -432,7 +447,7 @@ def calculate_overall_metrics(results_file: str) -> dict:
 def save_metrics_and_config_to_excel(file_name: str, metrics: dict, config: dict):
     """
     Сохраняет метрики на отдельный лист в xlsx-файле.
-    Сохраняет конфиг тестирования в отдельный лист
+    Сохраняет конфиг тестирования в отдельный лист.
     """
     # сохраняем метрики
     metrics_df = pd.DataFrame([metrics])
