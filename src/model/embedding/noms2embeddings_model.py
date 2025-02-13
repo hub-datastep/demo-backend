@@ -59,9 +59,9 @@ def _create_and_save_embeddings(
     job.save_meta()
 
     # Извлечение характеристик и добавление их в метаданные
-    # df_noms_with_features = extract_features(df_noms)
-    # print(f"Nomenclatures with features:")
-    # print(df_noms_with_features)
+    df_noms = extract_features(df_noms)
+    print(f"Nomenclatures with features:")
+    print(df_noms)
 
     job.meta['general_status'] = "Extracting brands"
     job.save_meta()
