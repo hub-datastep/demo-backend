@@ -21,7 +21,7 @@ SCOPES = [
 
 def get_google_sheets_client():
     creds = ServiceAccountCredentials.from_json_keyfile_name(
-        filename=env.CREDENTIALS_PATH,
+        filename=env.GOOGLE_CREDENTIALS_PATH,
         scopes=SCOPES,
     )
     client = gspread.authorize(creds)
