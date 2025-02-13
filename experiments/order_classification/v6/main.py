@@ -4,6 +4,8 @@ from langchain.chains import LLMChain
 from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
 
+from order_classification.v6.modules.env import env
+
 PROMPT_TEMPLATE = """
 Заявка жильца:
 ```
@@ -27,7 +29,10 @@ def format_order_query(order_query: str) -> str:
 
 
 # Инициализация LLM
-llm = OpenAI(temperature=0.7)
+llm = OpenAI(
+    api_key=env.EXPERIMENTS_API_KEY,
+    temperature=0.7,
+)
 
 classification_chain = LLMChain(
     llm=llm,

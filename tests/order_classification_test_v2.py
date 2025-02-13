@@ -218,7 +218,11 @@ def load_prediction_function(module_name: str, function_name: str):
         raise
 
 
-def process_test_case(test_case: dict, predict_function: callable, **kwargs) -> dict:
+def process_test_case(
+    test_case: dict,
+    predict_function: callable,
+    **kwargs,
+) -> dict:
     """
     Обрабатывает тест-кейс с использованием переданной функции предсказания.
 
@@ -327,7 +331,7 @@ def add_success_metric(result: dict) -> dict:
     return result
 
 
-def calculate_overall_metrics(results: list) -> dict:
+def _calculate_overall_metrics(results: list) -> dict:
     """
     Подсчитывает общие метрики (Accuracy, Precision, Recall, F1-score).
 
@@ -424,7 +428,7 @@ def append_result_to_excel(file_name: str, result: dict):
     logger.info(f"Результат добавлен в файл: {file_name}")
 
 
-def _calculate_overall_metrics(results_file: str) -> dict:
+def calculate_overall_metrics(results_file: str) -> dict:
     """
     Подсчитывает метрики по всем результатам из xlsx-файла.
     """
@@ -482,7 +486,7 @@ if __name__ == "__main__":
     # Загружаем динамическую функцию предсказания из модуля
     # llm.chain.order_multi_classification.order_multi_classification_chain.py
     get_order_class_predict_function = load_prediction_function(
-        "llm.chain.order_multi_classification.order_multi_classification_chain",
+        "order_classification.v6.modules.chains.order_multi_classification_chain",
         "get_order_class"
     )
     # Загружаем динамическую функцию предсказания из модуля
@@ -506,8 +510,8 @@ if __name__ == "__main__":
         result = add_success_metric(result)
         append_result_to_excel(file_name, result)
         logger.info(
-            f"[{idx + 1}/{total_cases}] Обработан тест-кейс: {result['Order Query']} -> "
-            f"{result['Predicted Class']}"
+            f"[{idx + 1}/{total_cases}] Обработан тест-кейс: "
+            f"{result['Order Query']} -> {result['Predicted Class']}"
         )
 
     # Пример вывода первых 5 результатов

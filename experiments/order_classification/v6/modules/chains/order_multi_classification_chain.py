@@ -64,9 +64,9 @@ def get_order_class(
     verbose: bool = False,
 ) -> OrderClassificationLLMResponse:
     llm = AzureChatOpenAI(
-        azure_deployment=env.MODEL_NAME,
-        api_key=env.API_KEY,
-        azure_endpoint=env.AZURE_ENDPOINT,
+        azure_deployment=env.EXPERIMENTS_MODEL_NAME,
+        api_key=env.EXPERIMENTS_API_KEY,
+        azure_endpoint=env.EXPERIMENTS_AZURE_ENDPOINT,
         temperature=0,
         verbose=False,
     )

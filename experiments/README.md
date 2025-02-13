@@ -41,10 +41,16 @@
           **Пример `env.py` скрипта:**
 
           ```python
+          from dotenv import load_dotenv
           from pydantic import BaseSettings
 
-          class Env(BaseSettings):
+          load_dotenv()
+
+           class Env(BaseSettings):
+              # Название должно быть таким же, как в .env
               ENV_VAR: str
+              # Вот так можно указывать не обязательные параметры
+              ENV_VAR: str | None = None
 
           env = Env()
           ```
