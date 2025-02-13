@@ -393,8 +393,8 @@ def _map_nomenclatures_chunk(
 
     # Extract all noms params
     is_use_params = classifier_config.is_use_params
-    if is_use_params:
-        noms = extract_features(noms)
+    # if is_use_params:
+    #     noms = extract_features(noms)
 
     # Get all noms brands
     is_use_brand_recognition = classifier_config.is_use_brand_recognition
@@ -443,7 +443,7 @@ def _map_nomenclatures_chunk(
             metadatas_list = []
             for key, val in nom['metadata'].items():
                 # Check if mapping param is not empty
-                if val != "":
+                if val:
                     metadatas_list.append({str(key): val})
         else:
             metadatas_list = None
