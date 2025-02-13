@@ -1,4 +1,4 @@
-from langchain_openai import AzureChatOpenAI, ChatOpenAI
+from langchain_openai import AzureChatOpenAI
 from loguru import logger
 
 from llm.chain.order_classification_chain import get_llm_by_client_credentials
@@ -15,10 +15,6 @@ from llm.chain.order_multi_classification.order_query_summarization import (
 from scheme.order_classification.order_classification_config_scheme import RulesWithParams
 from scheme.order_classification.order_classification_scheme import (
     OrderClassificationLLMResponse,
-)
-
-from infra.env import (
-    OPENAI_API_KEY_ORDER_CLASSIFICATION_EVALUATION,
 )
 
 
@@ -68,20 +64,6 @@ def get_order_class(
     verbose: bool = False,
 ) -> OrderClassificationLLMResponse:
     llm = get_llm_by_client_credentials(client=client)
-
-    llm = AzureChatOpenAI(
-        deployment_name="gpt-4o-mini",
-        openai_api_key="api_key",
-        azure_endpoint="https://vysota-service.openai.azure.com/",
-        temperature=0,
-        verbose=False,
-    )
-
-    # # llm = ChatOpenAI(
-    # #     model_name="gpt-4o-mini", 
-    # #     temperature=0,
-    # #     openai_api_key=OPENAI_API_KEY_ORDER_CLASSIFICATION_EVALUATION
-    # # )
 
     query_summary = get_order_query_summary(
         llm=llm,
