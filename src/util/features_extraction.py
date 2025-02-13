@@ -58,7 +58,6 @@ FEATURES_REGEX_PATTERNS = {
     "density": r"(\d+)кг/м3",
 }
 
-
 FEATURES_REGEX_PATTERNS_FOR_CLASS = {
     "Бетон Материалы": {
 
@@ -165,7 +164,6 @@ FEATURES_REGEX_PATTERNS_FOR_CLASS = {
 KEY_FEATURES_REGEX_PATTERNS_FOR_CLASS = list(FEATURES_REGEX_PATTERNS_FOR_CLASS.keys())
 
 
-
 def extract_match(pattern: str, text: str) -> str:
     # Extract param by pattern
     match = re.search(pattern, text, flags=re.IGNORECASE)
@@ -243,6 +241,7 @@ def get_noms_metadatas_with_features(df_noms_with_features: DataFrame) -> list[d
 
         
     return metadatas
+
 
 
 if __name__ == "__main__":
