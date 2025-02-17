@@ -495,13 +495,13 @@ if __name__ == "__main__":
 
     # Шаг 2: Валидация данных
     valid_test_cases = [
-                           case for case in test_cases
-                           if is_test_case_valid(
+        case for case in test_cases
+        if is_test_case_valid(
             test_case=case,
             # Получаем тест-кейсы для экспериментов
             is_for_experiments=True,
         )
-                       ][:5]
+    ]
     logger.info(f"Валидные тест-кейсы: {len(valid_test_cases)} из {len(test_cases)}.")
 
     # Пример вывода валидных тест-кейсов
@@ -510,7 +510,7 @@ if __name__ == "__main__":
 
     # Загружаем динамическую функцию предсказания из модуля
     get_order_class_predict_function = load_prediction_function(
-        "order_classification.v6.modules.chains.order_multi_classification_chain",
+        "llm.chain.order_multi_classification.order_multi_classification_chain",
         "get_order_class",
     )
 
