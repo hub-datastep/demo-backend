@@ -2,10 +2,10 @@ import importlib
 import os
 from datetime import datetime
 
-import pandas as pd
 from loguru import logger
 from openpyxl import load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
+from pandas import DataFrame, ExcelWriter, read_excel
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from tqdm import tqdm
 
@@ -173,11 +173,16 @@ def load_test_cases() -> list[dict]:
         return []
 
 
-def is_test_case_valid(test_case: dict) -> bool:
+def is_test_case_valid(
+    test_case: dict,
+    is_for_experiments: bool = False,
+) -> bool:
     """
     Проверяет наличие обязательных полей в тест-кейсе.
 
     :param test_case: Один тест-кейс.
+    :param is_for_experiments: Флаг, с помощью которого можно отфильтровать тест-кейсы
+    для экспериментов.
 
     :return: True, если кейс валиден, иначе False.
     """
@@ -193,10 +198,19 @@ def is_test_case_valid(test_case: dict) -> bool:
             logger.warning(f"Тест-кейс невалиден: отсутствует или пустое поле '{column}'")
             return False
 
+        test_case_id = test_case["Test Case ID"]
+        testing_class = str(test_case["Класс для тестирования"]).lower()
         # Отфильтровываем кейсы, которые требуют уточнения
-        if str(test_case["Класс для тестирования"]) == "Требует уточнения":
-            logger.warning(f"Тест-кейс невалиден: поле '{column}' = 'Требует уточнения'")
+        if testing_class == "требует уточнения".lower():
+            logger.warning(f"Тест-кейс {test_case_id} невалиден и трубует уточнения")
             return False
+
+        # Выбираем тест-кейсы, которые нужны для экспериментов
+        if is_for_experiments:
+            if testing_class.startswith("топчик".lower()):
+                return True
+            else:
+                return False
 
     return True
 
@@ -267,7 +281,8 @@ def process_test_case(
 
     except Exception as e:
         logger.error(
-            f"Ошибка при обработке запроса '{order_query}': {e}: {e.with_traceback()}"
+            f"Ошибка при обработке запроса '{order_query}': "
+            f"{e}: {e.with_traceback(e.__traceback__)}"
         )
         return {
             "Order Query": order_query,
@@ -307,12 +322,12 @@ def evaluate_predictions(results: list):
     )
     logger.info(
         "Краткий отчет по метрикам:\n" +
-        pd.DataFrame(report).transpose().to_string()
+        DataFrame(report).transpose().to_string()
     )
 
     # Матрица ошибок
     confusion = confusion_matrix(true_classes, predicted_classes)
-    logger.info("Confusion Matrix:\n" + pd.DataFrame(confusion).to_string())
+    logger.info("Confusion Matrix:\n" + DataFrame(confusion).to_string())
 
 
 def add_success_metric(result: dict) -> dict:
@@ -372,16 +387,16 @@ def save_results_to_excel(
         file_name = f"test_results_{now}.xlsx"
 
     # Преобразуем результаты в DataFrame
-    results_df = pd.DataFrame(results)
+    results_df = DataFrame(results)
 
     # Формирование DataFrame для конфигурации
-    config_df = pd.DataFrame([{key: value for key, value in config.items()}])
+    config_df = DataFrame([{key: value for key, value in config.items()}])
 
     # Формирование DataFrame для метрик
-    metrics_df = pd.DataFrame([metrics])
+    metrics_df = DataFrame([metrics])
 
     # Запись в xlsx-файл
-    with pd.ExcelWriter(file_name, engine="openpyxl") as writer:
+    with ExcelWriter(file_name, engine="openpyxl") as writer:
         results_df.to_excel(writer, sheet_name="Results", index=False)
         config_df.to_excel(writer, sheet_name="Test Config", index=False)
         metrics_df.to_excel(writer, sheet_name="Metrics Summary", index=False)
@@ -393,7 +408,7 @@ def initialize_results_file(file_name: str, columns: list):
     """
     Создает новый xlsx файл с заголовками, если он не существует.
     """
-    pd.DataFrame(columns=columns).to_excel(file_name, sheet_name="Results", index=False)
+    DataFrame(columns=columns).to_excel(file_name, sheet_name="Results", index=False)
     logger.info(f"Создан новый файл для сохранения результатов: {file_name}")
 
 
@@ -406,7 +421,7 @@ def append_result_to_excel(file_name: str, result: dict):
     result_cleaned = {
         key: (str(value) if not isinstance(value, (int, float, str)) else value)
         for key, value in result.items()}
-    result_df = pd.DataFrame([result_cleaned])
+    result_df = DataFrame([result_cleaned])
 
     # Если файл не существует, создаём его с заголовками
     if not os.path.exists(file_name):
@@ -432,7 +447,7 @@ def calculate_overall_metrics(results_file: str) -> dict:
     """
     Подсчитывает метрики по всем результатам из xlsx-файла.
     """
-    results_df = pd.read_excel(results_file, sheet_name="Results")
+    results_df = read_excel(results_file, sheet_name="Results")
 
     true_classes = results_df["Correct Class"]
     predicted_classes = results_df["Predicted Class"]
@@ -448,20 +463,26 @@ def calculate_overall_metrics(results_file: str) -> dict:
     }
 
 
-def save_metrics_and_config_to_excel(file_name: str, metrics: dict, config: dict):
+def save_metrics_and_config_to_excel(
+    file_name: str,
+    metrics: dict,
+    config: dict,
+):
     """
     Сохраняет метрики на отдельный лист в xlsx-файле.
     Сохраняет конфиг тестирования в отдельный лист.
     """
-    # сохраняем метрики
-    metrics_df = pd.DataFrame([metrics])
-    with pd.ExcelWriter(file_name, mode="a", engine="openpyxl") as writer:
+    # Сохраняем метрики
+    metrics_df = DataFrame([metrics])
+    with ExcelWriter(file_name, mode="a", engine="openpyxl") as writer:
         metrics_df.to_excel(writer, sheet_name="Metrics Summary", index=False)
 
-    # сохраняем конфиг
-    config_df = pd.DataFrame([{key: value for key, value in config.items()}])
-    with pd.ExcelWriter(file_name, mode="a", engine="openpyxl") as writer:
+    # Сохраняем конфиг
+    config_df = DataFrame([{key: value for key, value in config.items()}])
+    with ExcelWriter(file_name, mode="a", engine="openpyxl") as writer:
         config_df.to_excel(writer, sheet_name="Testing Config", index=False)
+
+    logger.success(f"Результаты успешно сохранены в файл: {file_name}.")
 
 
 if __name__ == "__main__":
@@ -474,9 +495,13 @@ if __name__ == "__main__":
 
     # Шаг 2: Валидация данных
     valid_test_cases = [
-        case for case in test_cases
-        if is_test_case_valid(case)
-    ]
+                           case for case in test_cases
+                           if is_test_case_valid(
+            test_case=case,
+            # Получаем тест-кейсы для экспериментов
+            is_for_experiments=True,
+        )
+                       ][:5]
     logger.info(f"Валидные тест-кейсы: {len(valid_test_cases)} из {len(test_cases)}.")
 
     # Пример вывода валидных тест-кейсов
@@ -484,18 +509,10 @@ if __name__ == "__main__":
         logger.info(f"Тест-кейс {i}: {case}")
 
     # Загружаем динамическую функцию предсказания из модуля
-    # llm.chain.order_multi_classification.order_multi_classification_chain.py
     get_order_class_predict_function = load_prediction_function(
         "order_classification.v6.modules.chains.order_multi_classification_chain",
-        "get_order_class"
+        "get_order_class",
     )
-    # Загружаем динамическую функцию предсказания из модуля
-    # llm.chain.order_multi_classification.order_multi_classification_chain.py
-    # v6_get_order_class_predict_function = load_prediction_function(
-    #     "tests.experiments.order_classification_v6.order_multi_classification
-    #     .order_multi_classification_chain",
-    #     "get_order_class"
-    # )
 
     # Шаг 3: Прогон через чейн
     # results = []
@@ -513,10 +530,6 @@ if __name__ == "__main__":
             f"[{idx + 1}/{total_cases}] Обработан тест-кейс: "
             f"{result['Order Query']} -> {result['Predicted Class']}"
         )
-
-    # Пример вывода первых 5 результатов
-    # for i, res in enumerate(results[:5], start=1):
-    #     logger.info(f"Результат {i}: {res}")
 
     # Шаг 4: Подсчет и сохранение метрик
     overall_metrics = calculate_overall_metrics(file_name)
