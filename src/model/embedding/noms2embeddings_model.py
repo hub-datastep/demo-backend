@@ -59,24 +59,24 @@ def _create_and_save_embeddings(
     job.save_meta()
 
     # Извлечение характеристик и добавление их в метаданные
-    df_noms_with_features = extract_features(df_noms)
+    df_noms = extract_features(df_noms)
     print(f"Nomenclatures with features:")
-    print(df_noms_with_features)
+    print(df_noms)
 
     job.meta['general_status'] = "Extracting brands"
     job.save_meta()
 
-    noms_names_list = df_noms_with_features['name'].to_list()
+    noms_names_list = df_noms['name'].to_list()
     logger.debug(f"Nomenclatures names list:\n{noms_names_list}")
-    df_noms_with_features['brand'] = ner_service.predict(noms_names_list)
+    df_noms['brand'] = ner_service.predict(noms_names_list)
 
     job.meta['general_status'] = "Building metadatas"
     job.save_meta()
 
     # Получаем метаданные всех номенклатур с характеристиками
-    metadatas = get_noms_metadatas_with_features(df_noms_with_features)
+    metadatas = get_noms_metadatas_with_features(df_noms)
     for i, metadata in enumerate(metadatas):
-        nom = df_noms_with_features.loc[i]
+        nom = df_noms.loc[i]
         # Add additional columns, that not features
         metadatas[i].update({
             "material_code": str(nom['material_code']),
@@ -88,8 +88,8 @@ def _create_and_save_embeddings(
             "brand": str(nom['brand']),
         })
 
-    ids = df_noms_with_features['id'].to_list()
-    documents = df_noms_with_features['name'].to_list()
+    ids = df_noms['id'].to_list()
+    documents = df_noms['name'].to_list()
 
     job.meta['general_status'] = "Saving to vectorstore"
     job.save_meta()
