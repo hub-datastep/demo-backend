@@ -499,7 +499,7 @@ if __name__ == "__main__":
         if is_test_case_valid(
             test_case=case,
             # Получаем тест-кейсы для экспериментов
-            is_for_experiments=True,
+            is_for_experiments=False,
         )
     ]
     logger.info(f"Валидные тест-кейсы: {len(valid_test_cases)} из {len(test_cases)}.")
