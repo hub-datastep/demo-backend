@@ -5,7 +5,7 @@ from sqlmodel import Session
 
 from controller.user.user_controller import get_current_user
 from infra.database import get_session
-from model.order_classification import order_classification_model, order_classification_config_model
+from model.order_classification import order_classification_model, order_classification_config_model, order_get_info
 from scheme.order_classification.order_classification_config_scheme import OrderClassificationConfig
 from scheme.order_classification.order_classification_history_scheme import OrderClassificationRecord
 from scheme.order_classification.order_classification_scheme import OrderClassificationRequest
@@ -67,3 +67,22 @@ def classify_order(
 
     response.status_code = response_status
     return order_classification_response
+
+@router.post("/order_updated")
+@router.post("/new_order_comment")
+@router.post("/SLA_order_exec_time_violated")
+@router.post("/order_deadline_coming")
+@version(1)
+def WebhookLog(
+    body: OrderClassificationRequest,
+    response: Response,
+    crm: str | None = None,
+    client: str | None = None,
+):
+    """
+    Вебхук об обновления заявки в Домиленде.
+    """
+    
+
+    order_get_info.get_order_details(body)
+    return status.HTTP_200_OK
