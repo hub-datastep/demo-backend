@@ -25,6 +25,7 @@ from controller.mode import mode_controller
 from controller.ner import brand_model_controller
 from controller.order_classification.vysota import (
     order_classification_controller as vysota_order_classification_controller,
+    order_notification as vysota_order_notification_controller,
 )
 from controller.prediction import prediction_controller
 from controller.prompt import prompt_controller
@@ -184,6 +185,12 @@ app.include_router(
     vysota_order_classification_controller.router,
     prefix="/classification/orders",
     tags=["Orders Classification"],
+)
+
+app.include_router(
+    vysota_order_notification_controller.router,
+    prefix="/notification/orders",
+    tags=["Orders Notification"],
 )
 
 # Unistroy Kafka Mapping
