@@ -34,7 +34,7 @@ from controller.task import task_controller
 from controller.tenant import tenant_controller
 from controller.used_token import used_token_controller
 from controller.user import user_controller
-from infra.env import DATA_FOLDER_PATH
+from infra.env import env
 from util.healthcheck.redis_connection import check_redis_connection
 
 app = FastAPI()
@@ -196,7 +196,7 @@ app.include_router(
 
 @app.get("/healthcheck")
 def healthcheck():
-    logger.debug(f"Data Folder Path: {DATA_FOLDER_PATH}")
+    logger.debug(f"Data Folder Path: {env.DATA_FOLDER_PATH}")
     check_redis_connection()
     return {"status": "ok"}
 

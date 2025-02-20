@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from loguru import logger
 
 from exception.utd_card_processing_exception import raise_utd_card_processing_exception
-from infra.env import FRONTEND_URL
+from infra.env import env
 from model.file.utd.download_pdf_model import download_file
 from model.file.utd.mappings_with_parsed_data_model import add_parsed_data_to_mappings
 from model.file.utd.multi_entities_pdf_parsing_model import (
@@ -33,7 +33,7 @@ UNISTROY_USER_ID = 56
 
 
 def _get_results_url(iteration_id: str) -> str:
-    url = f"{FRONTEND_URL}/mapping/result/iteration/{iteration_id}"
+    url = f"{env.FRONTEND_URL}/mapping/result/iteration/{iteration_id}"
     return url
 
 

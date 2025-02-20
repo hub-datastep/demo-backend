@@ -72,7 +72,7 @@ _HARD_SEARCH_TEST_CASES = [
             ],
         },
     },
-    # Тест-кейс 5: Группа, view и жёсткий поиск
+    # Тест-кейс 5: Группа, вид и жёсткий поиск
     {
         "group": "test_group",
         "brand": None,
@@ -88,7 +88,7 @@ _HARD_SEARCH_TEST_CASES = [
             ],
         },
     },
-    # Тест-кейс 6: Группа, бренд, view и жёсткий поиск
+    # Тест-кейс 6: Группа, бренд, вид и жёсткий поиск
     {
         "group": "test_group",
         "brand": "test_brand",
@@ -105,7 +105,7 @@ _HARD_SEARCH_TEST_CASES = [
             ],
         },
     },
-    # Тест-кейс 7: Группа, параметры, view и жёсткий поиск
+    # Тест-кейс 7: Группа, параметры, вид и жёсткий поиск
     {
         "group": "test_group",
         "brand": None,
@@ -126,7 +126,7 @@ _HARD_SEARCH_TEST_CASES = [
             ],
         },
     },
-    # Тест-кейс 8: Группа, бренд, параметры, view и жёсткий поиск
+    # Тест-кейс 8: Группа, бренд, параметры, вид и жёсткий поиск
     {
         "group": "test_group",
         "brand": "test_brand",
@@ -181,7 +181,7 @@ _HARD_SEARCH_TEST_CASES = [
             ],
         },
     },
-    # Тест-кейс 11: Группа, бренд, один параметр, view и жёсткий поиск
+    # Тест-кейс 11: Группа, бренд, один параметр, вид и жёсткий поиск
     {
         "group": "test_group",
         "brand": "test_brand",
@@ -284,7 +284,7 @@ _SOFT_SEARCH_TEST_CASES = [
             ],
         },
     },
-    # Тест-кейс 5: Группа, view и мягкий поиск
+    # Тест-кейс 5: Группа, вид и мягкий поиск
     {
         "group": "test_group",
         "brand": None,
@@ -305,7 +305,7 @@ _SOFT_SEARCH_TEST_CASES = [
             ],
         },
     },
-    # Тест-кейс 6: Группа, бренд, view и мягкий поиск
+    # Тест-кейс 6: Группа, бренд, вид и мягкий поиск
     {
         "group": "test_group",
         "brand": "test_brand",
@@ -326,7 +326,7 @@ _SOFT_SEARCH_TEST_CASES = [
             ],
         },
     },
-    # Тест-кейс 7: Группа, параметры, view и мягкий поиск
+    # Тест-кейс 7: Группа, параметры, вид и мягкий поиск
     {
         "group": "test_group",
         "brand": None,
@@ -351,7 +351,7 @@ _SOFT_SEARCH_TEST_CASES = [
             ],
         },
     },
-    # Тест-кейс 8: Группа, бренд, параметры, view и мягкий поиск
+    # Тест-кейс 8: Группа, бренд, параметры, вид и мягкий поиск
     {
         "group": "test_group",
         "brand": "test_brand",
@@ -419,7 +419,7 @@ _SOFT_SEARCH_TEST_CASES = [
             ],
         },
     },
-    # Тест-кейс 11: Группа, бренд, один параметр, view и мягкий поиск
+    # Тест-кейс 11: Группа, бренд, один параметр, вид и мягкий поиск
     {
         "group": "test_group",
         "brand": "test_brand",
@@ -475,12 +475,14 @@ if __name__ == "__main__":
 
     logger.info("Тест с Жёстким Поиском..")
     failed_test_cases_hard = run_test_cases(
-        _HARD_SEARCH_TEST_CASES, is_hard_params=True
+        test_cases=_HARD_SEARCH_TEST_CASES,
+        is_hard_params=True,
     )
 
     logger.info("Тест с Мягким Поиском..")
     failed_test_cases_soft = run_test_cases(
-        _SOFT_SEARCH_TEST_CASES, is_hard_params=False
+        test_cases=_SOFT_SEARCH_TEST_CASES,
+        is_hard_params=False,
     )
 
     if failed_test_cases_hard:

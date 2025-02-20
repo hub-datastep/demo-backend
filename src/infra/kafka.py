@@ -4,33 +4,27 @@ from typing import Any
 from faststream.kafka import KafkaBroker, KafkaRouter
 from faststream.security import SASLPlaintext
 
-from infra.env import (
-    UNISTROY_KAFKA_SERVERS,
-    UNISTROY_KAFKA_USERNAME,
-    UNISTROY_KAFKA_PASSWORD,
-    UNISTROY_IS_KAFKA_WITH_SSL,
-    DATA_FOLDER_PATH,
-)
+from infra.env import env
 
 kafka_router = KafkaRouter()
 
-brokers_list = UNISTROY_KAFKA_SERVERS.split(",")
+brokers_list = env.UNISTROY_KAFKA_SERVERS.split(",")
 
-SSL_CERT_PATH = f"{DATA_FOLDER_PATH}/ssl-certs/unistroy-ca-cert.pem"
+SSL_CERT_PATH = f"{env.DATA_FOLDER_PATH}/ssl-certs/unistroy-ca-cert.pem"
 
 
 def create_kafka_broker():
     security = None
     # Init Kafka Security if needed
-    if UNISTROY_IS_KAFKA_WITH_SSL:
+    if env.UNISTROY_IS_KAFKA_WITH_SSL:
         ssl_context = create_default_context(Purpose.SERVER_AUTH)
         ssl_context.check_hostname = False
         ssl_context.verify_mode = CERT_REQUIRED
         ssl_context.load_verify_locations(cafile=SSL_CERT_PATH)
         security = SASLPlaintext(
             ssl_context=ssl_context,
-            username=UNISTROY_KAFKA_USERNAME,
-            password=UNISTROY_KAFKA_PASSWORD,
+            username=env.UNISTROY_KAFKA_USERNAME,
+            password=env.UNISTROY_KAFKA_PASSWORD,
         )
 
     # Init Kafka Broker

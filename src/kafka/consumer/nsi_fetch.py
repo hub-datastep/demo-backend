@@ -6,12 +6,7 @@ from pathlib import Path
 
 from faststream import FastStream
 
-from infra.env import (
-    DATA_FOLDER_PATH,
-    UNISTROY_KAFKA_NSI_MATERIALS_TOPIC,
-    UNISTROY_KAFKA_NSI_CATEGORIES_TOPIC,
-    UNISTROY_KAFKA_NSI_CONSUMERS_GROUP,
-)
+from infra.env import env
 from infra.kafka import kafka_broker
 from util.uuid import generate_uuid
 
@@ -21,7 +16,7 @@ app = FastStream(
 )
 
 UNISTROY_KAFKA_NSI_CONSUMERS_SETTINGS = {
-    "group_id": UNISTROY_KAFKA_NSI_CONSUMERS_GROUP,
+    "group_id": env.UNISTROY_KAFKA_NSI_CONSUMERS_GROUP,
     "batch": True,
     "max_records": 1_000_000,
     "auto_offset_reset": "earliest",
@@ -31,7 +26,7 @@ UNISTROY_KAFKA_NSI_CONSUMERS_SETTINGS = {
 def _get_path_for_files() -> tuple[str, str]:
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M")
     uuid = generate_uuid()
-    messages_path = f"{DATA_FOLDER_PATH}/unistroy/kafka-nsi/{now}"
+    messages_path = f"{env.DATA_FOLDER_PATH}/unistroy/kafka-nsi/{now}"
 
     return messages_path, uuid
 
@@ -45,7 +40,7 @@ def _save_to_json(file_path: str, data) -> None:
 
 
 @kafka_broker.subscriber(
-    UNISTROY_KAFKA_NSI_CATEGORIES_TOPIC,
+    env.UNISTROY_KAFKA_NSI_CATEGORIES_TOPIC,
     **UNISTROY_KAFKA_NSI_CONSUMERS_SETTINGS,
 )
 async def get_all_categories(body):
@@ -58,7 +53,7 @@ async def get_all_categories(body):
 
 
 @kafka_broker.subscriber(
-    UNISTROY_KAFKA_NSI_MATERIALS_TOPIC,
+    env.UNISTROY_KAFKA_NSI_MATERIALS_TOPIC,
     **UNISTROY_KAFKA_NSI_CONSUMERS_SETTINGS,
 )
 async def get_all_materials(body):

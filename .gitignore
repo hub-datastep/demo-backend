@@ -1,5 +1,6 @@
 # Environment
-.env
+*.env*
+!.env.template
 venv/
 
 # Logs
@@ -15,11 +16,20 @@ __pycache__/
 # Mkdocs
 site/
 
+# Fastembed files
 data/fastembed/.locks
 data/fastembed/models--qdrant--multilingual-e5-large-onnx
 
-# Google Credentials
-data/datastep-excel-for-classifier-66a610dc9ff6.json
+# Google Credentials and other JSON files
+*.json
+
+# Excel & Google Sheet files
+*.xlsx
+# Except them not in data folder
+!data/**/*.xlsx
+
+# TO-DO files
+*[Tt][Oo][Dd][Oo]*
 
 # Classifier files
 data/model_*

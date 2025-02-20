@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 
-from infra.env import UNISTROY_MAPPING_INPUT_TOPIC
+from infra.env import env
 from infra.kafka import send_message_to_kafka
 from middleware.kafka_middleware import with_kafka_broker_connection
 from model.auth.auth_model import get_current_user
@@ -35,6 +35,6 @@ async def send_utd_card_message_to_kafka(
 ):
     await send_message_to_kafka(
         message_body=body,
-        topic=UNISTROY_MAPPING_INPUT_TOPIC,
+        topic=env.UNISTROY_MAPPING_INPUT_TOPIC,
     )
     return body.dict()
