@@ -77,9 +77,9 @@ def _get_domyland_headers(auth_token: str | None = None):
 
 def _get_auth_token() -> str:
     req_body = {
-        "email": env.DOMYLAND_AUTH_EMAIL,
-        "password": env.DOMYLAND_AUTH_PASSWORD,
-        "tenantName": env.DOMYLAND_AUTH_TENANT_NAME,
+        "email": env.DOMYLAND_AUTH_AI_ACCOUNT_EMAIL,
+        "password": env.DOMYLAND_AUTH_AI_ACCOUNT_PASSWORD,
+        "tenantName": env.DOMYLAND_AUTH_AI_ACCOUNT_TENANT_NAME,
     }
 
     response = requests.post(
@@ -193,6 +193,7 @@ def _get_responsible_user_by_order_address(
 #         )
 #
 #     return response_data
+
 
 def _get_class_params(
     rules_by_classes: dict,
@@ -350,7 +351,7 @@ def classify_order(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Order with ID {order_id} was already classified, "
-                       f"history record ID {saved_record.id}",
+                f"history record ID {saved_record.id}",
             )
 
         # Check if order status is not "in progress"
@@ -358,7 +359,7 @@ def classify_order(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Order with ID {order_id} has status ID {order_status_id}, "
-                       f"but status ID {OrderStatusID.PENDING} required",
+                f"but status ID {OrderStatusID.PENDING} required",
             )
 
         # Check if order is new (created)
@@ -366,7 +367,7 @@ def classify_order(
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Order with ID {order_id} has alert type ID {alert_type_id}, "
-                       f"but status ID {AlertTypeID.NEW_ORDER} required",
+                f"but status ID {AlertTypeID.NEW_ORDER} required",
             )
 
         config = get_default_config(
@@ -378,7 +379,7 @@ def classify_order(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Default order classification config "
-                       f"(with ID {DEFAULT_CONFIG_ID} and client '{client}') not found",
+                f"(with ID {DEFAULT_CONFIG_ID} and client '{client}') not found",
             )
 
         config_id = config.id
@@ -387,8 +388,7 @@ def classify_order(
         # Is needed to update order in Domyland
         # (blocked by is_use_order_classification)
         is_use_order_updating = (
-            config.is_use_order_updating
-            and is_use_order_classification
+            config.is_use_order_updating and is_use_order_classification
         )
 
         # Message for response fields disabled by config
@@ -431,16 +431,15 @@ def classify_order(
 
         # Check if resident address exists and not empty if enabled
         is_order_address_exists = order_address is not None
-        is_order_address_empty = (
-            is_order_address_exists
-            and not bool(order_address.strip())
+        is_order_address_empty = is_order_address_exists and not bool(
+            order_address.strip()
         )
 
         if not is_order_address_exists or is_order_address_empty:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"Order with ID {order_id} has no address, "
-                       f"cannot find responsible UDS",
+                f"cannot find responsible UDS",
             )
 
         # Get classes with rules from config
@@ -451,7 +450,7 @@ def classify_order(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Classes with rules and params in config "
-                       f"with ID {config.id} not found"
+                f"with ID {config.id} not found",
             )
 
         # Run LLM to classify order
@@ -507,7 +506,7 @@ def classify_order(
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Cannot find responsible UDS for order "
-                           f"with ID {order_id} and address '{order_address}'",
+                    f"with ID {order_id} and address '{order_address}'",
                 )
 
             history_record.responsible_user_id = responsible_uds.user_id
@@ -520,7 +519,9 @@ def classify_order(
 
             is_use_order_with_this_class_updating = None
             if class_params is not None:
-                is_use_order_with_this_class_updating = class_params.is_use_order_updating
+                is_use_order_with_this_class_updating = (
+                    class_params.is_use_order_updating
+                )
 
             is_uds_disabled = responsible_uds.is_disabled
 
