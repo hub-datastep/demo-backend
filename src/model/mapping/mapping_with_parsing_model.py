@@ -80,12 +80,13 @@ async def parse_and_map_utd_card(
             )
 
             # Start mapping and wait results
-            mapping_results = start_mapping_and_wait_results(
-                nomenclatures_list=nomenclatures_with_indexes_list,
-                classifier_config=classifier_config,
-                tenant_id=tenant_id,
-                iteration_id=iteration_id,
-            )
+            # mapping_results = start_mapping_and_wait_results(
+            #     nomenclatures_list=nomenclatures_with_indexes_list,
+            #     classifier_config=classifier_config,
+            #     tenant_id=tenant_id,
+            #     iteration_id=iteration_id,
+            # )
+            mapping_results = []
             logger.debug(f"Mapping Results:\n{mapping_results}")
 
             # Combine parsed materials and mapping results
