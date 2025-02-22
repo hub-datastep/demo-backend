@@ -127,15 +127,21 @@ async def parse_and_map_utd_card(
                 iteration=iteration,
             )
 
+            # ! Remove this
             # Save mapping results for feedback
             mapping_result_model.save_mapping_results(
                 mappings_list=[
-                    MappingOneNomenclatureRead(nomenclature=material.idn_material_name)
+                    MappingOneNomenclatureRead(
+                        row_number=material.number,
+                        internal_group=material.idn_material_name,
+                        nomenclature=material.idn_material_name,
+                    )
                     for material in mapped_materials
                 ],
                 user_id=user.id,
                 iteration_id=iteration_id,
             )
+            # !
 
             yield output_message
 
