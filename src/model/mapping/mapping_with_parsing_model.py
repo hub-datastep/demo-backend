@@ -104,6 +104,7 @@ async def parse_and_map_utd_card(
                 building_guid=credit_slip_data.building_guid,
                 material_category_guid=credit_slip_data.material_category_guid,
                 check_results_url=results_url,
+                **utd_entity,
             )
 
             # Create mapping iteration
