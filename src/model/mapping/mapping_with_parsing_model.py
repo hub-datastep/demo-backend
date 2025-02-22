@@ -108,6 +108,22 @@ async def parse_and_map_utd_card(
                 **utd_entity.dict(),
             )
 
+            # ! Remove this
+            # Save mapping results for feedback
+            mapping_result_model.save_mapping_results(
+                mappings_list=[
+                    MappingOneNomenclatureRead(
+                        row_number=material.number,
+                        internal_group=material.idn_material_name,
+                        nomenclature=material.idn_material_name,
+                    )
+                    for material in mapped_materials
+                ],
+                user_id=user.id,
+                iteration_id=iteration_id,
+            )
+            # ! #############
+
             # Create mapping iteration
             metadatas = UTDCardMetadatas(
                 input_message=body,
@@ -126,22 +142,6 @@ async def parse_and_map_utd_card(
             mapping_iteration_model.create_or_update_iteration(
                 iteration=iteration,
             )
-
-            # ! Remove this
-            # Save mapping results for feedback
-            mapping_result_model.save_mapping_results(
-                mappings_list=[
-                    MappingOneNomenclatureRead(
-                        row_number=material.number,
-                        internal_group=material.idn_material_name,
-                        nomenclature=material.idn_material_name,
-                    )
-                    for material in mapped_materials
-                ],
-                user_id=user.id,
-                iteration_id=iteration_id,
-            )
-            # !
 
             yield output_message
 
