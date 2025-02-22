@@ -16,13 +16,14 @@ from model.mapping.mapping_execute_model import (
     get_noms_with_indexes,
     start_mapping_and_wait_results,
 )
-from model.mapping.result import mapping_iteration_model
+from model.mapping.result import mapping_iteration_model, mapping_result_model
 from model.user import user_model
 from scheme.file.utd_card_message_scheme import (
     UTDCardInputMessage,
     UTDCardCheckResultsOutputMessage,
     UTDCardMetadatas,
 )
+from scheme.mapping.mapping_scheme import MappingOneNomenclatureRead
 from scheme.mapping.result.mapping_iteration_scheme import (
     IterationMetadatasType,
     MappingIteration,
@@ -124,6 +125,16 @@ async def parse_and_map_utd_card(
             )
             mapping_iteration_model.create_or_update_iteration(
                 iteration=iteration,
+            )
+
+            # Save mapping results for feedback
+            mapping_result_model.save_mapping_results(
+                mappings_list=[
+                    MappingOneNomenclatureRead(nomenclature=material.idn_material_name)
+                    for material in mapped_materials
+                ],
+                user_id=user.id,
+                iteration_id=iteration_id,
             )
 
             yield output_message
