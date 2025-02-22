@@ -68,10 +68,6 @@ def format_param(param: str) -> str | None:
     return param
 
 
-def _reverse_text(text: str) -> str:
-    return text[::-1]
-
-
 def get_utd_number(pages_text: str):
     """
     Parse UTD number from pages text
@@ -104,9 +100,7 @@ def get_utd_date_str(pages_text: str):
     utd_date_str = None
 
     # Patterns
-    utd_date_str_pattern = (
-        r"Счет-фактура[^\n]*?от\s*(\d{1,2}[\.\s][а-яА-Я]+[\.\s]\d{4}|\d{2}\.\d{2}\.\d{4})"
-    )
+    utd_date_str_pattern = r"Счет-фактура[^\n]*?от\s*(\d{1,2}[\.\s][а-яА-Я]+[\.\s]\d{4}|\d{2}\.\d{2}\.\d{4})"
 
     # Parse Param
     utd_date_str_match = re.search(
