@@ -182,12 +182,6 @@ def get_corrected_material_from_results(
                 and material.material_guid
                 and result.material_code
             )
-            # Check number equal and not None
-            or (
-                material.number == result.row_number
-                and material.number
-                and result.row_number
-            )
         ):
             # Check if corrected nomenclature is set
             if mapping_result.corrected_nomenclature:
@@ -217,7 +211,7 @@ async def upload_results_to_kafka(
 
     mapped_materials = metadatas.mapped_materials
 
-    # Replace with corrected materials
+    # Replace materials in metadatas with corrected nomenclatures in results
     for i, material in enumerate(mapped_materials):
         corrected_material = get_corrected_material_from_results(
             mapping_results_list=mapping_results_list,
