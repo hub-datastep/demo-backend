@@ -170,9 +170,24 @@ def get_corrected_material_from_results(
 
         # Find material in mapping results
         if (
-            material.material_guid == result.material_code
-            or material.idn_material_name == result.nomenclature
-            or material.number == result.row_number
+            # Check material guid equal and not None
+            (
+                material.idn_material_name == result.nomenclature
+                and material.idn_material_name
+                and result.nomenclature
+            )
+            # Check material name equal and not None
+            or (
+                material.material_guid == result.material_code
+                and material.material_guid
+                and result.material_code
+            )
+            # Check number equal and not None
+            or (
+                material.number == result.row_number
+                and material.number
+                and result.row_number
+            )
         ):
             # Check if corrected nomenclature is set
             if mapping_result.corrected_nomenclature:
