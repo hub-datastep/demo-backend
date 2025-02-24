@@ -15,5 +15,5 @@ order_logger.add(log_filename,
 def get_order_details(r, url):
     body_json = jsonable_encoder(r)
     # Логи из этой функции будут идти только в файл с датой и временем
-    order_logger.info(f"WEBHOOK | order_updated: {body_json}")
+    order_logger.info(f"WEBHOOK | {url}: {body_json}")
     return
