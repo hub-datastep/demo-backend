@@ -17,7 +17,10 @@ from scheme.classifier.classifier_config_scheme import ClassifierConfig
 from scheme.mapping.llm_mapping_scheme import (
     LLMMappingKnowledgeBaseCase,
     LLMMappingResult,
-    UTDMaterial,
+)
+from scheme.mapping.mapping_scheme import (
+    MappingOneNomenclatureUpload,
+    MappingOneTargetRead,
 )
 from util.json_serializing import serialize_obj, serialize_objs_list
 from util.uuid import generate_uuid
@@ -283,7 +286,7 @@ def _get_nomenclature_by_name(
 def _get_similar_nomenclature(
     chain: LLMChain,
     classifier_config: ClassifierConfig,
-    material: UTDMaterial,
+    material: MappingOneNomenclatureUpload,
     noms_collection: Collection,
     kb_collection: Collection,
 ) -> LLMMappingResult:
@@ -344,19 +347,30 @@ def _get_similar_nomenclature(
     )
     # Extract material code from NSI nomenclature
     material_code: str | None = None
+    material_code: str | None = None
     if nsi_nomenclature:
+        material_id = str(nsi_nomenclature.get("id"))
         material_code = nsi_nomenclature.get("material_code")
 
     # Combine chain response to result schema
     result = LLMMappingResult(
+        # * Mapped Nomenclature data
         row_number=row_number,
-        input_material=material_name,
-        full_response=serialize_obj(chain_response),
-        llm_comment=chain_response.comment,
-        nomenclature=result_nomenclature_name,
-        material_code=material_code,
+        nomenclature=material_name,
         group=material_group,
         group_code=group_code,
+        mappings=[
+            MappingOneTargetRead(
+                nomenclature_guid=material_id,
+                group=material_group,
+                group_code=group_code,
+                material_code=material_code,
+                nomenclature=result_nomenclature_name,
+            ),
+        ],
+        # * LLM response & additional data
+        full_response=serialize_obj(chain_response),
+        llm_comment=chain_response.comment,
         nomenclature_data=serialize_obj(nsi_nomenclature),
         nsi_nomenclatures_list=nom_response_names,
         knowledge_base_cases_list=serialize_objs_list(kb_cases_list),
@@ -366,7 +380,7 @@ def _get_similar_nomenclature(
 
 
 def map_materials_list_with_llm(
-    materials_list: list[UTDMaterial],
+    materials_list: list[MappingOneNomenclatureUpload],
     classifier_config: ClassifierConfig,
     tenant_id: int,
     iteration_id: str,
@@ -428,26 +442,6 @@ def map_materials_list_with_llm(
     return mapping_results
 
 
-def prepare_noms_for_mapping(
-    materials_names_list: list[str],
-    group_code: str,
-) -> list[UTDMaterial]:
-    """
-    Собирает список материалов по схеме для маппинга.
-    """
-
-    prepared_noms_list: list[UTDMaterial] = []
-    for i, material_name in enumerate(materials_names_list):
-        nom = UTDMaterial(
-            row_number=i + 1,
-            nomenclature=material_name,
-            group_code=group_code,
-        )
-        prepared_noms_list.append(nom)
-
-    return prepared_noms_list
-
-
 if __name__ == "__main__":
     with Session(engine) as session:
         config = classifier_config_model.get_classifier_config_by_user_id(
@@ -455,7 +449,7 @@ if __name__ == "__main__":
             user_id=1,
         )
     materials_list = [
-        UTDMaterial(
+        MappingOneNomenclatureUpload(
             row_number=1,
             nomenclature="ВВГнг(А)-LS 5х2,5-0,66 кабель ВЭКЗ VEKZ00064",
             group_code="7d1e4f55-60ce-11ed-b567-b49691c49eb4",
