@@ -3,8 +3,9 @@ import re
 from fastapi import HTTPException, status
 from loguru import logger
 from pandas import read_sql, DataFrame
+from pydantic import BaseModel
 from sqlalchemy import text
-from sqlmodel import Session
+from sqlmodel import SQLModel, Session
 
 from infra.env import env
 from infra.kafka import send_message_to_kafka
@@ -29,6 +30,7 @@ from scheme.mapping.result.similar_nomenclature_search_scheme import (
     SimilarNomenclature,
 )
 from scheme.user.user_scheme import UserRead
+from util.json_serializing import serialize_obj
 
 SIMILAR_NOMS_COLUMNS = [
     "id",
@@ -108,10 +110,16 @@ def get_similar_nomenclatures(
 
 
 def save_mapping_results(
-    mappings_list: list[MappingOneNomenclatureRead],
+    mappings_list: list[SQLModel | BaseModel],
     user_id: int,
     iteration_id: str,
 ) -> list[MappingResult]:
+    """
+    Проверяет наличие итерации маппинга и сохраняет результаты в БД
+
+    `mappings_list` - список объектов созданных на основе SQLModel.
+    """
+
     # Check if iteration with this ID exists
     # If not, create to save results
     iteration = MappingIteration(id=iteration_id)
@@ -119,9 +127,12 @@ def save_mapping_results(
         iteration=iteration,
     )
 
+    # Combine results
     results_list = []
     for mapping in mappings_list:
-        mapping_dict = mapping.dict()
+        # Serialize object to safe saving to DB
+        mapping_dict = serialize_obj(mapping)
+        # Create mapping result object with results and additional data
         mapping_result = MappingResult(
             iteration_id=iteration_id,
             user_id=user_id,
