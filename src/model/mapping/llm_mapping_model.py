@@ -1,11 +1,14 @@
 from chromadb import Collection, Documents, IDs, Metadata, QueryResult, Where
+from fastapi import HTTPException, status
 from langchain.chains.llm import LLMChain
 from loguru import logger
 from numpy import ndarray
+from pandas import read_sql
+from sqlalchemy import text
 from sqlmodel import Session
 
 from infra.chroma_store import connect_to_chroma_collection, get_embeddings
-from infra.database import engine
+from infra.database import engine, get_session
 from infra.llm_clients_credentials import Client
 from llm.chain.mapping.mapping_chain import get_llm_mapping_chain, run_llm_mapping
 from model.classifier import classifier_config_model
@@ -85,7 +88,7 @@ def get_collection_items(
 
 def get_data_from_nsi(
     collection: Collection,
-    material_name: str,
+    material_embeddings: ndarray,
     material_group: str,
     most_similar_count: int = 3,
 ) -> tuple[IDs, Documents, list[Metadata | dict], list[float]]:
@@ -93,13 +96,11 @@ def get_data_from_nsi(
     Получает ближайшие `<most_similar_count>` номенклатур из НСИ.
     """
 
-    embeddings = get_embeddings(texts_list=[material_name])[0]
-
     filters = get_noms_filters(group=material_group)
 
     response = get_collection_items(
         collection=collection,
-        embeddings=embeddings,
+        embeddings=material_embeddings,
         filters=filters,
         most_similar_count=most_similar_count,
     )
@@ -117,7 +118,7 @@ def get_noms_to_str(noms_names: list[str]) -> str:
 
 def get_data_from_kb(
     collection: Collection,
-    material_name: str,
+    material_embeddings: ndarray,
     material_group: str,
     most_similar_count: int = 3,
 ) -> tuple[IDs, Documents, list[dict], list[float]]:
@@ -126,13 +127,11 @@ def get_data_from_kb(
     из Базы Знаний (истории сопоставлений).
     """
 
-    embeddings = get_embeddings(texts_list=[material_name])[0]
-
     filters = get_kb_filters(group=material_group)
 
     response = get_collection_items(
         collection=collection,
-        embeddings=embeddings,
+        embeddings=material_embeddings,
         filters=filters,
         most_similar_count=most_similar_count,
     )
@@ -207,10 +206,89 @@ def get_mapping_history_to_str(
     return mapping_history_str
 
 
+def _get_group_by_code(
+    classifier_config: ClassifierConfig,
+    group_code: str,
+) -> dict:
+    """
+    Получает все данные о группе в НСИ по её коду.
+    """
+
+    # Get NSI table name
+    table_name = classifier_config.nomenclatures_table_name
+
+    import pandas as pd
+
+    # Get group from NSI table
+    with get_session() as session:
+        query = f"""
+            SELECT *
+            FROM {table_name}
+            WHERE "material_code" = %(group_code)s
+            AND "is_group" = TRUE
+            LIMIT 1
+            OFFSET 0
+        """
+        group_df = read_sql(
+            query,
+            session.bind,
+            params={"group_code": group_code},
+        )
+
+        # Check if group found
+        if group_df.empty:
+            raise HTTPException(
+                status_code=status,
+                detail=f"Category with guid '{group_code}' not found",
+            )
+
+        # Get first response item
+        group = group_df.iloc[0].to_dict()
+        return group
+
+
+def _get_nomenclature_by_name(
+    classifier_config: ClassifierConfig,
+    nomenclature_name: str,
+) -> dict:
+    """
+    Получает все данные о номенклатуре в НСИ по её наименованию.
+    """
+
+    # Get NSI table name
+    table_name = classifier_config.nomenclatures_table_name
+
+    # Get nomenclature from NSI table
+    with get_session() as session:
+        query = f"""
+            SELECT *
+            FROM {table_name}
+            WHERE "name" ILIKE %(nomenclature_name)s
+            AND "is_group" = FALSE
+            LIMIT 1
+            OFFSET 0
+        """
+        nomenclature_df = read_sql(
+            query,
+            session.bind,
+            params={"nomenclature_name": nomenclature_name},
+        )
+
+        # Check if nomenclature found
+        if nomenclature_df.empty:
+            return None
+
+        # Get first response item
+        nomenclature = nomenclature_df.iloc[0].to_dict()
+        return nomenclature
+
+
 def _get_similar_nomenclature(
     chain: LLMChain,
+    classifier_config: ClassifierConfig,
+    material_embeddings: ndarray,
     material_name: str,
-    material_group: str,
+    material_group_code: str,
     noms_collection: Collection,
     kb_collection: Collection,
 ) -> LLMMappingResult:
@@ -218,10 +296,17 @@ def _get_similar_nomenclature(
     Сопоставляет входной материал с номенклатурой из НСИ с помощью LLM.
     """
 
+    # Get material group by code (category guid in Kafka input message)
+    group = _get_group_by_code(
+        classifier_config=classifier_config,
+        group_code=material_group_code,
+    )
+    material_group = group.get("name")
+
     # Get Data from Knowledge Base
     _, kb_response_names, kb_response_metadatas, _ = get_data_from_kb(
         collection=kb_collection,
-        material_name=material_name,
+        material_embeddings=material_embeddings,
         material_group=material_group,
         most_similar_count=KB_MOST_SIMILAR_COUNT,
     )
@@ -234,7 +319,7 @@ def _get_similar_nomenclature(
     # Get Data from NSI
     _, nom_response_names, _, _ = get_data_from_nsi(
         collection=noms_collection,
-        material_name=material_name,
+        material_embeddings=material_embeddings,
         material_group=material_group,
         most_similar_count=NSI_MOST_SIMILAR_COUNT,
     )
@@ -247,12 +332,25 @@ def _get_similar_nomenclature(
         kb_cases_list_str=kb_cases_list_str,
         nsi_materials_names_str=nsi_materials_names_str,
     )
+    result_nomenclature_name = chain_response.nomenclature
+
+    # Get all nomenclature data from NSI table
+    nsi_nomenclature = _get_nomenclature_by_name(
+        classifier_config=classifier_config,
+        nomenclature_name=result_nomenclature_name,
+    )
+    # Extract material code from NSI nomenclature
+    material_code: str | None = None
+    if nsi_nomenclature:
+        material_code = nsi_nomenclature.get("material_code")
 
     # Combine chain response to result schema
     result = LLMMappingResult(
         full_response=serialize_obj(chain_response),
         llm_comment=chain_response.comment,
-        nomenclature=chain_response.nomenclature,
+        nomenclature_name=result_nomenclature_name,
+        material_code=material_code,
+        nomenclature=serialize_obj(nsi_nomenclature),
         nsi_nomenclatures_list=nom_response_names,
         knowledge_base_cases_list=serialize_objs_list(kb_cases_list),
     )
@@ -274,7 +372,9 @@ def map_materials_list_with_llm(
 
     user_id = classifier_config.user_id
 
-    logger.debug(f"Classifier config for user with ID '{user_id}':\n{classifier_config}")
+    logger.debug(
+        f"Classifier config for user with ID '{user_id}':\n{classifier_config}"
+    )
 
     # Connect to NSI vectorstore collection
     noms_collection_name = classifier_config.chroma_collection_name
@@ -293,14 +393,19 @@ def map_materials_list_with_llm(
     # Run mapping of passed materials
     mapping_results: list[LLMMappingResult] = []
     for material in materials_list:
-        name = material.nomenclature
-        group = material.group
+        material_name = material.nomenclature
+        group_code = material.group_code
+
+        # Get embeddings from material name
+        materail_embeddings = get_embeddings(texts_list=[material_name])[0]
 
         # Map material to NSI nomenclature
         result = _get_similar_nomenclature(
             chain=chain,
-            material_name=name,
-            material_group=group,
+            classifier_config=classifier_config,
+            material_embeddings=materail_embeddings,
+            material_name=material_name,
+            material_group_code=group_code,
             noms_collection=noms_collection,
             kb_collection=kb_collection,
         )
@@ -334,7 +439,7 @@ if __name__ == "__main__":
         UTDMaterial(
             row_number=1,
             nomenclature="ВВГнг(А)-LS 5х2,5-0,66 кабель ВЭКЗ VEKZ00064",
-            group="Кабель силовой",
+            group_code="7d1e4f55-60ce-11ed-b567-b49691c49eb4",
         )
     ]
     tenant_id = 1
