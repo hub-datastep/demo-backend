@@ -434,7 +434,7 @@ def prepare_noms_for_mapping(
     """
 
     prepared_noms_list: list[UTDMaterial] = []
-    for i, material_name in materials_names_list:
+    for i, material_name in enumerate(materials_names_list):
         nom = UTDMaterial(
             row_number=i + 1,
             nomenclature=material_name,
