@@ -34,7 +34,7 @@ def get_tenant_used_tokens_by_month(
     if month < 1 or month > 12:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Month must be 1-12."
+            detail="Month must be 1-12.",
         )
 
     tenant_used_tokens = used_token_repository.get_tenant_used_tokens_by_month(

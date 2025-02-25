@@ -3,10 +3,6 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import SQLModel, Field, Relationship
 
 
-class OrderClassificationClient:
-    VYSOTA = "vysota"
-
-
 class OrderClassificationConfigBase(SQLModel):
     rules_by_classes: dict | None = Field(default=None, sa_column=Column(JSONB))
     client: str | None = Field(default=None)

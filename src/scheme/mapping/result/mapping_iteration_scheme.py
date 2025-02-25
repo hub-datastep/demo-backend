@@ -8,6 +8,7 @@ from sqlmodel import SQLModel, Field, Relationship
 
 class IterationMetadatasType(str, Enum):
     UTD = "UTD"
+    UTD_LLM = "UTD-LLM"
 
 
 class MappingIterationBase(SQLModel):
