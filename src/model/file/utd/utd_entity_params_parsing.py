@@ -57,21 +57,22 @@ def normalize_date(date_str: str) -> date | None:
     return normalized_date
 
 
-def format_param(
-    param: str,
+def format_param_value(
+    param_value: str,
     to_number: bool | None = False,
 ) -> str | int | float | None:
     symbols_to_remove = r"[\s\%\-\n]+"
-    param = re.sub(symbols_to_remove, "", param)
-    param = param.strip()
+    param_value = re.sub(symbols_to_remove, "", param_value)
+    param_value = param_value.strip()
 
-    if not param:
-        param = None
+    if not param_value:
+        param_value = None
 
-    if param and to_number:
-        param = float(param) if "." in param else int(param)
+    if param_value and to_number:
+        param_value = re.sub("[,]+", ".", param_value)
+        param_value = float(param_value) if "." in param_value else int(param_value)
 
-    return param
+    return param_value
 
 
 def get_utd_number(pages_text: str):
