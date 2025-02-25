@@ -1,7 +1,15 @@
+from datetime import datetime
 import json
+from typing import Any
 
+from pandas import Timestamp
 from pydantic import BaseModel
 from sqlmodel import SQLModel
+
+
+def dataframe_serialer(obj: Any) -> str | None:
+    if isinstance(obj, Timestamp) or isinstance(obj, datetime):
+        return obj.isoformat()
 
 
 def serialize_obj(obj: SQLModel | BaseModel | dict) -> dict:
@@ -17,7 +25,13 @@ def serialize_obj(obj: SQLModel | BaseModel | dict) -> dict:
         obj_dict = obj
 
     # Serialize object
-    serialized_obj: dict = json.loads(json.dumps(obj_dict, ensure_ascii=False))
+    serialized_obj: dict = json.loads(
+        json.dumps(
+            obj_dict,
+            ensure_ascii=False,
+            default=dataframe_serialer,
+        )
+    )
 
     return serialized_obj
 
