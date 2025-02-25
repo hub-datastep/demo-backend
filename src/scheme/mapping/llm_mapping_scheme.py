@@ -1,10 +1,6 @@
 from sqlmodel import SQLModel
 
-
-class UTDMaterial(SQLModel):
-    row_number: int
-    nomenclature: str
-    group_code: str
+from scheme.mapping.mapping_scheme import MappingOneNomenclatureRead
 
 
 class LLMMappingKnowledgeBaseCase(SQLModel):
@@ -35,28 +31,16 @@ class LLMMappingResponse(SQLModel):
     nomenclature: str | None = None
 
 
-class LLMMappingResult(SQLModel):
+class LLMMappingResult(MappingOneNomenclatureRead):
     """
     Схема результатов маппинга с LLM. Эти данные сохраняются в БД.
     """
 
-    # Номер материала посчёту
-    row_number: int
-    # Входной материал
-    input_material: str
     # Полный ответ LLM
     full_response: dict | None = None
     # Комментарий LLM
     llm_comment: str | None = None
-    # Выбранная НСИ номенклатура
-    nomenclature: str | None = None
-    # guid выбранной НСИ номенклатуры
-    material_code: str | None = None
-    # Группа входного материала
-    group: str | None = None
-    # guid группы входного материала
-    group_code: str | None = None
-    # Все параметры выбранной номенклатуры из НСИ (таблицы БД)
+    # Все параметры смапленной номенклатуры из НСИ (таблицы БД)
     nomenclature_data: dict | None = None
     # Список похожих НСИ номенклатур
     nsi_nomenclatures_list: list[str]

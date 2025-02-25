@@ -1,5 +1,4 @@
 from scheme.file.utd_card_message_scheme import MappedMaterial, MaterialWithParams
-from scheme.mapping.llm_mapping_scheme import LLMMappingResult
 from scheme.mapping.mapping_scheme import (
     MappingNomenclaturesResultRead,
     MappingOneNomenclatureRead,
@@ -22,10 +21,10 @@ def extract_results_from_mapping_jobs(
 
 
 def _get_material_mapping_result(
-    mapped_noms_list: list[MappingOneNomenclatureRead | LLMMappingResult],
+    mapped_noms_list: list[MappingOneNomenclatureRead],
     material: MaterialWithParams,
-) -> MappingOneNomenclatureRead | LLMMappingResult | None:
-    mapped_nom: MappingOneNomenclatureRead | LLMMappingResult | None = None
+) -> MappingOneNomenclatureRead | None:
+    mapped_nom: MappingOneNomenclatureRead | None = None
 
     for result in mapped_noms_list:
         if result.nomenclature == material.idn_material_name:
@@ -36,30 +35,25 @@ def _get_material_mapping_result(
 
 
 def _get_material_code_from_mappings(
-    mapped_nom: MappingOneNomenclatureRead | LLMMappingResult,
+    mapped_nom: MappingOneNomenclatureRead,
 ) -> str | None:
     material_guid: str | None = None
 
     # Get code from mappings & similar mapping
-    if isinstance(mapped_nom, MappingOneNomenclatureRead):
-        mappings_list = mapped_nom.mappings
-        similar_mappings_list = mapped_nom.similar_mappings
-        if mappings_list:
-            material_guid = mappings_list[0].material_code
-        # Set material guid from similar mappings
-        elif similar_mappings_list:
-            material_guid = similar_mappings_list[0].material_code
-
-    # Get code from LLM results
-    elif isinstance(mapped_nom, LLMMappingResult):
-        material_guid = mapped_nom.material_code
+    mappings_list = mapped_nom.mappings
+    similar_mappings_list = mapped_nom.similar_mappings
+    if mappings_list:
+        material_guid = mappings_list[0].material_code
+    # Set material guid from similar mappings
+    elif similar_mappings_list:
+        material_guid = similar_mappings_list[0].material_code
 
     return material_guid
 
 
 def add_parsed_data_to_mappings(
     parsed_materials: list[MaterialWithParams],
-    mapping_results: list[MappingOneNomenclatureRead | LLMMappingResult],
+    mapping_results: list[MappingOneNomenclatureRead],
 ) -> list[MappedMaterial] | None:
     # Add mappings data to materials
     output_materials: list[MappedMaterial] = []

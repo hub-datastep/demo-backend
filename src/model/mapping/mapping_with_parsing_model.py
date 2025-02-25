@@ -15,7 +15,9 @@ from model.file.utd.multi_entities_pdf_parsing_model import (
 )
 from model.mapping.llm_mapping_model import (
     map_materials_list_with_llm,
-    prepare_noms_for_mapping,
+)
+from model.mapping.mapping_execute_model import (
+    prepare_materials_for_mapping,
 )
 from model.mapping.result import mapping_iteration_model
 from model.user import user_model
@@ -81,9 +83,10 @@ async def parse_and_map_utd_card(
             ]
 
             # Set index for each nomenclature
-            # nomenclatures_with_indexes_list = get_noms_with_indexes(
-            #     nomenclatures_list=materials_names_list,
-            # )
+            materials_list = prepare_materials_for_mapping(
+                nomenclatures_list=materials_names_list,
+                group_code=category_guid,
+            )
 
             # Start mapping and wait results
             # mapping_results_jobs = start_mapping_and_wait_results(
@@ -94,11 +97,6 @@ async def parse_and_map_utd_card(
             # )
             # logger.debug(f"Mapping Jobs:\n{mapping_results_jobs}")
 
-            # Combine group code with materials names and add indexes
-            materials_list = prepare_noms_for_mapping(
-                materials_names_list=materials_names_list,
-                group_code=category_guid,
-            )
             # Start mapping with LLM
             mapping_results = map_materials_list_with_llm(
                 materials_list=materials_list,
@@ -130,7 +128,7 @@ async def parse_and_map_utd_card(
                 **utd_entity.dict(),
             )
 
-            # ! Remove this
+            # ! Needs to turn off mapping & not break this pipeline
             # Save mapping results for feedback
             # mapping_result_model.save_mapping_results(
             #     mappings_list=[
