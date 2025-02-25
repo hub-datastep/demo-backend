@@ -354,6 +354,8 @@ def _get_similar_nomenclature(
         llm_comment=chain_response.comment,
         nomenclature=result_nomenclature_name,
         material_code=material_code,
+        group=material_group,
+        group_code=group_code,
         nomenclature_data=serialize_obj(nsi_nomenclature),
         nsi_nomenclatures_list=nom_response_names,
         knowledge_base_cases_list=serialize_objs_list(kb_cases_list),
