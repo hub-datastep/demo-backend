@@ -50,6 +50,10 @@ class LLMMappingResult(SQLModel):
     nomenclature: str | None = None
     # guid выбранной НСИ номенклатуры
     material_code: str | None = None
+    # Группа входного материала
+    group: str | None = None
+    # guid группы входного материала
+    group_code: str | None = None
     # Все параметры выбранной номенклатуры из НСИ (таблицы БД)
     nomenclature_data: dict | None = None
     # Список похожих НСИ номенклатур
