@@ -1,5 +1,6 @@
 import re
 from io import BytesIO
+from typing import Any, Generator
 
 import pdfplumber
 from fastapi import HTTPException, status
@@ -11,11 +12,14 @@ from model.file.utd.utd_entity_params_parsing import (
     get_organization_inn,
     get_supplier_inn,
     get_contract_params,
-    get_correction_params, get_utd_number, get_utd_date_str,
+    get_correction_params,
+    get_utd_number,
+    get_utd_date_str,
 )
 from scheme.file.utd_card_message_scheme import (
     UTDEntityWithParamsAndNoms,
-    MaterialWithParams, UTDEntityParams,
+    MaterialWithParams,
+    UTDEntityParams,
 )
 
 # Ключевые слова для поиска столбцов с наименованием товара
@@ -105,11 +109,7 @@ def extract_noms_from_pages(
                 continue
 
             # Очистка строки заголовка
-            header_row = [
-                _clean_column_name(cell)
-                if cell else ""
-                for cell in table[0]
-            ]
+            header_row = [_clean_column_name(cell) if cell else "" for cell in table[0]]
 
             # Проверка, содержит ли строка заголовка ключевые слова
             is_header_row_contains_any_keyword = any(
@@ -120,7 +120,8 @@ def extract_noms_from_pages(
                 # Найден новый заголовок, сбрасываем текущие данные
                 current_header = header_row
                 header_indices = [
-                    i for i, cell in enumerate(header_row)
+                    i
+                    for i, cell in enumerate(header_row)
                     if any(keyword in cell for keyword in _HEADERS_KEYWORDS)
                 ]
                 combined_table_rows.extend(table[1:])
@@ -152,11 +153,11 @@ def extract_noms_from_pages(
                         nomenclatures_with_params_list.append(
                             MaterialWithParams(
                                 idn_material_name=material_name,
-                                quantity=format_param(quantity),
-                                price=format_param(price),
-                                cost=format_param(cost),
-                                vat_rate=format_param(vat_rate),
-                                vat_amount=format_param(vat_amount),
+                                quantity=format_param(quantity, to_number=True),
+                                price=format_param(price, to_number=True),
+                                cost=format_param(cost, to_number=True),
+                                vat_rate=format_param(vat_rate, to_number=True),
+                                vat_amount=format_param(vat_amount, to_number=True),
                             )
                         )
 
@@ -165,7 +166,7 @@ def extract_noms_from_pages(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Failed to parse nomenclatures from PDF file "
-                   f"with IDN file guid '{idn_file_guid}'",
+            f"with IDN file guid '{idn_file_guid}'",
         )
 
     return nomenclatures_with_params_list
@@ -187,9 +188,7 @@ def get_entities_with_params(
 
         if utd_params.idn_number is not None:
             last_utd_number = utd_params.idn_number
-            utd_entities.append(
-                UTDEntityWithParamsAndNoms(**utd_params.dict())
-            )
+            utd_entities.append(UTDEntityWithParamsAndNoms(**utd_params.dict()))
 
         # Add page to UTD entity pages list
         for i, entity in enumerate(utd_entities):
@@ -213,7 +212,7 @@ def get_entities_with_params(
 def extract_entities_with_params_and_noms(
     pdf_file: BytesIO | str,
     idn_file_guid: str,
-):
+) -> Generator[UTDEntityWithParamsAndNoms, Any, None]:
     with pdfplumber.open(pdf_file) as pdf:
         has_text = any(page.extract_text() for page in pdf.pages)
 
@@ -236,12 +235,14 @@ def extract_entities_with_params_and_noms(
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=f"PDF file with IDN file guid '{idn_file_guid}' is scan, "
-                       f"but text is required.",
+                f"but text is required.",
             )
 
 
 if __name__ == "__main__":
-    pdf_file = "/home/syrnnik/Downloads/unistroy/UPDs-17-09-2024/УПД Царево 1.1, 1.2.pdf"
+    pdf_file = (
+        "/home/syrnnik/Downloads/unistroy/UPDs-17-09-2024/УПД Царево 1.1, 1.2.pdf"
+    )
 
     # Test only entities with params parsing
     # with pdfplumber.open(pdf_file) as pdf:
