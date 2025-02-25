@@ -27,6 +27,10 @@ class FastembedChromaFunction(EmbeddingFunction):
 
 
 def get_embedding_model() -> TextEmbedding:
+    """
+    Подгружает и возвращает модель для построения векторов.
+    """
+
     embedding_model = TextEmbedding(
         model_name="intfloat/multilingual-e5-large",
     )
