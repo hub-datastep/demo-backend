@@ -8,19 +8,38 @@ class UTDMaterial(SQLModel):
 
 
 class LLMMappingKnowledgeBaseCase(SQLModel):
+    """
+    Схема кейсов из Базы Знаний (истории сопоставлений).
+    """
+
+    # Входной материал
     input_material: str
+    # Предсказанная НСИ номенклатура
     predicted_nomenclature: str | None = None
+    # Правильное или Неправильное сопоставление
     is_correct: bool | None = None
+    # Фидбек/Комментарий
     feedback: str | None = None
+    # Правильная (ожидаемая) НСИ номенклатура
     correct_nomenclature: str
 
 
 class LLMMappingResponse(SQLModel):
-    nomenclature: str | None
-    comment: str | None
+    """
+    Схема ответа от LLM для маппинга.
+    """
+
+    # Объяснения LLM почему она выбрала/не выбрала определённый материал
+    comment: str | None = None
+    # Выбранная НСИ номенклатура
+    nomenclature: str | None = None
 
 
 class LLMMappingResult(SQLModel):
+    """
+    Схема результатов маппинга с LLM. Эти данные сохраняются в БД.
+    """
+
     # Полный ответ LLM
     full_response: dict | None = None
     # Комментарий LLM
