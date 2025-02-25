@@ -40,16 +40,18 @@ class LLMMappingResult(SQLModel):
     Схема результатов маппинга с LLM. Эти данные сохраняются в БД.
     """
 
+    # Номер материала посчёту
+    row_number: int
     # Полный ответ LLM
     full_response: dict | None = None
     # Комментарий LLM
     llm_comment: str | None = None
     # Выбранная НСИ номенклатура
-    nomenclature_name: str | None = None
+    nomenclature: str | None = None
     # guid выбранной НСИ номенклатуры
     material_code: str | None = None
     # Все параметры выбранной номенклатуры из НСИ (таблицы БД)
-    nomenclature: dict | None = None
+    nomenclature_data: dict | None = None
     # Список похожих НСИ номенклатур
     nsi_nomenclatures_list: list[str]
     # Список похожих кейсов из Базы Знаний

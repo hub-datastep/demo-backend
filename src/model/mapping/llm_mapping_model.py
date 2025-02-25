@@ -285,9 +285,7 @@ def _get_nomenclature_by_name(
 def _get_similar_nomenclature(
     chain: LLMChain,
     classifier_config: ClassifierConfig,
-    material_embeddings: ndarray,
-    material_name: str,
-    material_group_code: str,
+    material: UTDMaterial,
     noms_collection: Collection,
     kb_collection: Collection,
 ) -> LLMMappingResult:
@@ -295,17 +293,25 @@ def _get_similar_nomenclature(
     Сопоставляет входной материал с номенклатурой из НСИ с помощью LLM.
     """
 
+    # Extract material params
+    row_number = material.row_number
+    material_name = material.nomenclature
+    group_code = material.group_code
+
+    # Get embeddings from material name
+    embeddings = get_embeddings(texts_list=[material_name])[0]
+
     # Get material group by code (category guid in Kafka input message)
     group = _get_group_by_code(
         classifier_config=classifier_config,
-        group_code=material_group_code,
+        group_code=group_code,
     )
     material_group = group.get("name")
 
     # Get Data from Knowledge Base
     _, kb_response_names, kb_response_metadatas, _ = get_data_from_kb(
         collection=kb_collection,
-        material_embeddings=material_embeddings,
+        material_embeddings=embeddings,
         material_group=material_group,
         most_similar_count=KB_MOST_SIMILAR_COUNT,
     )
@@ -318,7 +324,7 @@ def _get_similar_nomenclature(
     # Get Data from NSI
     _, nom_response_names, _, _ = get_data_from_nsi(
         collection=noms_collection,
-        material_embeddings=material_embeddings,
+        material_embeddings=embeddings,
         material_group=material_group,
         most_similar_count=NSI_MOST_SIMILAR_COUNT,
     )
@@ -345,11 +351,12 @@ def _get_similar_nomenclature(
 
     # Combine chain response to result schema
     result = LLMMappingResult(
+        row_number=row_number,
         full_response=serialize_obj(chain_response),
         llm_comment=chain_response.comment,
-        nomenclature_name=result_nomenclature_name,
+        nomenclature=result_nomenclature_name,
         material_code=material_code,
-        nomenclature=serialize_obj(nsi_nomenclature),
+        nomenclature_data=serialize_obj(nsi_nomenclature),
         nsi_nomenclatures_list=nom_response_names,
         knowledge_base_cases_list=serialize_objs_list(kb_cases_list),
     )
@@ -392,19 +399,11 @@ def map_materials_list_with_llm(
     # Run mapping of passed materials
     mapping_results: list[LLMMappingResult] = []
     for material in materials_list:
-        material_name = material.nomenclature
-        group_code = material.group_code
-
-        # Get embeddings from material name
-        materail_embeddings = get_embeddings(texts_list=[material_name])[0]
-
         # Map material to NSI nomenclature
         result = _get_similar_nomenclature(
             chain=chain,
             classifier_config=classifier_config,
-            material_embeddings=materail_embeddings,
-            material_name=material_name,
-            material_group_code=group_code,
+            material=material,
             noms_collection=noms_collection,
             kb_collection=kb_collection,
         )
@@ -426,6 +425,26 @@ def map_materials_list_with_llm(
     )
 
     return mapping_results
+
+
+def prepare_noms_for_mapping(
+    materials_names_list: list[str],
+    group_code: str,
+) -> list[UTDMaterial]:
+    """
+    Собирает список материалов по схеме для маппинга.
+    """
+
+    prepared_noms_list: list[UTDMaterial] = []
+    for i, material_name in materials_names_list:
+        nom = UTDMaterial(
+            row_number=i + 1,
+            nomenclature=material_name,
+            group_code=group_code,
+        )
+        prepared_noms_list.append(nom)
+
+    return prepared_noms_list
 
 
 if __name__ == "__main__":
