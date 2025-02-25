@@ -155,8 +155,7 @@ async def parse_and_map_utd_card(
                 id=iteration_id,
                 # Save all known UTD data
                 metadatas=serialize_obj(metadatas),
-                # type=IterationMetadatasType.UTD.value,
-                type=IterationMetadatasType.UTD_LLM.value,
+                type=IterationMetadatasType.UTD.value,
             )
             mapping_iteration_model.create_or_update_iteration(
                 iteration=iteration,
