@@ -1,4 +1,3 @@
-import json
 import traceback
 from typing import Any, AsyncGenerator
 
@@ -8,26 +7,28 @@ from loguru import logger
 from exception.utd_card_processing_exception import raise_utd_card_processing_exception
 from infra.env import env
 from model.file.utd.download_pdf_model import download_file
-from model.file.utd.mappings_with_parsed_data_model import add_parsed_data_to_mappings
+from model.file.utd.mappings_with_parsed_data_model import (
+    add_parsed_data_to_mappings,
+)
 from model.file.utd.multi_entities_pdf_parsing_model import (
     extract_entities_with_params_and_noms,
 )
-from model.mapping.mapping_execute_model import (
-    get_noms_with_indexes,
-    start_mapping_and_wait_results,
+from model.mapping.llm_mapping_model import (
+    map_materials_list_with_llm,
+    prepare_noms_for_mapping,
 )
-from model.mapping.result import mapping_iteration_model, mapping_result_model
+from model.mapping.result import mapping_iteration_model
 from model.user import user_model
 from scheme.file.utd_card_message_scheme import (
     UTDCardInputMessage,
     UTDCardCheckResultsOutputMessage,
     UTDCardMetadatas,
 )
-from scheme.mapping.mapping_scheme import MappingOneNomenclatureRead
 from scheme.mapping.result.mapping_iteration_scheme import (
     IterationMetadatasType,
     MappingIteration,
 )
+from util.json_serializing import serialize_obj
 from util.uuid import generate_uuid
 
 UNISTROY_USER_ID = 56
@@ -43,6 +44,9 @@ async def parse_and_map_utd_card(
 ) -> AsyncGenerator[UTDCardCheckResultsOutputMessage, Any]:
     try:
         credit_slip_data = body.credit_slip_data
+        # Input materials category (group) guid
+        category_guid = credit_slip_data.material_category_guid
+
         first_utd_doc = body.documents[0]
         pdf_file_url = first_utd_doc.idn_link
         idn_file_guid = first_utd_doc.idn_file_guid
@@ -72,24 +76,42 @@ async def parse_and_map_utd_card(
 
             # Get materials names list
             materials_with_params = utd_entity.nomenclatures_list
-            nomenclatures_list = [
+            materials_names_list = [
                 nom.idn_material_name for nom in materials_with_params
             ]
+
             # Set index for each nomenclature
-            nomenclatures_with_indexes_list = get_noms_with_indexes(
-                nomenclatures_list=nomenclatures_list,
-            )
+            # nomenclatures_with_indexes_list = get_noms_with_indexes(
+            #     nomenclatures_list=materials_names_list,
+            # )
 
             # Start mapping and wait results
-            # mapping_results = start_mapping_and_wait_results(
+            # mapping_results_jobs = start_mapping_and_wait_results(
             #     nomenclatures_list=nomenclatures_with_indexes_list,
             #     classifier_config=classifier_config,
             #     tenant_id=tenant_id,
             #     iteration_id=iteration_id,
             # )
-            mapping_results = []
+            # logger.debug(f"Mapping Jobs:\n{mapping_results_jobs}")
+
+            # Combine group code with materials names and add indexes
+            materials_list = prepare_noms_for_mapping(
+                materials_names_list=materials_names_list,
+                group_code=category_guid,
+            )
+            # Start mapping with LLM
+            mapping_results = map_materials_list_with_llm(
+                materials_list=materials_list,
+                classifier_config=classifier_config,
+                tenant_id=tenant_id,
+                iteration_id=iteration_id,
+            )
             logger.debug(f"Mapping Results:\n{mapping_results}")
 
+            # Get all nomenclatures from mapping results
+            # mapping_results = extract_results_from_mapping_jobs(
+            #     mapping_jobs=mapping_results_jobs,
+            # )
             # Combine parsed materials and mapping results
             mapped_materials = add_parsed_data_to_mappings(
                 parsed_materials=materials_with_params,
@@ -110,18 +132,18 @@ async def parse_and_map_utd_card(
 
             # ! Remove this
             # Save mapping results for feedback
-            mapping_result_model.save_mapping_results(
-                mappings_list=[
-                    MappingOneNomenclatureRead(
-                        row_number=material.number,
-                        internal_group=material.idn_material_name,
-                        nomenclature=material.idn_material_name,
-                    )
-                    for material in mapped_materials
-                ],
-                user_id=user.id,
-                iteration_id=iteration_id,
-            )
+            # mapping_result_model.save_mapping_results(
+            #     mappings_list=[
+            #         MappingOneNomenclatureRead(
+            #             row_number=material.number,
+            #             internal_group=material.idn_material_name,
+            #             nomenclature=material.idn_material_name,
+            #         )
+            #         for material in mapped_materials
+            #     ],
+            #     user_id=user.id,
+            #     iteration_id=iteration_id,
+            # )
             # ! #############
 
             # Create mapping iteration
@@ -134,10 +156,9 @@ async def parse_and_map_utd_card(
             iteration = MappingIteration(
                 id=iteration_id,
                 # Save all known UTD data
-                # ! Convert obj to json-str, then json-str to dict
-                # ! To serialize params with type datetime, date, etc.
-                metadatas=json.loads(metadatas.json()),
-                type=IterationMetadatasType.UTD.value,
+                metadatas=serialize_obj(metadatas),
+                # type=IterationMetadatasType.UTD.value,
+                type=IterationMetadatasType.UTD_LLM.value,
             )
             mapping_iteration_model.create_or_update_iteration(
                 iteration=iteration,

@@ -1,6 +1,7 @@
 from langchain_openai import AzureChatOpenAI
 from loguru import logger
 
+from infra.llm_clients_credentials import Service
 from llm.chain.order_classification_chain import get_llm_by_client_credentials
 from llm.chain.order_multi_classification.class_score_chain import (
     get_class_score_chain,
@@ -63,7 +64,10 @@ def get_order_class(
     client: str | None = None,
     verbose: bool = False,
 ) -> OrderClassificationLLMResponse:
-    llm = get_llm_by_client_credentials(client=client)
+    llm = get_llm_by_client_credentials(
+        client=client,
+        service=Service.ORDER_CLASSIFICATION,
+    )
 
     query_summary = get_order_query_summary(
         llm=llm,
