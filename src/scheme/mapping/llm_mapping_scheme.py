@@ -42,6 +42,8 @@ class LLMMappingResult(SQLModel):
 
     # Номер материала посчёту
     row_number: int
+    # Входной материал
+    input_material: str
     # Полный ответ LLM
     full_response: dict | None = None
     # Комментарий LLM

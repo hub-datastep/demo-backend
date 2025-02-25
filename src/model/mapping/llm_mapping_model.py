@@ -350,6 +350,7 @@ def _get_similar_nomenclature(
     # Combine chain response to result schema
     result = LLMMappingResult(
         row_number=row_number,
+        input_material=material_name,
         full_response=serialize_obj(chain_response),
         llm_comment=chain_response.comment,
         nomenclature=result_nomenclature_name,
