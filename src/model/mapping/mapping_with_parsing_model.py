@@ -84,7 +84,7 @@ async def parse_and_map_utd_card(
 
             # Set index for each nomenclature
             materials_list = prepare_materials_for_mapping(
-                nomenclatures_list=materials_names_list,
+                materials_names_list=materials_names_list,
                 group_code=category_guid,
             )
 
