@@ -81,7 +81,7 @@ def get_llm_by_client_credentials(
         if not default_deployment:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Cannot find default Azure Deployment by service '{service}'"
+                detail=f"Cannot find default Azure Deployment by service '{service}'",
             )
 
         llm = AzureChatOpenAI(

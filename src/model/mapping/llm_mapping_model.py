@@ -4,7 +4,6 @@ from langchain.chains.llm import LLMChain
 from loguru import logger
 from numpy import ndarray
 from pandas import read_sql
-from sqlalchemy import text
 from sqlmodel import Session
 
 from infra.chroma_store import connect_to_chroma_collection, get_embeddings
