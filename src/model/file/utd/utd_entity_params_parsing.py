@@ -57,13 +57,19 @@ def normalize_date(date_str: str) -> date | None:
     return normalized_date
 
 
-def format_param(param: str) -> str | None:
+def format_param(
+    param: str,
+    to_number: bool | None = False,
+) -> str | int | float | None:
     symbols_to_remove = r"[\s\%\-\n]+"
     param = re.sub(symbols_to_remove, "", param)
     param = param.strip()
 
     if not param:
         param = None
+
+    if param and to_number:
+        param = float(param) if "." in param else int(param)
 
     return param
 
