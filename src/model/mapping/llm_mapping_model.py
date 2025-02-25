@@ -7,7 +7,7 @@ from pandas import read_sql
 from sqlmodel import Session
 
 from infra.chroma_store import connect_to_chroma_collection, get_embeddings
-from infra.database import engine, get_session
+from infra.database import engine
 from infra.llm_clients_credentials import Client
 from llm.chain.mapping.mapping_chain import get_llm_mapping_chain, run_llm_mapping
 from model.classifier import classifier_config_model
@@ -216,10 +216,8 @@ def _get_group_by_code(
     # Get NSI table name
     table_name = classifier_config.nomenclatures_table_name
 
-    import pandas as pd
-
     # Get group from NSI table
-    with get_session() as session:
+    with Session(engine) as session:
         query = f"""
             SELECT *
             FROM {table_name}
@@ -258,7 +256,7 @@ def _get_nomenclature_by_name(
     table_name = classifier_config.nomenclatures_table_name
 
     # Get nomenclature from NSI table
-    with get_session() as session:
+    with Session(engine) as session:
         query = f"""
             SELECT *
             FROM {table_name}
