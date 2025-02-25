@@ -8,7 +8,7 @@ from pdfplumber import PDF
 
 from model.file.utd.utd_entity_params_parsing import (
     normalize_date,
-    format_param,
+    format_param_value,
     get_organization_inn,
     get_supplier_inn,
     get_contract_params,
@@ -153,11 +153,26 @@ def extract_noms_from_pages(
                         nomenclatures_with_params_list.append(
                             MaterialWithParams(
                                 idn_material_name=material_name,
-                                quantity=format_param(quantity, to_number=True),
-                                price=format_param(price, to_number=True),
-                                cost=format_param(cost, to_number=True),
-                                vat_rate=format_param(vat_rate, to_number=True),
-                                vat_amount=format_param(vat_amount, to_number=True),
+                                quantity=format_param_value(
+                                    param_value=quantity,
+                                    to_number=True,
+                                ),
+                                price=format_param_value(
+                                    param_value=price,
+                                    to_number=True,
+                                ),
+                                cost=format_param_value(
+                                    param_value=cost,
+                                    to_number=True,
+                                ),
+                                vat_rate=format_param_value(
+                                    param_value=vat_rate,
+                                    to_number=True,
+                                ),
+                                vat_amount=format_param_value(
+                                    param_value=vat_amount,
+                                    to_number=True,
+                                ),
                             )
                         )
 
