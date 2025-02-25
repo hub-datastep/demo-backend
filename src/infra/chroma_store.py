@@ -3,6 +3,7 @@ from uuid import UUID
 from chromadb import Documents, EmbeddingFunction, Embeddings, HttpClient
 from chromadb.api.models.Collection import Collection
 from fastembed.embedding import TextEmbedding
+from numpy import ndarray
 from rq.job import get_current_job
 from tqdm import tqdm
 
@@ -14,11 +15,33 @@ from infra.env import env
 
 class FastembedChromaFunction(EmbeddingFunction):
     def __call__(self, input: Documents) -> Embeddings:
-        embedding_model = TextEmbedding(
-            model_name="intfloat/multilingual-e5-large"
-        )
+        embedding_model = get_embedding_model()
         strings = [f"query: {s}" for s in input]
-        return [e.tolist() for e in tqdm(embedding_model.embed(strings), total=len(strings))]
+        return [
+            e.tolist()
+            for e in tqdm(
+                embedding_model.embed(strings),
+                total=len(strings),
+            )
+        ]
+
+
+def get_embedding_model() -> TextEmbedding:
+    embedding_model = TextEmbedding(
+        model_name="intfloat/multilingual-e5-large",
+    )
+    return embedding_model
+
+
+def get_embeddings(texts_list: list[str]) -> list[ndarray]:
+    """
+    Создаёт вектор на основе переданного текста.
+    """
+
+    embedding_model = get_embedding_model()
+
+    result = list(embedding_model.embed([f"{text}" for text in texts_list]))
+    return result
 
 
 def _cast_ids(ids: str | list[str] | UUID | list[UUID]):
@@ -40,7 +63,8 @@ def connect_to_chroma_collection(collection_name: str):
     chroma_client = get_chroma_client()
     collection = chroma_client.get_or_create_collection(
         name=collection_name,
-        embedding_function=FastembedChromaFunction()
+        embedding_function=FastembedChromaFunction(),
+        # TODO: add metadatas for collection for better searching
     )
     return collection
 
@@ -56,7 +80,7 @@ def create_collection(collection_name: str):
     chroma_client = get_chroma_client()
     chroma_client.create_collection(
         name=collection_name,
-        embedding_function=FastembedChromaFunction()
+        embedding_function=FastembedChromaFunction(),
     )
 
 
@@ -108,7 +132,7 @@ def is_in_vectorstore(
     ids: str | list[str],
 ):
     guid = collection.get(ids=ids)
-    return len(guid['ids']) != 0
+    return len(guid["ids"]) != 0
 
 
 # def update_collection_with_patch(
@@ -169,5 +193,5 @@ def create_embeddings_by_chunks(
             created_count = len(ids)
 
         if is_in_job:
-            job.meta['ready_count'] = created_count
+            job.meta["ready_count"] = created_count
             job.save_meta()
