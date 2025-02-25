@@ -12,17 +12,23 @@ from scheme.mapping.mapping_scheme import (
 WAIT_RESULTS_TIME_IN_SEC = 30
 
 
-def get_noms_with_indexes(
-    nomenclatures_list: list[str],
+def prepare_materials_for_mapping(
+    materials_names_list: list[str],
+    group_code: str | None = None,
 ) -> list[MappingOneNomenclatureUpload]:
-    nomenclatures_list_with_indexes = [
+    """
+    Собирает список материалов по схеме для маппинга.
+    """
+
+    materials_list_with_indexes = [
         MappingOneNomenclatureUpload(
             row_number=i + 1,
             nomenclature=nom,
+            group_code=group_code,
         )
-        for i, nom in enumerate(nomenclatures_list)
+        for i, nom in enumerate(materials_names_list)
     ]
-    return nomenclatures_list_with_indexes
+    return materials_list_with_indexes
 
 
 def _wait_until_results_finish(
