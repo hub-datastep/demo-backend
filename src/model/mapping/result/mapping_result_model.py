@@ -9,6 +9,7 @@ from sqlmodel import SQLModel, Session
 
 from infra.env import env
 from infra.kafka import send_message_to_kafka
+from model.mapping.llm_mapping_model import save_to_knowledge_base
 from model.mapping.result import mapping_iteration_model
 from model.tenant import tenant_model
 from repository.mapping import mapping_result_repository
@@ -19,7 +20,10 @@ from scheme.file.utd_card_message_scheme import (
     UTDCardOutputMessage,
 )
 from scheme.mapping.mapping_scheme import MappingOneNomenclatureRead
-from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
+from scheme.mapping.result.mapping_iteration_scheme import (
+    IterationMetadatasType,
+    MappingIteration,
+)
 from scheme.mapping.result.mapping_result_scheme import (
     CorrectedResult,
     MappingResult,
@@ -152,7 +156,7 @@ def update_mapping_results_list(
 ) -> list[MappingResult]:
     # Check if Mapping Iteration exists
     iteration_id = body.iteration_id
-    mapping_iteration_model.get_iteration_by_id(
+    iteration = mapping_iteration_model.get_iteration_by_id(
         iteration_id=iteration_id,
     )
 
@@ -169,6 +173,10 @@ def update_mapping_results_list(
             mapping_result=mapping_result,
         )
         corrected_results_list.append(update_result)
+
+        # Save result with feedback to Knowledge Base
+        if iteration.type == IterationMetadatasType.UTD.value:
+            save_to_knowledge_base(mapping_result=update_result)
 
     return corrected_results_list
 
