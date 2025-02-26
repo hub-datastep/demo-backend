@@ -346,7 +346,7 @@ def _get_similar_nomenclature(
         nomenclature_name=result_nomenclature_name,
     )
     # Extract material code from NSI nomenclature
-    material_code: str | None = None
+    material_id: str | None = None
     material_code: str | None = None
     if nsi_nomenclature:
         material_id = str(nsi_nomenclature.get("id"))
