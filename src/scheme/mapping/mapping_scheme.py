@@ -8,7 +8,7 @@ class MappingOneNomenclatureUpload(SQLModel):
 
 
 class MappingOneTargetRead(SQLModel):
-    nomenclature_guid: str
+    nomenclature_guid: str | None
     group: str | None
     group_code: str | None
     view: str | None
