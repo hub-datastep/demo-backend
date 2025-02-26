@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 import json
 from typing import Any
 
@@ -8,8 +8,9 @@ from sqlmodel import SQLModel
 
 
 def dataframe_serialer(obj: Any) -> str | None:
-    if isinstance(obj, Timestamp) or isinstance(obj, datetime):
+    if isinstance(obj, (Timestamp, datetime, date)):
         return obj.isoformat()
+    return obj
 
 
 def serialize_obj(obj: SQLModel | BaseModel | dict) -> dict:
