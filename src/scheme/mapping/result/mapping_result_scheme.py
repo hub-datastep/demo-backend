@@ -21,6 +21,7 @@ class MappingResult(MappingResultBase, table=True):
 class CorrectedResult(SQLModel):
     result_id: int
     nomenclature: "SimilarNomenclature"
+    feedback: str | None = None
 
 
 class MappingResultUpdate(SQLModel):
