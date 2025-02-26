@@ -409,7 +409,10 @@ def map_materials_list_with_llm(
     )
 
     # Init Mapping Chain
-    chain = get_llm_mapping_chain(client=Client.UNISTROY)
+    chain = get_llm_mapping_chain(
+        client=Client.UNISTROY,
+        verbose=True,
+    )
 
     # Run mapping of passed materials
     mapping_results: list[LLMMappingResult] = []

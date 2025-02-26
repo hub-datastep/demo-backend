@@ -3,10 +3,12 @@ from fastapi_versioning import version
 
 from middleware.mode_middleware import TenantMode, modes_required
 from model.auth.auth_model import get_current_user
-from model.mapping import mapping_model, mapping_cim_work_type_model
+from model.mapping import llm_mapping_model, mapping_model, mapping_cim_work_type_model
+from scheme.mapping.llm_mapping_scheme import LLMMappingResult
 from scheme.mapping.mapping_scheme import (
     MappingNomenclaturesUpload,
     MappingNomenclaturesResultRead,
+    MappingOneNomenclatureUpload,
 )
 from scheme.mapping.result.mapping_result_scheme import (
     InputModel,
@@ -14,6 +16,7 @@ from scheme.mapping.result.mapping_result_scheme import (
 )
 from scheme.task.task_scheme import JobIdRead
 from scheme.user.user_scheme import UserRead
+from util.uuid import generate_uuid
 
 router = APIRouter()
 
@@ -57,3 +60,25 @@ def mapping_cim_model(
     body: InputModel,
 ):
     return mapping_cim_work_type_model.mapping_cim_model(body)
+
+
+@router.post("/with_llm", response_model=list[LLMMappingResult])
+@version(1)
+def mapping_with_llm(
+    body: list[MappingOneNomenclatureUpload],
+    current_user: UserRead = Depends(get_current_user),
+) -> list[LLMMappingResult]:
+    """
+    Запускает сопоставление переданных материалов с НСИ матералами с помощью LLM.
+    """
+
+    classifier_config = current_user.classifier_config
+    tenant_id = current_user.tenant_id
+    iteration_id = generate_uuid()
+
+    return llm_mapping_model.map_materials_list_with_llm(
+        materials_list=body,
+        classifier_config=classifier_config,
+        tenant_id=tenant_id,
+        iteration_id=iteration_id,
+    )
