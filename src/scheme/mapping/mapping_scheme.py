@@ -9,12 +9,19 @@ class MappingOneNomenclatureUpload(SQLModel):
 
 class MappingOneTargetRead(SQLModel):
     nomenclature_guid: str | None
+    # Группа смапленной номенклатуры
     group: str | None
+    # Код(guid) группы смапленной номенклатуры
     group_code: str | None
+    # Вид/Тип входного материала
     view: str | None
+    # Код(guid) Вида/Типа входного материала
     view_code: str | None
+    # Код(guid) смапленной НСИ номенклатуры
     material_code: str | None
+    # Смапленная НСИ номенклатура
     nomenclature: str
+    # Векторное расстояние между входным материалом и смапленной номенклатурой
     similarity_score: float | None
 
 
@@ -33,7 +40,7 @@ class MappingOneNomenclatureRead(SQLModel):
     view: str | None
     # Код(guid) Вида/Типа входного материала
     view_code: str | None
-    # guid смапленной НСИ номенклатуры
+    # Код(guid) смапленной НСИ номенклатуры
     material_code: str | None
     # Список спаршенных параметров входного материала
     nomenclature_params: list[dict] | None
