@@ -1,3 +1,4 @@
+from numpy import nan
 from pandas import DataFrame
 
 from infra.chroma_store import add_embeddings, connect_to_chroma_collection
@@ -53,12 +54,16 @@ def save_to_knowledge_base(
     # Prepare params to save in Knowledge Base
     ids = new_knowledge_df["id"].to_list()
     documents = new_knowledge_df["УПД материал"].to_list()
-    metadatas = new_knowledge_df.drop(
-        columns=[
-            "id",
-            "УПД материал",
-        ],
-    ).to_dict(orient="records")
+    metadatas = (
+        new_knowledge_df.drop(
+            columns=[
+                "id",
+                "УПД материал",
+            ],
+        )
+        .fillna(value=nan)
+        .to_dict(orient="records")
+    )
 
     # Connect to Knowledge Base vectorstore collection
     collection = connect_to_chroma_collection(
