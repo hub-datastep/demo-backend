@@ -103,7 +103,7 @@ def add_embeddings(
     ids: str | list[str] | UUID | list[UUID],
     documents: str | list[str],
     metadatas: dict | list[dict],
-):
+) -> None:
     ids = _cast_ids(ids)
     collection.add(
         ids=ids,
@@ -112,7 +112,10 @@ def add_embeddings(
     )
 
 
-def delete_embeddings(collection: Collection, ids: str | list[str] | UUID | list[UUID]):
+def delete_embeddings(
+    collection: Collection,
+    ids: str | list[str] | UUID | list[UUID],
+) -> None:
     ids = _cast_ids(ids)
     collection.delete(ids=ids)
 
@@ -122,7 +125,7 @@ def update_embeddings(
     ids: str | list[str] | UUID | list[UUID],
     documents: str | list[str],
     metadatas: dict | list[dict],
-):
+) -> None:
     ids = _cast_ids(ids)
     collection.update(
         ids=ids,
@@ -134,7 +137,7 @@ def update_embeddings(
 def is_in_vectorstore(
     collection: Collection,
     ids: str | list[str],
-):
+) -> bool:
     guid = collection.get(ids=ids)
     return len(guid["ids"]) != 0
 
