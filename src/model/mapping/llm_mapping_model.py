@@ -3,11 +3,10 @@ from fastapi import HTTPException, status
 from langchain.chains.llm import LLMChain
 from loguru import logger
 from numpy import ndarray
-from pandas import DataFrame, read_sql
+from pandas import read_sql
 from sqlmodel import Session
 
 from infra.chroma_store import (
-    add_embeddings,
     connect_to_chroma_collection,
     get_embeddings,
 )
@@ -16,6 +15,8 @@ from infra.llm_clients_credentials import Client
 from llm.chain.mapping.mapping_chain import get_llm_mapping_chain, run_llm_mapping
 from model.classifier import classifier_config_model
 from model.mapping.result import mapping_result_model
+from model.mapping.result.llm_mapping_knowledge_base_model import \
+    UNISTROY_KB_COLLECTION_NAME
 from model.used_token import used_token_model
 from scheme.classifier.classifier_config_scheme import ClassifierConfig
 from scheme.mapping.llm_mapping_scheme import (
@@ -26,16 +27,12 @@ from scheme.mapping.mapping_scheme import (
     MappingOneNomenclatureUpload,
     MappingOneTargetRead,
 )
-from scheme.mapping.result.mapping_result_scheme import CorrectedResult, MappingResult
-from util.json_serializing import serialize_obj, serialize_objs_list
+from util.json_serializing import serialize_obj
 from util.uuid import generate_uuid
 
 # Count of item in response from vectorstore
 NSI_MOST_SIMILAR_COUNT = 30
 KB_MOST_SIMILAR_COUNT = 30
-
-# Knowledge Base vectorstore collection name
-KB_COLLECTION_NAME = "unistroy_knowledge_base"
 
 
 def get_noms_filters(group: str) -> Where:
@@ -243,7 +240,7 @@ def _get_group_by_code(
         # Check if group found
         if group_df.empty:
             raise HTTPException(
-                status_code=status,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Category with guid '{group_code}' not found",
             )
 
@@ -255,7 +252,7 @@ def _get_group_by_code(
 def _get_nomenclature_by_name(
     classifier_config: ClassifierConfig,
     nomenclature_name: str,
-) -> dict:
+) -> dict | None:
     """
     Получает все данные о номенклатуре в НСИ по её наименованию.
     """
@@ -378,7 +375,7 @@ def _get_similar_nomenclature(
         llm_comment=chain_response.comment,
         nomenclature_data=serialize_obj(nsi_nomenclature),
         nsi_nomenclatures_list=nom_response_names,
-        knowledge_base_cases_list=serialize_objs_list(kb_cases_list),
+        knowledge_base_cases_list=kb_cases_list,
     )
 
     return result
@@ -410,7 +407,7 @@ def map_materials_list_with_llm(
 
     # Connect to Knowledge Base vectorstore collection
     kb_collection = connect_to_chroma_collection(
-        collection_name=KB_COLLECTION_NAME,
+        collection_name=UNISTROY_KB_COLLECTION_NAME,
     )
 
     # Init Mapping Chain
@@ -448,70 +445,6 @@ def map_materials_list_with_llm(
     )
 
     return mapping_results
-
-
-def save_to_knowledge_base(mapping_result: MappingResult) -> dict:
-    result = LLMMappingResult(**mapping_result.result)
-
-    # Extract predicted nomenclature
-    predicted_nomenclature_name: str | None = None
-    if result.mappings:
-        predicted_nomenclature_name = result.mappings[0].nomenclature.strip()
-
-    # Extract feedback, correct nomenclature
-    correct_nomenclature_name: str | None = None
-    feedback: str | None = None
-    corrected_result = mapping_result.corrected_nomenclature
-    if corrected_result:
-        # Extract feedback
-        corrected_result = CorrectedResult(
-            **mapping_result.corrected_nomenclature,
-        )
-        feedback = corrected_result.feedback
-
-        # Extract correct nomenclature
-        if corrected_result.nomenclature:
-            correct_nomenclature_name = corrected_result.nomenclature.name.strip()
-
-    # Check if result is correct
-    is_correct = predicted_nomenclature_name == correct_nomenclature_name
-
-    # Combine new knowledge
-    new_knowledge = {
-        "id": f"{generate_uuid()}",
-        "УПД материал": result.nomenclature,
-        "Класс УПД материала": result.group,
-        "Предсказанный НСИ материал": predicted_nomenclature_name,
-        "Правильный материал НСИ": correct_nomenclature_name,
-        "Фидбек Оператора": feedback,
-        "Правильное предсказание?": is_correct,
-        "ID итерации сопоставления": mapping_result.iteration_id,
-    }
-    new_knowledge_df = DataFrame([new_knowledge])
-
-    # Prepare params to save in Knowledge Base
-    ids = new_knowledge_df["id"].to_list()
-    documents = new_knowledge_df["УПД материал"].to_list()
-    metadatas = new_knowledge_df.drop(
-        columns=[
-            "id",
-            "УПД материал",
-        ],
-    ).to_dict(orient="records")
-
-    # Connect to Knowledge Base vectorstore collection
-    collection = connect_to_chroma_collection(
-        collection_name=KB_COLLECTION_NAME,
-    )
-    # Save to knowledge base
-    add_embeddings(
-        collection=collection,
-        ids=ids,
-        documents=documents,
-        metadatas=metadatas,
-    )
-
-    return new_knowledge
 
 
 if __name__ == "__main__":
