@@ -9,8 +9,10 @@ from sqlmodel import SQLModel, Session
 
 from infra.env import env
 from infra.kafka import send_message_to_kafka
-from model.mapping.llm_mapping_model import save_to_knowledge_base
-from model.mapping.result import mapping_iteration_model
+from model.mapping.result import (
+    mapping_iteration_model,
+    llm_mapping_knowledge_base_model,
+)
 from model.tenant import tenant_model
 from repository.mapping import mapping_result_repository
 from scheme.file.utd_card_message_scheme import (
@@ -25,10 +27,8 @@ from scheme.mapping.result.mapping_iteration_scheme import (
     MappingIteration,
 )
 from scheme.mapping.result.mapping_result_scheme import (
-    CorrectedResult,
-    MappingResult,
     MappingResultUpdate,
-    MappingResultsUpload,
+    MappingResultsUpload, MappingResult, CorrectedResult,
 )
 from scheme.mapping.result.similar_nomenclature_search_scheme import (
     SimilarNomenclatureSearch,
@@ -176,7 +176,9 @@ def update_mapping_results_list(
 
         # Save result with feedback to Knowledge Base
         if iteration.type == IterationMetadatasType.UTD.value:
-            save_to_knowledge_base(mapping_result=update_result)
+            llm_mapping_knowledge_base_model.save_to_knowledge_base(
+                mapping_result=update_result,
+            )
 
     return corrected_results_list
 
@@ -198,10 +200,10 @@ def get_corrected_material_from_results(
             )
             # Check material name equal and not None
             or (
-                material.material_guid == result.material_code
-                and material.material_guid
-                and result.material_code
-            )
+            material.material_guid == result.material_code
+            and material.material_guid
+            and result.material_code
+        )
         ):
             # Check if corrected nomenclature is set
             if mapping_result.corrected_nomenclature:
