@@ -24,11 +24,14 @@ from scheme.file.utd_card_message_scheme import (
 from scheme.mapping.mapping_scheme import MappingOneNomenclatureRead
 from scheme.mapping.result.mapping_iteration_scheme import (
     IterationMetadatasType,
+    IterationStatus,
     MappingIteration,
 )
 from scheme.mapping.result.mapping_result_scheme import (
     MappingResultUpdate,
-    MappingResultsUpload, MappingResult, CorrectedResult,
+    MappingResultsUpload,
+    MappingResult,
+    CorrectedResult,
 )
 from scheme.mapping.result.similar_nomenclature_search_scheme import (
     SimilarNomenclatureSearch,
@@ -159,6 +162,8 @@ def update_mapping_results_list(
     iteration = mapping_iteration_model.get_iteration_by_id(
         iteration_id=iteration_id,
     )
+    # Check if mapping was for UTD
+    is_utd_iteration = iteration.type == IterationMetadatasType.UTD.value
 
     corrected_results_list: list[MappingResult] = []
     for corrected_result in body.corrected_results_list:
@@ -167,7 +172,16 @@ def update_mapping_results_list(
             session=session,
             result_id=result_id,
         )
+
+        # Set corrected result
         mapping_result.corrected_nomenclature = corrected_result.dict()
+
+        # Set new status for Iteration
+        if is_utd_iteration:
+            iteration.status = IterationStatus.APPROVED.value
+            mapping_result.iteration = iteration
+
+        # Save to DB
         update_result = mapping_result_repository.update_result(
             session=session,
             mapping_result=mapping_result,
@@ -175,7 +189,7 @@ def update_mapping_results_list(
         corrected_results_list.append(update_result)
 
         # Save result with feedback to Knowledge Base
-        if iteration.type == IterationMetadatasType.UTD.value:
+        if is_utd_iteration:
             llm_mapping_knowledge_base_model.save_to_knowledge_base(
                 mapping_result=update_result,
             )
@@ -200,10 +214,10 @@ def get_corrected_material_from_results(
             )
             # Check material name equal and not None
             or (
-            material.material_guid == result.material_code
-            and material.material_guid
-            and result.material_code
-        )
+                material.material_guid == result.material_code
+                and material.material_guid
+                and result.material_code
+            )
         ):
             # Check if corrected nomenclature is set
             if mapping_result.corrected_nomenclature:

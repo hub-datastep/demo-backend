@@ -10,9 +10,15 @@ class IterationMetadatasType(str, Enum):
     UTD = "UTD"
 
 
+class IterationStatus(str, Enum):
+    NEED_APPROVE = "need-approve"
+    APPROVED = "approved"
+
+
 class MappingIterationBase(SQLModel):
     metadatas: dict | None = Field(sa_column=Column(JSONB))
     type: str | None = Field(default=None)
+    status: str | None = Field(default=None)
     created_at: datetime | None
 
 
