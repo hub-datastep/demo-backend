@@ -165,6 +165,7 @@ def update_mapping_results_list(
     # Check if mapping was for UTD
     is_utd_iteration = iteration.type == IterationMetadatasType.UTD.value
 
+    # Update mapping iteration results
     corrected_results_list: list[MappingResult] = []
     for corrected_result in body.corrected_results_list:
         result_id = corrected_result.result_id
@@ -176,23 +177,31 @@ def update_mapping_results_list(
         # Set corrected result
         mapping_result.corrected_nomenclature = corrected_result.dict()
 
-        # Set new status for Iteration
-        if is_utd_iteration:
-            iteration.status = IterationStatus.APPROVED.value
-            mapping_result.iteration = iteration
-
         # Save to DB
-        update_result = mapping_result_repository.update_result(
+        updated_result = mapping_result_repository.update_result(
             session=session,
             mapping_result=mapping_result,
         )
-        corrected_results_list.append(update_result)
+        corrected_results_list.append(updated_result)
 
         # Save result with feedback to Knowledge Base
         if is_utd_iteration:
             llm_mapping_knowledge_base_model.save_to_knowledge_base(
-                mapping_result=update_result,
+                mapping_result=updated_result,
             )
+            # TODO: maybe save to knowledge base in background tasks
+            # background_tasks = BackgroundTasks()
+            # background_tasks.add_task(
+            #     llm_mapping_knowledge_base_model.save_to_knowledge_base,
+            #     updated_result,
+            # )
+
+    # Set new status for Iteration
+    if is_utd_iteration:
+        iteration.status = IterationStatus.APPROVED.value
+        mapping_iteration_model.create_or_update_iteration(
+            iteration=iteration,
+        )
 
     return corrected_results_list
 
