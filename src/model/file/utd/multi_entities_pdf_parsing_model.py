@@ -180,8 +180,12 @@ def extract_noms_from_pages(
     if len(nomenclatures_with_params_list) == 0:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Failed to parse nomenclatures from PDF file "
-            f"with IDN file guid '{idn_file_guid}'",
+            detail=(
+                "Не удалось вытащить материалы из Вашего файла, "
+                "свяжить с тех. поддержкой и покажите им эту ошибку:\n\n"
+                "Details: Failed to parse nomenclatures from PDF file "
+                f"with IDN file guid '{idn_file_guid}'"
+            ),
         )
 
     return nomenclatures_with_params_list
@@ -249,8 +253,13 @@ def extract_entities_with_params_and_noms(
         else:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"PDF file with IDN file guid '{idn_file_guid}' is scan, "
-                f"but text is required.",
+                detail=(
+                    # Russian Error text for users
+                    "Вы загрузили скан(картинку) УПД, а нужен PDF с текстом.\n\n"
+                    # English Error text with details for developers
+                    f"Details: PDF file with IDN file guid '{idn_file_guid}' is scan, "
+                    "but text is required."
+                ),
             )
 
 
