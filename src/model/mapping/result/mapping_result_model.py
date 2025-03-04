@@ -43,6 +43,7 @@ from util.json_serializing import serialize_obj
 SIMILAR_NOMS_COLUMNS = [
     "id",
     "name",
+    "group",
     "material_code",
 ]
 
@@ -69,10 +70,14 @@ def _fetch_similar_noms(
     db_con_str: str,
     table_name: str,
     nomenclature_name: str,
-    limit: int | None = 10,
+    group: str | None,
+    is_group: bool | None,
+    limit: int | None,
     offset: int | None = 0,
 ) -> DataFrame:
-    nomenclature_name = re.sub(r"\s+", "%", nomenclature_name)
+    nomenclature_name = re.sub(r"[\s\n]+", "%", nomenclature_name)
+    if group:
+        group = re.sub(r"[\s\n]+", "%", group)
     columns_str = ", ".join(f'"{col}"' for col in SIMILAR_NOMS_COLUMNS)
 
     st = text(
@@ -80,12 +85,14 @@ def _fetch_similar_noms(
         SELECT {columns_str}
         FROM {table_name}
         WHERE "name" ILIKE :nomenclature_name
-        AND "is_group" = FALSE
-        LIMIT {limit}
-        OFFSET {offset}
+        AND "group" ILIKE :group
+        AND "is_group" = {"TRUE" if is_group else "FALSE"}
+        {f"LIMIT {limit}" if limit else ""}
+        {f"OFFSET {offset}" if offset else ""}
         """
     ).bindparams(
         nomenclature_name=f"%{nomenclature_name}%",
+        group=f"%{group}%" if group else "%",
     )
 
     return read_sql(st, db_con_str)
@@ -104,11 +111,14 @@ def get_similar_nomenclatures(
 
     nomenclatures_table_name = user.classifier_config.nomenclatures_table_name
 
-    nomenclature_name = body.name
     similar_noms_df = _fetch_similar_noms(
         db_con_str=tenant_db_uri,
         table_name=nomenclatures_table_name,
-        nomenclature_name=nomenclature_name,
+        nomenclature_name=body.name,
+        group=body.group,
+        is_group=body.is_group,
+        limit=body.limit,
+        offset=body.offset,
     )
     similar_noms_list = [
         SimilarNomenclature(**nom) for nom in similar_noms_df.to_dict(orient="records")
