@@ -28,6 +28,7 @@ from scheme.file.utd_card_message_scheme import (
 )
 from scheme.mapping.result.mapping_iteration_scheme import (
     IterationMetadatasType,
+    IterationStatus,
     MappingIteration,
 )
 from util.json_serializing import serialize_obj
@@ -119,6 +120,7 @@ async def parse_and_map_utd_card(
             # Init url to mapping results
             results_url = _get_results_url(iteration_id=iteration_id)
 
+            # Combine data for output check-results message
             output_message = UTDCardCheckResultsOutputMessage(
                 guid=iteration_id,
                 idn_file_guid=idn_file_guid,
@@ -156,6 +158,7 @@ async def parse_and_map_utd_card(
                 # Save all known UTD data
                 metadatas=serialize_obj(metadatas),
                 type=IterationMetadatasType.UTD.value,
+                status=IterationStatus.NEED_APPROVE.value,
             )
             mapping_iteration_model.create_or_update_iteration(
                 iteration=iteration,

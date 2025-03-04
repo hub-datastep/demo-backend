@@ -55,13 +55,17 @@ def save_to_knowledge_base(
     ids = new_knowledge_df["id"].to_list()
     documents = new_knowledge_df["УПД материал"].to_list()
     metadatas = (
+        # Remove columns that not needed in metadatas
         new_knowledge_df.drop(
             columns=[
                 "id",
                 "УПД материал",
             ],
         )
+        # Replace None to nan from numpy to prevent ChromaDB error
+        # (None not allowed in metadatas)
         .fillna(value=nan)
+        # Convert DataFrame to dict to save in collection
         .to_dict(orient="records")
     )
 
@@ -69,6 +73,7 @@ def save_to_knowledge_base(
     collection = connect_to_chroma_collection(
         collection_name=UNISTROY_KB_COLLECTION_NAME,
     )
+    # TODO: Check this knowledge in vectorstore, if exists - update
     # Save to knowledge base
     add_embeddings(
         collection=collection,

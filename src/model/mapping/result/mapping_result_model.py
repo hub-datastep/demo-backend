@@ -24,11 +24,14 @@ from scheme.file.utd_card_message_scheme import (
 from scheme.mapping.mapping_scheme import MappingOneNomenclatureRead
 from scheme.mapping.result.mapping_iteration_scheme import (
     IterationMetadatasType,
+    IterationStatus,
     MappingIteration,
 )
 from scheme.mapping.result.mapping_result_scheme import (
     MappingResultUpdate,
-    MappingResultsUpload, MappingResult, CorrectedResult,
+    MappingResultsUpload,
+    MappingResult,
+    CorrectedResult,
 )
 from scheme.mapping.result.similar_nomenclature_search_scheme import (
     SimilarNomenclatureSearch,
@@ -40,6 +43,7 @@ from util.json_serializing import serialize_obj
 SIMILAR_NOMS_COLUMNS = [
     "id",
     "name",
+    "group",
     "material_code",
 ]
 
@@ -66,10 +70,14 @@ def _fetch_similar_noms(
     db_con_str: str,
     table_name: str,
     nomenclature_name: str,
-    limit: int | None = 10,
+    group: str | None,
+    is_group: bool | None,
+    limit: int | None,
     offset: int | None = 0,
 ) -> DataFrame:
-    nomenclature_name = re.sub(r"\s+", "%", nomenclature_name)
+    nomenclature_name = re.sub(r"[\s\n]+", "%", nomenclature_name)
+    if group:
+        group = re.sub(r"[\s\n]+", "%", group)
     columns_str = ", ".join(f'"{col}"' for col in SIMILAR_NOMS_COLUMNS)
 
     st = text(
@@ -77,12 +85,14 @@ def _fetch_similar_noms(
         SELECT {columns_str}
         FROM {table_name}
         WHERE "name" ILIKE :nomenclature_name
-        AND "is_group" = FALSE
-        LIMIT {limit}
-        OFFSET {offset}
+        AND "group" ILIKE :group
+        AND "is_group" = {"TRUE" if is_group else "FALSE"}
+        {f"LIMIT {limit}" if limit else ""}
+        {f"OFFSET {offset}" if offset else ""}
         """
     ).bindparams(
         nomenclature_name=f"%{nomenclature_name}%",
+        group=f"%{group}%" if group else "%",
     )
 
     return read_sql(st, db_con_str)
@@ -101,11 +111,14 @@ def get_similar_nomenclatures(
 
     nomenclatures_table_name = user.classifier_config.nomenclatures_table_name
 
-    nomenclature_name = body.name
     similar_noms_df = _fetch_similar_noms(
         db_con_str=tenant_db_uri,
         table_name=nomenclatures_table_name,
-        nomenclature_name=nomenclature_name,
+        nomenclature_name=body.name,
+        group=body.group,
+        is_group=body.is_group,
+        limit=body.limit,
+        offset=body.offset,
     )
     similar_noms_list = [
         SimilarNomenclature(**nom) for nom in similar_noms_df.to_dict(orient="records")
@@ -159,7 +172,10 @@ def update_mapping_results_list(
     iteration = mapping_iteration_model.get_iteration_by_id(
         iteration_id=iteration_id,
     )
+    # Check if mapping was for UTD
+    is_utd_iteration = iteration.type == IterationMetadatasType.UTD.value
 
+    # Update mapping iteration results
     corrected_results_list: list[MappingResult] = []
     for corrected_result in body.corrected_results_list:
         result_id = corrected_result.result_id
@@ -167,18 +183,35 @@ def update_mapping_results_list(
             session=session,
             result_id=result_id,
         )
+
+        # Set corrected result
         mapping_result.corrected_nomenclature = corrected_result.dict()
-        update_result = mapping_result_repository.update_result(
+
+        # Save to DB
+        updated_result = mapping_result_repository.update_result(
             session=session,
             mapping_result=mapping_result,
         )
-        corrected_results_list.append(update_result)
+        corrected_results_list.append(updated_result)
 
         # Save result with feedback to Knowledge Base
-        if iteration.type == IterationMetadatasType.UTD.value:
+        if is_utd_iteration:
             llm_mapping_knowledge_base_model.save_to_knowledge_base(
-                mapping_result=update_result,
+                mapping_result=updated_result,
             )
+            # TODO: maybe save to knowledge base in background tasks
+            # background_tasks = BackgroundTasks()
+            # background_tasks.add_task(
+            #     llm_mapping_knowledge_base_model.save_to_knowledge_base,
+            #     updated_result,
+            # )
+
+    # Set new status for Iteration
+    if is_utd_iteration:
+        iteration.status = IterationStatus.APPROVED.value
+        mapping_iteration_model.create_or_update_iteration(
+            iteration=iteration,
+        )
 
     return corrected_results_list
 
@@ -200,10 +233,10 @@ def get_corrected_material_from_results(
             )
             # Check material name equal and not None
             or (
-            material.material_guid == result.material_code
-            and material.material_guid
-            and result.material_code
-        )
+                material.material_guid == result.material_code
+                and material.material_guid
+                and result.material_code
+            )
         ):
             # Check if corrected nomenclature is set
             if mapping_result.corrected_nomenclature:
