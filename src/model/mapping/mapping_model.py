@@ -443,7 +443,7 @@ def _map_nomenclatures_chunk(
             metadatas_list = []
             for key, val in nom['metadata'].items():
                 # Check if mapping param is not empty
-                if val != "":
+                if val:
                     metadatas_list.append({str(key): val})
         else:
             metadatas_list = None
