@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 import json
 
-from infra import env
+from infra.env import env
 
 
 def get_order_details(body: dict, url: str) -> None:
