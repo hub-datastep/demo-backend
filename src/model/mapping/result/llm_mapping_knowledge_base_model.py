@@ -37,6 +37,11 @@ def save_to_knowledge_base(
 
     # Check if result is correct
     is_correct = predicted_nomenclature_name == correct_nomenclature_name
+    # TODO: uncomment this to fix Not Found NSI variants
+    # is_correct = predicted_nomenclature_name == correct_nomenclature_name or (
+    #     not predicted_nomenclature_name
+    #     and correct_nomenclature_name == "В НСИ нет подходящего варианта"
+    # )
 
     # Combine new knowledge
     new_knowledge = {

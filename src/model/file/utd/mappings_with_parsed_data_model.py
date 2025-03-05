@@ -65,8 +65,8 @@ def add_parsed_data_to_mappings(
         )
 
         # Get number from mapped nomenclature
-        nom_number = -1
-        material_guid = "-1"
+        nom_number: int = -1
+        material_guid: str | None = None
         if mapped_nom:
             # Get material number
             nom_number = mapped_nom.row_number
