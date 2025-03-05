@@ -1,6 +1,6 @@
 import re
 
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, status
 from loguru import logger
 from pandas import read_sql, DataFrame
 from pydantic import BaseModel
@@ -167,6 +167,9 @@ def update_mapping_results_list(
     session: Session,
     body: MappingResultUpdate,
 ) -> list[MappingResult]:
+    # Init fastapi background tasks
+    background_tasks = BackgroundTasks()
+
     # Check if Mapping Iteration exists
     iteration_id = body.iteration_id
     iteration = mapping_iteration_model.get_iteration_by_id(
@@ -196,15 +199,12 @@ def update_mapping_results_list(
 
         # Save result with feedback to Knowledge Base
         if is_utd_iteration:
-            llm_mapping_knowledge_base_model.save_to_knowledge_base(
+            # Save to knowledge base in Background Tasks
+            # instead of blocking request with long operations
+            background_tasks.add_task(
+                llm_mapping_knowledge_base_model.save_to_knowledge_base,
                 mapping_result=updated_result,
             )
-            # TODO: maybe save to knowledge base in background tasks
-            # background_tasks = BackgroundTasks()
-            # background_tasks.add_task(
-            #     llm_mapping_knowledge_base_model.save_to_knowledge_base,
-            #     updated_result,
-            # )
 
     # Set new status for Iteration
     if is_utd_iteration:
