@@ -27,11 +27,15 @@ def get_iteration_by_id(
     with Session(engine) as session:
         st = select(MappingIteration)
         st = st.where(MappingIteration.id == iteration_id)
-        st = st.options(
-            joinedload(MappingIteration.results),
-        )
+        st = st.options(joinedload(MappingIteration.results))
 
         iteration = session.exec(st).first()
+
+        if iteration.results:
+            iteration.results = sorted(
+                iteration.results,
+                key=lambda res: res.id,
+            )
 
         return iteration
 
