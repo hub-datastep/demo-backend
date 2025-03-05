@@ -13,4 +13,4 @@ class SimilarNomenclature(SQLModel):
     id: int
     name: str
     group: str | None = None
-    material_code: str
+    material_code: str | None = None
