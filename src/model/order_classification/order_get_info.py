@@ -3,15 +3,18 @@ from pathlib import Path
 import json
 
 from infra.env import env
+from util.json_serializing import serialize_obj
 
 
 def get_order_details(body: dict, url: str) -> None:
     now = datetime.now()
-    log_entry = {
-        "event_url": url,
-        "request_body": body,
-        "timestamp": now.isoformat(),
-    }
+    log_entry = serialize_obj(
+        {
+            "event_url": url,
+            "request_body": body,
+            "timestamp": now.isoformat(),
+        }
+    )
 
     now_date = now.date()
     log_file_path = f"{env.DATA_FOLDER_PATH}/orders-logs/orders-logs-{now_date}.json"
