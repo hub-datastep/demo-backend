@@ -199,12 +199,15 @@ def update_mapping_results_list(
 
         # Save result with feedback to Knowledge Base
         if is_utd_iteration:
-            # Save to knowledge base in Background Tasks
-            # instead of blocking request with long operations
-            background_tasks.add_task(
-                llm_mapping_knowledge_base_model.save_to_knowledge_base,
+            llm_mapping_knowledge_base_model.save_to_knowledge_base(
                 mapping_result=updated_result,
             )
+            # # TODO: Save to knowledge base in Background Tasks
+            # # instead of blocking request with long operations
+            # background_tasks.add_task(
+            #     llm_mapping_knowledge_base_model.save_to_knowledge_base,
+            #     mapping_result,
+            # )
 
     # Set new status for Iteration
     if is_utd_iteration:

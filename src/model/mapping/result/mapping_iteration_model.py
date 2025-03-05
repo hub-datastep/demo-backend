@@ -1,5 +1,4 @@
 from fastapi import HTTPException, status
-from loguru import logger
 
 from repository.mapping import mapping_iteration_repository
 from scheme.mapping.result.mapping_iteration_scheme import MappingIteration
@@ -25,8 +24,6 @@ def get_iteration_by_id(
 def create_or_update_iteration(
     iteration: MappingIteration,
 ) -> MappingIteration:
-    logger.debug(f"Mapping Iteration:\n{iteration}")
-
     try:
         # Try to get iteration by id
         db_iteration = get_iteration_by_id(iteration_id=iteration.id)

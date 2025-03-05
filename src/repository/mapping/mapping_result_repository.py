@@ -30,4 +30,5 @@ def update_result(
 ) -> MappingResult:
     session.merge(mapping_result)
     session.commit()
+    session.refresh(mapping_result)
     return mapping_result
