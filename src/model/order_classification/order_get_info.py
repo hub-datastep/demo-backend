@@ -23,7 +23,7 @@ def get_order_details(body: dict, url: str) -> None:
             logs = json.load(log_file)
             logs.append(log_entry)
             log_file.seek(0)
-            json.dump(logs, log_file)
+            json.dump(logs, log_file, ensure_ascii=False)
 
     # Create full path & log file & add log to it
     else:
@@ -35,4 +35,4 @@ def get_order_details(body: dict, url: str) -> None:
 
         # Save log
         with open(log_file_path, "w") as log_file:
-            json.dump([log_entry], log_file)
+            json.dump([log_entry], log_file, ensure_ascii=False)

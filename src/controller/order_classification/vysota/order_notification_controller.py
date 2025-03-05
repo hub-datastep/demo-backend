@@ -11,8 +11,9 @@ router = APIRouter()
 @router.post("/SLA_order_exec_time_violated")
 @router.post("/order_deadline_coming")
 @router.post("/order_new_message")
+@router.post("/order_status_updated")
 @version(1)
-def WebhookLog(
+def order_notifications(
     body: dict,
     request: Request,
     crm: str | None = None,
