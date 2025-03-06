@@ -2,6 +2,7 @@ import re
 from io import BytesIO
 from typing import Any, Generator
 
+from loguru import logger
 import pdfplumber
 from fastapi import HTTPException, status
 from pdfplumber import PDF
@@ -123,6 +124,7 @@ def extract_materials_from_pages(
             # Пропускаем пустые таблицы
             if not table:
                 continue
+            logger.debug(f"Table: {table}")
 
             # Индекс колонки с названием материала
             material_column_index: int | None = None
@@ -132,11 +134,13 @@ def extract_materials_from_pages(
             for i, row in enumerate(table):
                 # Предобработка ячейки строки
                 cleaned_row = [_clean_cell_value(cell) if cell else "" for cell in row]
+                logger.debug(f"Row: {cleaned_row}")
 
                 # Проверяем содержит ли строка ключевые слова заголовков
                 material_column_index = _get_material_column_index(
                     header_row=cleaned_row,
                 )
+                logger.debug(f"Material Column Index: {material_column_index}\n")
                 # Если в строке нашёлся заголовок названий материалов,
                 # то сохраняем все последующие строки этой таблицы
                 if material_column_index is not None:
@@ -148,18 +152,20 @@ def extract_materials_from_pages(
                 # Если в файле таблица с материалами разделена
                 # и следующей её части нет заголовков,
                 # то проверяем текущую строку по строке заголовков
-                # Check if any rows of material tables already added
-                elif combined_materials_tables_rows:
-                    # Check if current row length equal rows length in combined list
-                    # aka check if current row belongs to same table
-                    prev_material_row, material_column_index = (
-                        combined_materials_tables_rows[-1]
-                    )
-                    if len(cleaned_row) == len(prev_material_row):
-                        rows_with_materials = [
-                            (row, material_column_index) for row in table[i:]
-                        ]
-                        combined_materials_tables_rows.extend(rows_with_materials)
+                else:
+                    # Check if any rows of material tables already added
+                    if combined_materials_tables_rows:
+                        # Check if current row length equal rows length in combined list
+                        # aka check if current row belongs to same table
+                        prev_material_row, material_column_index = (
+                            combined_materials_tables_rows[-1]
+                        )
+                        if len(cleaned_row) == len(prev_material_row):
+                            rows_with_materials = [
+                                (row, material_column_index) for row in table[i:]
+                            ]
+                            combined_materials_tables_rows.extend(rows_with_materials)
+                            break
 
     # Извлечение данных из combined_table_rows с использованием header_indexes
     for row, material_column_index in combined_materials_tables_rows:
@@ -300,8 +306,12 @@ def extract_entities_with_params_and_noms(
 
 
 if __name__ == "__main__":
-    pdf_file = "/home/syrnnik/Downloads/unistroy/Универсальный_передаточный_документ_УПД_№00БФ_000074_от_19_02 (что-то не так было).pdf"
+    # 6 materials
+    # pdf_file = "/home/syrnnik/Downloads/unistroy/Универсальный_передаточный_документ_УПД_№00БФ_000074_от_19_02 (что-то не так было).pdf"
+    # 3 materials
     # pdf_file = "/home/syrnnik/Downloads/unistroy/LLMapper/UTDs for demo/УПД арматура №553516_101402 от 31.10.2023.pdf"
+    # 4 materials
+    pdf_file = "/home/syrnnik/Downloads/unistroy/UPDs-1000/UPDs/УПД №568016_101402 от 07.11.23.pdf"
 
     # Test only entities with params parsing
     # with pdfplumber.open(pdf_file) as pdf:
@@ -322,8 +332,8 @@ if __name__ == "__main__":
         pdf_file=pdf_file,
         idn_file_guid="test",
     ):
-        entity = entity.dict()
-        for key, val in entity.items():
+        entity_dict = entity.dict()
+        for key, val in entity_dict.items():
             if key == "nomenclatures_list":
                 print(f"{key}:")
                 for nom in val:
@@ -334,4 +344,5 @@ if __name__ == "__main__":
                             print(f"        {key1}: {val1}")
             else:
                 print(f"{key}: {val}, Type: {type(val)}")
+        print(f"Materials count: {len(entity.nomenclatures_list)}")
         print()
