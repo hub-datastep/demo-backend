@@ -21,6 +21,8 @@ class CreditSlipData(SQLModel):
     operation_kind: str
     # guid объекта строительства
     building_guid: str
+    # Название объекта строительства
+    building_name: str | None = None
     # guid Генерального Подрядчика(сейчас это константа)
     gen_contractor_guid: str
     # guid категории материалов
