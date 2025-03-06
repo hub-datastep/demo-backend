@@ -110,12 +110,12 @@ def extract_materials_from_pages(
     # Init materials list of all now from all passed pages
     materials_with_params_list: list[MaterialWithParams] = []
 
+    # Все строки таблицы с материалами
+    combined_materials_tables_rows: list[tuple[list[str | None], int]] = []
+
     # Parse PDF pages by numbers
     for page_number in pages_numbers_list:
         pdf_page = pdf.pages[page_number]
-
-        # Все строки таблицы с материалами
-        combined_materials_tables_rows: list[tuple[list[str | None], int]] = []
 
         # Перебираем все таблицы на странице, чтобы найти таблицу с материалами
         tables_list = pdf_page.extract_tables()
@@ -137,64 +137,80 @@ def extract_materials_from_pages(
                 material_column_index = _get_material_column_index(
                     header_row=cleaned_row,
                 )
-                # Если в строке нашлась колонка с названием материала,
+                # Если в строке нашёлся заголовок названий материалов,
                 # то сохраняем все последующие строки этой таблицы
                 if material_column_index is not None:
                     rows_with_materials = [
                         (row, material_column_index) for row in table[i + 1 :]
                     ]
                     combined_materials_tables_rows.extend(rows_with_materials)
+                    break
+                # Если в файле таблица с материалами разделена
+                # и следующей её части нет заголовков,
+                # то проверяем текущую строку по строке заголовков
+                # Check if any rows of material tables already added
+                elif combined_materials_tables_rows:
+                    # Check if current row length equal rows length in combined list
+                    # aka check if current row belongs to same table
+                    prev_material_row, material_column_index = (
+                        combined_materials_tables_rows[-1]
+                    )
+                    if len(cleaned_row) == len(prev_material_row):
+                        rows_with_materials = [
+                            (row, material_column_index) for row in table[i:]
+                        ]
+                        combined_materials_tables_rows.extend(rows_with_materials)
 
-        # Извлечение данных из combined_table_rows с использованием header_indexes
-        for row, material_column_index in combined_materials_tables_rows:
-            # Проверям, что колонка с материалом существует в строке
-            if material_column_index >= len(row):
-                continue
+    # Извлечение данных из combined_table_rows с использованием header_indexes
+    for row, material_column_index in combined_materials_tables_rows:
+        # Проверям, что колонка с материалом существует в строке
+        if material_column_index >= len(row):
+            continue
 
-            material_name = _clean_cell_value(row[material_column_index])
+        material_name = _clean_cell_value(row[material_column_index])
 
-            # Проверяем, что ячейка с названием материала не пустая
-            if not material_name:
-                continue
+        # Проверяем, что ячейка с названием материала не пустая
+        if not material_name:
+            continue
 
-            # Проверяем, что это действительно название материала
-            # Пока что проверить можем только за счёт длины строки
-            if len(material_name) <= 2:
-                continue
+        # Проверяем, что это действительно название материала
+        # Пока что проверить можем только за счёт длины строки
+        if len(material_name) <= 2:
+            continue
 
-            # Get params values by index from material index
-            quantity = row[material_column_index + 4]
-            price = row[material_column_index + 5]
-            cost = row[material_column_index + 6]
-            vat_rate = row[material_column_index + 8]
-            vat_amount = row[material_column_index + 9]
+        # Get params values by index from material index
+        quantity = row[material_column_index + 4]
+        price = row[material_column_index + 5]
+        cost = row[material_column_index + 6]
+        vat_rate = row[material_column_index + 8]
+        vat_amount = row[material_column_index + 9]
 
-            # Combined all params to Material with Params
-            parsed_material = MaterialWithParams(
-                idn_material_name=material_name,
-                quantity=format_param_value(
-                    param_value=quantity,
-                    to_number=True,
-                ),
-                price=format_param_value(
-                    param_value=price,
-                    to_number=True,
-                ),
-                cost=format_param_value(
-                    param_value=cost,
-                    to_number=True,
-                ),
-                vat_rate=format_param_value(
-                    param_value=vat_rate,
-                    to_number=True,
-                ),
-                vat_amount=format_param_value(
-                    param_value=vat_amount,
-                    to_number=True,
-                ),
-            )
+        # Combined all params to Material with Params
+        parsed_material = MaterialWithParams(
+            idn_material_name=material_name,
+            quantity=format_param_value(
+                param_value=quantity,
+                to_number=True,
+            ),
+            price=format_param_value(
+                param_value=price,
+                to_number=True,
+            ),
+            cost=format_param_value(
+                param_value=cost,
+                to_number=True,
+            ),
+            vat_rate=format_param_value(
+                param_value=vat_rate,
+                to_number=True,
+            ),
+            vat_amount=format_param_value(
+                param_value=vat_amount,
+                to_number=True,
+            ),
+        )
 
-            materials_with_params_list.append(parsed_material)
+        materials_with_params_list.append(parsed_material)
 
     # If no nomenclatures was parsed
     if len(materials_with_params_list) == 0:
@@ -284,7 +300,8 @@ def extract_entities_with_params_and_noms(
 
 
 if __name__ == "__main__":
-    pdf_file = "/home/syrnnik/Downloads/unistroy/Универсальный_передаточный_документ_УПД_№00БФ_000074_от_19_02 (ужас).pdf"
+    pdf_file = "/home/syrnnik/Downloads/unistroy/Универсальный_передаточный_документ_УПД_№00БФ_000074_от_19_02 (что-то не так было).pdf"
+    # pdf_file = "/home/syrnnik/Downloads/unistroy/LLMapper/UTDs for demo/УПД арматура №553516_101402 от 31.10.2023.pdf"
 
     # Test only entities with params parsing
     # with pdfplumber.open(pdf_file) as pdf:
