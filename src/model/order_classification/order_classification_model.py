@@ -116,6 +116,12 @@ def _get_order_details_by_id(order_id: int) -> OrderDetails:
             detail=f"OrderDetails GET: {response_data}",
         )
 
+    # * Just to save all order data to json-file
+    # * Uncomment this if you need to save all response data
+    # with open(f"order-{order_id}-details.json", "w") as f:
+    #     import json
+    #     json.dump(response_data, f, ensure_ascii=False)
+
     order_details = OrderDetails(**response_data)
     return order_details
 
@@ -608,7 +614,7 @@ if __name__ == "__main__":
     order_id = 3197122
 
     # order_details = _get_order_details_by_id(order_id)
-    # logger.debug(f"Order {order_id} details: {order_details}")
+    # logger.debug(f"Order '{order_id}' details: {order_details}")
 
     # order_query: str | None = None
     # for order_form in order_details.service.orderForm:
