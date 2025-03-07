@@ -110,9 +110,9 @@ def _get_ai_account_auth_token():
     Account for AI and classification.
     """
     return _get_auth_token(
-        username=DOMYLAND_AUTH_AI_ACCOUNT_EMAIL,
-        password=DOMYLAND_AUTH_AI_ACCOUNT_PASSWORD,
-        tenant_name=DOMYLAND_AUTH_AI_ACCOUNT_TENANT_NAME,
+        username=env.DOMYLAND_AUTH_AI_ACCOUNT_EMAIL,
+        password=env.DOMYLAND_AUTH_AI_ACCOUNT_PASSWORD,
+        tenant_name=env.DOMYLAND_AUTH_AI_ACCOUNT_TENANT_NAME,
     )
 
 
@@ -121,9 +121,9 @@ def _get_public_account_auth_token():
     Kind of Public Account for communication with residents.
     """
     return _get_auth_token(
-        username=DOMYLAND_AUTH_PUBLIC_ACCOUNT_EMAIL,
-        password=DOMYLAND_AUTH_PUBLIC_ACCOUNT_PASSWORD,
-        tenant_name=DOMYLAND_AUTH_PUBLIC_ACCOUNT_TENANT_NAME,
+        username=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_EMAIL,
+        password=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_PASSWORD,
+        tenant_name=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_TENANT_NAME,
     )
 
 
@@ -411,24 +411,30 @@ def classify_order(
         if is_saved_record_exists:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Order with ID {order_id} was already classified, "
-                       f"history record ID {saved_record.id}",
+                detail=(
+                    f"Order with ID {order_id} was already classified, "
+                    f"history record ID {saved_record.id}"
+                ),
             )
 
         # Check if order status is not "in progress"
         if order_status_id != OrderStatusID.PENDING:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Order with ID {order_id} has status ID {order_status_id}, "
-                       f"but status ID {OrderStatusID.PENDING} required",
+                detail=(
+                    f"Order with ID {order_id} has status ID {order_status_id}, "
+                    f"but status ID {OrderStatusID.PENDING} required"
+                ),
             )
 
         # Check if order is new (created)
         if alert_type_id != AlertTypeID.NEW_ORDER:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Order with ID {order_id} has alert type ID {alert_type_id}, "
-                       f"but status ID {AlertTypeID.NEW_ORDER} required",
+                detail=(
+                    f"Order with ID {order_id} has alert type ID {alert_type_id}, "
+                    f"but status ID {AlertTypeID.NEW_ORDER} required"
+                ),
             )
 
         config = get_default_config(
@@ -439,8 +445,10 @@ def classify_order(
         if config is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Default order classification config "
-                       f"(with ID {DEFAULT_CONFIG_ID} and client '{client}') not found",
+                detail=(
+                    f"Default order classification config "
+                    f"(with ID {DEFAULT_CONFIG_ID} and client '{client}') not found"
+                ),
             )
 
         config_id = config.id
@@ -501,8 +509,10 @@ def classify_order(
         if not is_order_address_exists or is_order_address_empty:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Order with ID {order_id} has no address, "
-                       f"cannot find responsible UDS",
+                detail=(
+                    f"Order with ID {order_id} has no address, "
+                    f"cannot find responsible UDS"
+                ),
             )
 
         # Get classes with rules from config
@@ -512,8 +522,10 @@ def classify_order(
         if rules_by_classes is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Classes with rules and params in config "
-                       f"with ID {config.id} not found"
+                detail=(
+                    f"Classes with rules and params in config "
+                    f"with ID {config.id} not found"
+                ),
             )
 
         # Run LLM to classify order
@@ -568,8 +580,10 @@ def classify_order(
             if responsible_uds is None:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"Cannot find responsible UDS for order "
-                           f"with ID {order_id} and address '{order_address}'",
+                    detail=(
+                        f"Cannot find responsible UDS for order "
+                        f"with ID {order_id} and address '{order_address}'"
+                    ),
                 )
 
             history_record.responsible_user_id = responsible_uds.user_id
