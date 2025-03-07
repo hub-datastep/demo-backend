@@ -623,24 +623,25 @@ def classify_order(
                     message=ORDER_PROCESSED_BY_AI_MESSAGE,
                 )
 
-                message_to_resident_template = config.message_to_resident_template
-                is_send_message_to_resident = (
-                    config.is_send_message_to_resident
-                    and message_to_resident_template is not None
-                )
-                resident = order_details.customer
-
-                # Send message to resident to show that order is processing
-                if is_send_message_to_resident:
-                    message_to_resident = _format_message_to_resident(
-                        template=message_to_resident_template,
-                        resident=resident,
-                    )
-
-                    _send_message_to_resident_chat(
-                        order_id=order_id,
-                        message=message_to_resident,
-                    )
+                # TODO: decide what to do with message to resident
+                # message_to_resident_template = config.message_to_resident_template
+                # is_send_message_to_resident = (
+                #     config.is_send_message_to_resident
+                #     and message_to_resident_template is not None
+                # )
+                # resident = order_details.customer
+                #
+                # # Send message to resident to show that order is processing
+                # if is_send_message_to_resident:
+                #     message_to_resident = _format_message_to_resident(
+                #         template=message_to_resident_template,
+                #         resident=resident,
+                #     )
+                #
+                #     _send_message_to_resident_chat(
+                #         order_id=order_id,
+                #         message=message_to_resident,
+                #     )
             # If skip order updating, set required fields with message with reason
             else:
                 request_body = {"result": disabled_field_msg}
