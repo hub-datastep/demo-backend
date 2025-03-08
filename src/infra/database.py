@@ -1,4 +1,5 @@
 from typing import Generator
+
 from sqlmodel import create_engine, SQLModel, Session
 
 from infra.env import env
@@ -23,5 +24,4 @@ def get_session() -> Generator[Session, None, None]:
 def create_session_by_db_con_str(db_con_str: str) -> Session:
     engine = create_engine(db_con_str)
     session = Session(engine)
-    return session
     return session

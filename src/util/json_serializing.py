@@ -13,10 +13,13 @@ def dataframe_serialer(obj: Any) -> str | None:
     return obj
 
 
-def serialize_obj(obj: SQLModel | BaseModel | dict) -> dict:
+def serialize_obj(obj: SQLModel | BaseModel | dict | None = None) -> dict:
     """
     Сериализует объект, делая их пригодными для сохранения в БД.
     """
+
+    if not obj:
+        return None
 
     # Convert custom schemas to dict
     obj_dict: dict
@@ -37,9 +40,14 @@ def serialize_obj(obj: SQLModel | BaseModel | dict) -> dict:
     return serialized_obj
 
 
-def serialize_objs_list(objs_list: list[SQLModel | dict]) -> list[dict]:
+def serialize_objs_list(
+    objs_list: list[SQLModel | dict] | None = None,
+) -> list[dict]:
     """
     Сериализует список объектов, делая их пригодными для сохранения в БД.
     """
+
+    if not objs_list:
+        return None
 
     return [serialize_obj(obj) for obj in objs_list]

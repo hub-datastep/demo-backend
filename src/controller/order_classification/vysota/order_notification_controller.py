@@ -1,7 +1,13 @@
-from model.order_classification import order_get_info
-from fastapi import APIRouter, status
-from fastapi_versioning import version
+from fastapi import status, APIRouter, Response
 from fastapi.requests import Request
+from fastapi_versioning import version
+from loguru import logger
+
+from model.order_classification import order_get_info
+from model.order_notification import order_notification_model
+from scheme.order_notification.order_notification_scheme import (
+    OrderNotificationRequestBody,
+)
 
 router = APIRouter()
 
@@ -11,7 +17,6 @@ router = APIRouter()
 @router.post("/SLA_order_exec_time_violated")
 @router.post("/order_deadline_coming")
 @router.post("/order_new_message")
-@router.post("/order_status_updated")
 @version(1)
 def order_notifications(
     body: dict,
@@ -26,3 +31,31 @@ def order_notifications(
     url = str(request.url)
     order_get_info.get_order_details(body=body, url=url)
     return status.HTTP_200_OK
+
+
+@router.post("/order_status_updated", response_model=OrderClassificationRecord)
+@version(1)
+def classify_order(
+    body: OrderNotificationRequestBody,
+    # Init response to return object and change status code if needed
+    response: Response,
+    crm: str | None = None,
+    client: str | None = None,
+):
+    """
+    Вебхук для обновления аварийности заявки в Домиленд.
+    """
+
+    logger.debug(f"OrderStatus Updated request body:\n{body}")
+
+    model_response = order_notification_model.classify_order(
+        body=body,
+        client=client,
+    )
+
+    response_status = status.HTTP_200_OK
+    if model_response.is_error:
+        response_status = status.HTTP_400_BAD_REQUEST
+    response.status_code = response_status
+
+    return model_response

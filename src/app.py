@@ -128,7 +128,11 @@ app.include_router(
     prefix="/embedding",
     tags=["Embedding"],
 )
-# app.include_router(synchronize_controller.router, tags=["synchronize"], prefix="/synchronize",)
+# app.include_router(
+#     synchronize_controller.router,
+#     tags=["synchronize"],
+#     prefix="/synchronize",
+# )
 app.include_router(
     chroma_collection_controller.router,
     prefix="/collection",
@@ -179,7 +183,7 @@ app.include_router(
     tags=["Solution Imitation"],
 )
 
-# Emergency Class
+# Order Classification
 # Vysota Service
 app.include_router(
     vysota_order_classification_controller.router,
@@ -189,7 +193,7 @@ app.include_router(
 app.include_router(
     vysota_order_notification_controller.router,
     prefix="/notification/orders",
-    tags=["Orders Notification"],
+    tags=["Orders Notifications"],
 )
 
 # Unistroy Kafka Mapping
@@ -236,8 +240,14 @@ app = VersionedFastAPI(
 
 
 # Built docs dir
-# app.mount("/mkdocs", StaticFiles(directory=Path(__file__).parent / ".." / "site", html=True),
-# name="mkdocs")
+# app.mount(
+#     "/mkdocs",
+#     StaticFiles(
+#         directory=Path(__file__).parent / ".." / "site",
+#         html=True,
+#     ),
+#     name="mkdocs",
+# )
 
 app.mount(
     "/static",

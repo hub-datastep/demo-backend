@@ -9,6 +9,8 @@ class OrderClassificationConfigBase(SQLModel):
     is_use_order_classification: bool | None = Field(default=False)
     is_use_order_updating: bool | None = Field(default=False)
     responsible_users: list[dict] | None = Field(default=None, sa_column=Column(JSONB))
+    # is_send_message_to_resident: bool | None = Field(default=False)
+    # message_to_resident_template: str | None = Field(default=None)
 
 
 class OrderClassificationConfig(OrderClassificationConfigBase, table=True):
@@ -28,8 +30,10 @@ class RulesWithParams(SQLModel):
 
 
 class ResponsibleUser(SQLModel):
+    # User ID in Domyland
     user_id: str
     name: str | None = None
+    order_class: str | None = None
     is_disabled: bool | None = None
 
 
