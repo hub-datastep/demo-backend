@@ -7,16 +7,6 @@ https://public-api.domyland.ru/sud-api/webhooks/exploitation/
 """
 
 
-class AlertTypeID:
-    NEW_ORDER = 1
-    UPDATE_ORDER_STATUS = 13
-
-
-class OrderStatusID:
-    PENDING = 1
-    IN_PROGRESS = 2
-
-
 class SummaryType:
     STRING = "string"
     RADIO = "radio"

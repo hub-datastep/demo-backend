@@ -1,22 +1,26 @@
 import re
-import time
 
-import requests
 from fastapi import HTTPException, status
 from loguru import logger
 
-from infra.env import env
-from infra.order_classification import WAIT_TIME_IN_SEC
+from infra.domyland.chats import send_message_to_internal_chat
+from infra.domyland.constants import (
+    AlertTypeID,
+    OrderStatusID,
+    RESPONSIBLE_DEPT_ID,
+    AI_USER_ID,
+    ORDER_PROCESSED_BY_AI_MESSAGE,
+)
+from infra.domyland.orders import get_order_details_by_id, update_order_status_details
 from llm.chain.order_multi_classification.order_multi_classification_chain import (
     get_order_class,
+)
+from model.order_classification.order_classification_config_model import (
+    get_order_classification_default_config,
 )
 from model.order_classification.order_classification_history_model import (
     get_saved_record_by_order_id,
     save_order_classification_record,
-)
-from repository.order_classification.order_classification_config_repository import (
-    get_default_config,
-    DEFAULT_CONFIG_ID,
 )
 from scheme.order_classification.order_classification_config_scheme import (
     RulesWithParams,
@@ -26,28 +30,11 @@ from scheme.order_classification.order_classification_history_scheme import (
     OrderClassificationRecord,
 )
 from scheme.order_classification.order_classification_scheme import (
-    AlertTypeID,
     OrderClassificationRequest,
-    OrderDetails,
-    OrderStatusID,
     SummaryTitle,
     SummaryType,
     Resident,
 )
-
-DOMYLAND_API_BASE_URL = "https://sud-api.domyland.ru"
-DOMYLAND_APP_NAME = "Datastep"
-
-# "Администрация" - DEPT ID 38
-RESPONSIBLE_DEPT_ID = 38
-
-# DataStep AI User ID - 15698
-AI_USER_ID = 15698
-
-ORDER_CLIENT_CHAT_TARGET_TYPE_ID = 2
-
-# Message to mark AI processed orders (in internal chat)
-ORDER_PROCESSED_BY_AI_MESSAGE = "ИИ классифицировал эту заявку как аварийную"
 
 
 def normalize_resident_request_string(query: str) -> str:
@@ -66,135 +53,6 @@ def normalize_resident_request_string(query: str) -> str:
     return fixed_spaces_query
 
 
-def _get_domyland_headers(auth_token: str | None = None):
-    if auth_token is None:
-        return {
-            "AppName": DOMYLAND_APP_NAME,
-        }
-
-    return {
-        "AppName": DOMYLAND_APP_NAME,
-        "Authorization": auth_token,
-    }
-
-
-def _get_auth_token(
-    username: str,
-    password: str,
-    tenant_name: str,
-) -> str:
-    req_body = {
-        "email": username,
-        "password": password,
-        "tenantName": tenant_name,
-    }
-
-    response = requests.post(
-        url=f"{DOMYLAND_API_BASE_URL}/auth",
-        json=req_body,
-        headers=_get_domyland_headers(),
-    )
-
-    if not response.ok:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=f"Domyland Auth: {response.text}",
-        )
-
-    auth_token = response.json()["token"]
-    return auth_token
-
-
-def _get_ai_account_auth_token():
-    """
-    Account for AI and classification.
-    """
-    return _get_auth_token(
-        username=env.DOMYLAND_AUTH_AI_ACCOUNT_EMAIL,
-        password=env.DOMYLAND_AUTH_AI_ACCOUNT_PASSWORD,
-        tenant_name=env.DOMYLAND_AUTH_AI_ACCOUNT_TENANT_NAME,
-    )
-
-
-def _get_public_account_auth_token():
-    """
-    Kind of Public Account for communication with residents.
-    """
-    return _get_auth_token(
-        username=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_EMAIL,
-        password=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_PASSWORD,
-        tenant_name=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_TENANT_NAME,
-    )
-
-
-def _get_order_details_by_id(order_id: int) -> OrderDetails:
-    # Authorize in Domyland API
-    auth_token = _get_ai_account_auth_token()
-
-    # Update order status
-    response = requests.get(
-        url=f"{DOMYLAND_API_BASE_URL}/initial-data/dispatcher/order-info/{order_id}",
-        headers=_get_domyland_headers(auth_token),
-    )
-    response_data = response.json()
-    # logger.debug(f"Order {order_id} details:\n{response_data}")
-
-    if not response.ok:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=f"OrderDetails GET: {response_data}",
-        )
-
-    # * Just to save all order data to json-file
-    # * Uncomment this if you need to save all response data
-    # with open(f"order-{order_id}-details.json", "w") as f:
-    #     import json
-    #     json.dump(response_data, f, ensure_ascii=False)
-
-    order_details = OrderDetails(**response_data)
-    return order_details
-
-
-# def _update_order_status(
-#     order_id: int,
-#     customer_id: int,
-#     place_id: int,
-#     event_id: int,
-#     building_id: int,
-#     order_data: list[OrderFormUpdate],
-# ):
-#     # Authorize in Domyland API
-#     auth_token = _get_auth_token()
-#
-#     order_data_dict = [data.dict() for data in order_data]
-#
-#     req_body = {
-#         "customerId": customer_id,
-#         "placeId": place_id,
-#         "eventId": event_id,
-#         "buildingId": building_id,
-#         "orderData": order_data_dict,
-#         # serviceTypeId == 1 is Аварийная заявка
-#         "serviceTypeId": 1,
-#     }
-#
-#     # Update order status
-#     response = requests.put(
-#         url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}",
-#         json=req_body,
-#         headers=_get_domyland_headers(auth_token),
-#     )
-#     response_data = response.json()
-#
-#     if not response.ok:
-#         raise HTTPException(
-#             status_code=response.status_code,
-#             detail=f"Order UPDATE: {response_data}",
-#         )
-#
-#     return response_data, req_body
-
-
 def _get_responsible_user_by_order_address(
     responsible_users_list: list[ResponsibleUserWithAddresses],
     order_address: str,
@@ -210,26 +68,6 @@ def _get_responsible_user_by_order_address(
     return None
 
 
-# def _get_order_status_details(order_id: int) -> dict:
-#     # Authorize in Domyland API
-#     auth_token = _get_auth_token()
-#
-#     # Update responsible user
-#     response = requests.get(
-#         url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}/status",
-#         headers=_get_domyland_headers(auth_token),
-#     )
-#     response_data = response.json()
-#
-#     if not response.ok:
-#         raise HTTPException(
-#             status_code=response.status_code,
-#             detail=f"Order status GET: {response_data}",
-#         )
-#
-#     return response_data
-
-
 def _get_class_params(
     rules_by_classes: dict,
     class_name_to_find: str,
@@ -242,127 +80,6 @@ def _get_class_params(
             return RulesWithParams(**params)
 
     return None
-
-
-def _update_order_status_details(
-    order_id: int,
-    responsible_dept_id: int,
-    order_status_id: int,
-    responsible_users_ids: list[int],
-    inspector_users_ids: list[int],
-) -> tuple[dict, dict]:
-    try:
-        # # Just save prev params in order status details
-        # prev_order_status_details = _get_order_status_details(order_id)
-
-        # Authorize in Domyland API
-        auth_token = _get_ai_account_auth_token()
-
-        req_body = {
-            # # Save all prev params from order status details (not needed to update)
-            # **prev_order_status_details,
-            # Update necessary params
-            "responsibleDeptId": responsible_dept_id,
-            "orderStatusId": order_status_id,
-            "responsibleUserIds": responsible_users_ids,
-            "inspectorIds": inspector_users_ids,
-        }
-
-        # Update responsible user
-        response = requests.put(
-            url=f"{DOMYLAND_API_BASE_URL}/orders/{order_id}/status",
-            json=req_body,
-            headers=_get_domyland_headers(auth_token),
-        )
-        response_data = response.json()
-
-        if not response.ok:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=f"Order status UPDATE: {response_data}",
-            )
-
-        return response_data, req_body
-
-    except Exception as e:
-        error_str = str(e)
-        logger.error(
-            f"Error occurred while updating order with ID {order_id}: {error_str}"
-        )
-        logger.error(f"Wait {WAIT_TIME_IN_SEC} sec and try again..")
-        time.sleep(WAIT_TIME_IN_SEC)
-
-        logger.error(f"Timeout passed, try update order with ID {order_id} again")
-        return _update_order_status_details(
-            order_id=order_id,
-            responsible_dept_id=responsible_dept_id,
-            order_status_id=order_status_id,
-            responsible_users_ids=responsible_users_ids,
-            inspector_users_ids=inspector_users_ids,
-        )
-
-
-def _send_message_to_internal_chat(
-    order_id: int,
-    message: str,
-) -> tuple[dict, dict]:
-    # Authorize in Domyland API
-    auth_token = _get_ai_account_auth_token()
-
-    req_body = {
-        "orderId": order_id,
-        "text": message,
-        "isImportant": False,
-    }
-
-    # Send message to internal chat
-    response = requests.post(
-        url=f"{DOMYLAND_API_BASE_URL}/order-comments",
-        json=req_body,
-        headers=_get_domyland_headers(auth_token),
-    )
-    response_data = response.json()
-
-    if not response.ok:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=f"Order internal chat POST: {response_data}",
-        )
-
-    return response_data, req_body
-
-
-def _send_message_to_resident_chat(
-    order_id: int,
-    message: str,
-) -> tuple[dict, dict]:
-    # Authorize in Domyland API
-    auth_token = _get_public_account_auth_token()
-
-    req_params = {
-        "targetId": order_id,
-        "targetTypeId": ORDER_CLIENT_CHAT_TARGET_TYPE_ID,
-    }
-    req_body = {
-        "text": message,
-    }
-
-    # Send message to internal chat
-    response = requests.post(
-        url=f"{DOMYLAND_API_BASE_URL}/chat",
-        json=req_body,
-        params=req_params,
-        headers=_get_domyland_headers(auth_token),
-    )
-    response_data = response.json()
-
-    if not response.ok:
-        raise HTTPException(
-            status_code=response.status_code,
-            detail=f"Order client chat POST: {response_data}",
-        )
-
-    return response_data, req_body
 
 
 def _format_message_to_resident(
@@ -417,7 +134,7 @@ def classify_order(
                 ),
             )
 
-        # Check if order status is not "in progress"
+        # Check if order status is "pending" ("Ожидание")
         if order_status_id != OrderStatusID.PENDING:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -427,7 +144,7 @@ def classify_order(
                 ),
             )
 
-        # Check if order is new (created)
+        # Check if event type is "new order"
         if alert_type_id != AlertTypeID.NEW_ORDER:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -437,19 +154,9 @@ def classify_order(
                 ),
             )
 
-        config = get_default_config(
+        config = get_order_classification_default_config(
             client=client,
         )
-
-        # Check if default config exists
-        if config is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=(
-                    f"Default order classification config "
-                    f"(with ID {DEFAULT_CONFIG_ID} and client '{client}') not found"
-                ),
-            )
 
         config_id = config.id
         # Is needed to classify order
@@ -457,8 +164,7 @@ def classify_order(
         # Is needed to update order in Domyland
         # (blocked by is_use_order_classification)
         is_use_order_updating = (
-            config.is_use_order_updating
-            and is_use_order_classification
+            config.is_use_order_updating and is_use_order_classification
         )
 
         # Message for response fields disabled by config
@@ -467,7 +173,7 @@ def classify_order(
         )
 
         # Get order details
-        order_details = _get_order_details_by_id(order_id)
+        order_details = get_order_details_by_id(order_id=order_id)
         history_record.order_details = order_details.dict()
 
         # Get resident query (comment)
@@ -501,9 +207,8 @@ def classify_order(
 
         # Check if resident address exists and not empty if enabled
         is_order_address_exists = order_address is not None
-        is_order_address_empty = (
-            is_order_address_exists
-            and not bool(order_address.strip())
+        is_order_address_empty = is_order_address_exists and not bool(
+            order_address.strip()
         )
 
         if not is_order_address_exists or is_order_address_empty:
@@ -596,7 +301,9 @@ def classify_order(
 
             is_use_order_with_this_class_updating = None
             if class_params is not None:
-                is_use_order_with_this_class_updating = class_params.is_use_order_updating
+                is_use_order_with_this_class_updating = (
+                    class_params.is_use_order_updating
+                )
 
             is_uds_disabled = responsible_uds.is_disabled
 
@@ -606,7 +313,7 @@ def classify_order(
                 and is_use_order_with_this_class_updating
                 and not is_uds_disabled
             ):
-                response, request_body = _update_order_status_details(
+                response, request_body = update_order_status_details(
                     order_id=order_id,
                     responsible_dept_id=RESPONSIBLE_DEPT_ID,
                     # Update order status to "В работе"
@@ -618,7 +325,7 @@ def classify_order(
                 )
 
                 # Mark order as processed by AI
-                _send_message_to_internal_chat(
+                send_message_to_internal_chat(
                     order_id=order_id,
                     message=ORDER_PROCESSED_BY_AI_MESSAGE,
                 )
@@ -701,9 +408,6 @@ if __name__ == "__main__":
     # Test order id - 3196509
     # Real order id - 3191519
     # order_id = 3197122
-
-    # order_details = _get_order_details_by_id(order_id)
-    # logger.debug(f"Order '{order_id}' details: {order_details}")
 
     # order_query: str | None = None
     # for order_form in order_details.service.orderForm:
