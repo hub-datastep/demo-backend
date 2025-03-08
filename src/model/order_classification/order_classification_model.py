@@ -347,7 +347,7 @@ def classify_order(
                 #
                 #     _send_message_to_resident_chat(
                 #         order_id=order_id,
-                #         message=message_to_resident,
+                #         text=message_to_resident,
                 #     )
             # If skip order updating, set required fields with message with reason
             else:
@@ -405,9 +405,11 @@ def classify_order(
 
 
 if __name__ == "__main__":
-    # Test order id - 3196509
-    # Real order id - 3191519
-    # order_id = 3197122
+    # Test orders IDs
+    order_id = 3197122
+    # order_id = 3196509
+    # Real orders IDs
+    # order_id = 3191519
 
     # order_query: str | None = None
     # for order_form in order_details.service.orderForm:
@@ -439,10 +441,3 @@ if __name__ == "__main__":
     # df = DataFrame(responsible_uds_list)
     # df["address_list"] = df["address_list"].apply(lambda x: "\n".join(x))
     # df.to_excel(f"./ЕДС c адресам {datetime.now()}.xlsx", index=False)
-
-    # Order ID for client chat test
-    order_id = 3301805
-    # _send_message_to_resident_chat(
-    #     order_id=order_id,
-    #     message="Test message",
-    # )

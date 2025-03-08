@@ -31,6 +31,16 @@ class OrderSummary(SQLModel):
     value: str | int | None = None
 
 
+class OrderFile(SQLModel):
+    id: int
+    fileTypeId: int | None = None
+    name: str | None = ""
+    originalName: str | None = ""
+    mime: str | None = ""
+    url: str | None = ""
+    isRemovable: int | None = None
+
+
 class OrderResponsibleUser(SQLModel):
     id: int
     fullName: str | None = ""
@@ -51,10 +61,17 @@ class Order(SQLModel):
     buildingId: int
     customerId: int
     placeId: int
+    # Order Params from Resident
     summary: list[OrderSummary]
+    # Files pinned to order from Responsible Users
+    files: list[OrderFile] | None = []
+    # Status Updates History
     statusHistory: list[OrderStatusHistory] | None = []
+    # Current Responsible Users
     responsibleUsers: list[OrderResponsibleUser] | None = []
+    # Current Status ID
     orderStatusId: int | None = None
+    # Current Status Comment
     orderStatusComment: str | None = ""
 
 
@@ -118,3 +135,7 @@ class OrderClassificationLLMResponse(SQLModel):
     most_relevant_class_response: MostRelevantClassLLMResponse
     scores: str
     query_summary: str
+
+
+class MessageFileToSend(SQLModel):
+    fileName: str

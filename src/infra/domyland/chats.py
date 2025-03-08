@@ -10,6 +10,8 @@ from infra.domyland.constants import (
     DOMYLAND_API_BASE_URL,
     ORDER_CLIENT_CHAT_TARGET_TYPE_ID,
 )
+from scheme.order_classification.order_classification_scheme import MessageFileToSend
+from util.json_serializing import serialize_objs_list
 
 
 def send_message_to_internal_chat(
@@ -49,7 +51,8 @@ def send_message_to_internal_chat(
 
 def send_message_to_resident_chat(
     order_id: int,
-    message: str,
+    text: str | None = None,
+    files: list[MessageFileToSend] | None = None,
 ) -> tuple[dict, dict]:
     """
     Send message to chat with resident in order.
@@ -64,7 +67,8 @@ def send_message_to_resident_chat(
         "targetTypeId": ORDER_CLIENT_CHAT_TARGET_TYPE_ID,
     }
     req_body = {
-        "text": message,
+        "text": text,
+        "files": serialize_objs_list(files),
     }
 
     # Send message to internal chat
@@ -83,3 +87,22 @@ def send_message_to_resident_chat(
         )
 
     return response_data, req_body
+
+
+if __name__ == "__main__":
+    # Test Order ID with chat
+    order_id = 3301805
+
+    # Message Text
+    text = "Test message"
+
+    # List of files names from Domyland
+    files_names = [
+        "659b2959e8ec468cacb11611b7651c7f.jpg",
+    ]
+
+    send_message_to_resident_chat(
+        order_id=order_id,
+        text=text,
+        files=[MessageFileToSend(fileName=name) for name in files_names],
+    )

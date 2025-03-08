@@ -12,6 +12,10 @@ from scheme.order_notification.order_notification_scheme import OrderStatusDetai
 
 
 def get_order_details_by_id(order_id: int) -> OrderDetails:
+    """
+    Получение всех данных о заявке по её ID.
+    """
+
     # Authorize in Domyland API
     auth_token = get_ai_account_auth_token()
 
@@ -134,9 +138,13 @@ def update_order_status_details(
 
 
 if __name__ == "__main__":
-    order_id = 3197122
+    # Test Order
+    # order_id = 3197122
+    # Real Order with Photos from Cleaning Account
+    order_id = 3198517
 
     # order_details = get_order_details_by_id(order_id)
     # logger.debug(f"Order {order_id} details: {order_details}")
 
-    order_status_details = get_order_status_details_by_id(order_id)
+    # order_status_details = get_order_status_details_by_id(order_id)
+    # logger.debug(f"Order {order_id} status details: {order_status_details}")
