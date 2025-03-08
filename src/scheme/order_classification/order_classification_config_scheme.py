@@ -30,8 +30,10 @@ class RulesWithParams(SQLModel):
 
 
 class ResponsibleUser(SQLModel):
+    # User ID in Domyland
     user_id: str
     name: str | None = None
+    order_class: str | None = None
     is_disabled: bool | None = None
 
 
