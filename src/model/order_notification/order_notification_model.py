@@ -103,6 +103,8 @@ def process_event(
     order_files = order_details.order.files
     is_files_exists = order_files is not None and len(order_files) > 0
 
-    # TODO: do actions for "cleaning-order finished"
+    # TODO: Generate message about cleaning results with LLM
+    # TODO: Send LLM-generated message about cleaning results
+    # TODO: Update Order status to "Completed"
 
     return
