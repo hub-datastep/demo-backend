@@ -99,6 +99,10 @@ def process_event(
         and (is_transfer_account_in_responsible_users or is_status_comment_exists)
     )
 
+    # Check if order has pinned files from Responsible Users
+    order_files = order_details.order.files
+    is_files_exists = order_files is not None and len(order_files) > 0
+
     # TODO: do actions for "cleaning-order finished"
 
     return
