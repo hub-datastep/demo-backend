@@ -31,6 +31,19 @@ class OrderSummary(SQLModel):
     value: str | int | None = None
 
 
+class OrderResponsibleUser(SQLModel):
+    id: int
+    fullName: str | None = ""
+    lastName: str | None = None
+    firstName: str | None = None
+
+
+class OrderStatusHistory(SQLModel):
+    responsibleDeptId: int | None = None
+    orderStatusId: int | None = None
+    responsibleUsers: list[OrderResponsibleUser] | None = []
+
+
 class Order(SQLModel):
     id: int
     serviceId: int
@@ -39,6 +52,10 @@ class Order(SQLModel):
     customerId: int
     placeId: int
     summary: list[OrderSummary]
+    statusHistory: list[OrderStatusHistory] | None = []
+    responsibleUsers: list[OrderResponsibleUser] | None = []
+    orderStatusId: int | None = None
+    orderStatusComment: str | None = ""
 
 
 class OrderForm(SQLModel):
