@@ -3,12 +3,16 @@ import time
 import requests
 from fastapi import HTTPException
 from loguru import logger
+from scheme.order_classification.order_classification_scheme import (
+    OrderDetails,
+    SummaryTitle,
+    SummaryType,
+)
+from scheme.order_notification.order_notification_scheme import OrderStatusDetails
 
 from infra.domyland.auth import get_ai_account_auth_token, get_domyland_headers
 from infra.domyland.constants import DOMYLAND_API_BASE_URL
 from infra.order_classification import WAIT_TIME_IN_SEC
-from scheme.order_classification.order_classification_scheme import OrderDetails
-from scheme.order_notification.order_notification_scheme import OrderStatusDetails
 
 
 def get_order_details_by_id(order_id: int) -> OrderDetails:
@@ -48,6 +52,24 @@ def get_order_details_by_id(order_id: int) -> OrderDetails:
     return order_details
 
 
+def get_query_from_order_details(order_details: OrderDetails) -> str | None:
+    """
+    Extract resident query from order details.
+    """
+
+    # Get resident order query
+    order_query: str | None = None
+    for order_form in order_details.service.orderForm:
+        if (
+            order_form.type == SummaryType.TEXT
+            and order_form.title == SummaryTitle.COMMENT
+        ):
+            order_query = order_form.value
+            break
+
+    return order_query
+
+
 def get_order_status_details_by_id(order_id: int) -> OrderStatusDetails:
     # Authorize in Domyland API
     auth_token = get_ai_account_auth_token()
@@ -83,6 +105,7 @@ def update_order_status_details(
     order_status_id: int,
     responsible_users_ids: list[int],
     inspector_users_ids: list[int],
+    prev_status_comment: str | None = None,
 ) -> tuple[dict, dict]:
     try:
         # # Just save prev params in order status details
@@ -101,6 +124,7 @@ def update_order_status_details(
             "orderStatusId": order_status_id,
             "responsibleUserIds": responsible_users_ids,
             "inspectorIds": inspector_users_ids,
+            "orderStatusComment": prev_status_comment,
         }
 
         # Update responsible user

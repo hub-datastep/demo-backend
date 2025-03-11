@@ -179,7 +179,8 @@ def classify_order(
         order_details = get_order_details_by_id(order_id=order_id)
         history_record.order_details = order_details.dict()
 
-        # Get resident query (comment)
+        # TODO: use get_query_from_order_details instead
+        # Get resident order query
         order_query: str | None = None
         for order_form in order_details.service.orderForm:
             if (
