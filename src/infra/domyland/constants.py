@@ -17,6 +17,11 @@ class OrderClass:
     CLEANING = "Клининг"
 
 
+class MessageTemplateName:
+    INITIAL = "Первичная Отбивка"
+    CLEANING_RESULTS = "Результаты Работы Клининга"
+
+
 # API
 DOMYLAND_API_BASE_URL = "https://sud-api.domyland.ru"
 

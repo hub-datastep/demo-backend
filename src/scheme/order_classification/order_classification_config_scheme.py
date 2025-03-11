@@ -1,6 +1,6 @@
 from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import Field, Relationship, SQLModel
 
 
 class OrderClassificationConfigBase(SQLModel):
@@ -8,9 +8,9 @@ class OrderClassificationConfigBase(SQLModel):
     client: str | None = Field(default=None)
     is_use_order_classification: bool | None = Field(default=False)
     is_use_order_updating: bool | None = Field(default=False)
+    is_use_send_message: bool | None = Field(default=False)
     responsible_users: list[dict] | None = Field(default=None, sa_column=Column(JSONB))
-    # is_send_message_to_resident: bool | None = Field(default=False)
-    # message_to_resident_template: str | None = Field(default=None)
+    messages_templates: list[dict] | None = Field(default=None, sa_column=Column(JSONB))
 
 
 class OrderClassificationConfig(OrderClassificationConfigBase, table=True):
@@ -39,6 +39,19 @@ class ResponsibleUser(SQLModel):
 
 class ResponsibleUserWithAddresses(ResponsibleUser):
     address_list: list[str]
+
+
+class MessageTemplate(SQLModel):
+    # Название шаблона
+    name: str | None = None
+    # Описание шаблона
+    description: str | None = None
+    # Текст шаблона
+    template_text: str | None = None
+    # Можно ли использовать шаблон или нет
+    is_disabled: bool | None = None
+    # Классы заявок, для которых можно использовать шаблон
+    order_classes: list[str] | None = []
 
 
 from scheme.user.user_scheme import User

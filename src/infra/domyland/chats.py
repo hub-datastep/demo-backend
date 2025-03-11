@@ -1,5 +1,10 @@
 import requests
 from fastapi import HTTPException
+from scheme.order_classification.order_classification_config_scheme import (
+    MessageTemplate,
+)
+from scheme.order_classification.order_classification_scheme import MessageFileToSend
+from util.json_serializing import serialize_objs_list
 
 from infra.domyland.auth import (
     get_ai_account_auth_token,
@@ -10,8 +15,6 @@ from infra.domyland.constants import (
     DOMYLAND_API_BASE_URL,
     ORDER_CLIENT_CHAT_TARGET_TYPE_ID,
 )
-from scheme.order_classification.order_classification_scheme import MessageFileToSend
-from util.json_serializing import serialize_objs_list
 
 
 def send_message_to_internal_chat(
@@ -87,6 +90,27 @@ def send_message_to_resident_chat(
         )
 
     return response_data, req_body
+
+
+def get_message_template(
+    templates_list: list[MessageTemplate],
+    template_name: str | None = None,
+) -> MessageTemplate | None:
+    """
+    Get message template from list by name.
+    """
+
+    found_template: MessageTemplate | None = None
+    for template in templates_list:
+        if (
+            template_name
+            and template_name in template.name
+            and not template.is_disabled
+        ):
+            found_template = template
+            break
+
+    return found_template
 
 
 if __name__ == "__main__":
