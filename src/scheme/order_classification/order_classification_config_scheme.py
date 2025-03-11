@@ -47,7 +47,7 @@ class MessageTemplate(SQLModel):
     # Описание шаблона
     description: str | None = None
     # Текст шаблона
-    template_text: str | None = None
+    text: str | None = None
     # Можно ли использовать шаблон или нет
     is_disabled: bool | None = None
     # Классы заявок, для которых можно использовать шаблон

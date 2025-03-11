@@ -1,30 +1,30 @@
 import re
 
 from fastapi import HTTPException, status
-from loguru import logger
 
-from infra.domyland.chats import send_message_to_internal_chat
+from infra.domyland.chats import (
+    get_message_template,
+    send_message_to_internal_chat,
+    send_message_to_resident_chat,
+)
 from infra.domyland.constants import (
+    AI_USER_ID,
     AlertTypeID,
+    MessageTemplateName,
+    ORDER_PROCESSED_BY_AI_MESSAGE,
+    OrderClass,
     OrderStatusID,
     RESPONSIBLE_DEPT_ID,
-    AI_USER_ID,
-    ORDER_PROCESSED_BY_AI_MESSAGE,
 )
 from infra.domyland.orders import get_order_details_by_id, update_order_status_details
 from llm.chain.order_multi_classification.order_multi_classification_chain import (
     get_order_class,
 )
-from model.order_classification.order_classification_config_model import (
-    get_order_classification_default_config,
-)
-from model.order_classification.order_classification_history_model import (
-    get_saved_record_by_order_id,
-    save_order_classification_record,
-)
+from loguru import logger
 from scheme.order_classification.order_classification_config_scheme import (
-    RulesWithParams,
+    MessageTemplate,
     ResponsibleUserWithAddresses,
+    RulesWithParams,
 )
 from scheme.order_classification.order_classification_history_scheme import (
     OrderClassificationRecord,
@@ -33,11 +33,26 @@ from scheme.order_classification.order_classification_scheme import (
     OrderClassificationRequest,
     SummaryTitle,
     SummaryType,
-    Resident,
+)
+
+from model.order_classification.order_classification_config_model import (
+    get_order_classification_default_config,
+)
+from model.order_classification.order_classification_history_model import (
+    get_saved_record_by_order_id,
+    save_order_classification_record,
 )
 
 
 def normalize_resident_request_string(query: str) -> str:
+    """
+    Убирает из текста заявки лишние части:
+    - Переносы строк.
+    - Секцию для фото.
+    - Ссылки.
+    - Лишние пробелы.
+    """
+
     # Remove \n symbols
     removed_line_breaks_query = query.replace("\n", " ")
 
@@ -57,6 +72,10 @@ def _get_responsible_user_by_order_address(
     responsible_users_list: list[ResponsibleUserWithAddresses],
     order_address: str,
 ) -> ResponsibleUserWithAddresses | None:
+    """
+    Ищет в списке Исполнителя, у которого есть нужный адрес.
+    """
+
     for responsible_user in responsible_users_list:
         addresses_list = responsible_user.address_list
 
@@ -80,22 +99,6 @@ def _get_class_params(
             return RulesWithParams(**params)
 
     return None
-
-
-def _format_message_to_resident(
-    template: str,
-    resident: Resident,
-) -> str:
-    """
-    Format message to resident with its data.
-    """
-
-    resident_name = f"{resident.firstName} {resident.lastName}"
-
-    formatted_msg = template.format(
-        resident_name=resident_name,
-    )
-    return formatted_msg
 
 
 def classify_order(
@@ -258,7 +261,9 @@ def classify_order(
         # TODO: decide what to do with every class
         is_emergency = None
         if is_use_order_classification:
-            is_emergency = order_class.strip() == "аварийная"
+            is_emergency = (
+                order_class.lower().strip() == OrderClass.EMERGENCY.lower().strip()
+            )
 
         # TODO: update 'is_emergency' param usage
 
@@ -307,7 +312,8 @@ def classify_order(
 
             is_uds_disabled = responsible_uds.is_disabled
 
-            # Update order responsible user is enabled
+            # Update order responsible user if enabled
+            # And send message
             if (
                 is_use_order_updating
                 and is_use_order_with_this_class_updating
@@ -330,25 +336,41 @@ def classify_order(
                     message=ORDER_PROCESSED_BY_AI_MESSAGE,
                 )
 
-                # TODO: decide what to do with message to resident
-                # message_to_resident_template = config.message_to_resident_template
-                # is_send_message_to_resident = (
-                #     config.is_send_message_to_resident
-                #     and message_to_resident_template is not None
-                # )
-                # resident = order_details.customer
-                #
-                # # Send message to resident to show that order is processing
-                # if is_send_message_to_resident:
-                #     message_to_resident = _format_message_to_resident(
-                #         template=message_to_resident_template,
-                #         resident=resident,
-                #     )
-                #
-                #     _send_message_to_resident_chat(
-                #         order_id=order_id,
-                #         text=message_to_resident,
-                #     )
+                # Send initial message to resident chat in order if enabled
+                is_use_send_message = config.is_use_send_message
+                if is_use_send_message:
+                    # Get template from config
+                    templates_list = [
+                        MessageTemplate(**template)
+                        for template in config.messages_templates
+                    ]
+                    template_name = MessageTemplateName.INITIAL
+                    message_template = get_message_template(
+                        templates_list=templates_list,
+                        template_name=template_name,
+                    )
+
+                    # Check if template exists and enabled
+                    if not message_template:
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail=(
+                                f"Message template with name '{template_name}' "
+                                "not found or disabled or empty"
+                            ),
+                        )
+
+                    # Send message to resident to show that order is processing
+                    message_text = message_template.text
+                    send_message_to_resident_chat(
+                        order_id=order_id,
+                        text=message_text,
+                    )
+                else:
+                    history_record.comment = (
+                        "Message not sent because disabled in config"
+                    )
+
             # If skip order updating, set required fields with message with reason
             else:
                 request_body = {"result": disabled_field_msg}
@@ -406,8 +428,10 @@ def classify_order(
 
 if __name__ == "__main__":
     # Test orders IDs
-    order_id = 3197122
+    # order_id = 3197122
     # order_id = 3196509
+    # Test orders with chat IDs
+    order_id = 3301805
     # Real orders IDs
     # order_id = 3191519
 
@@ -425,13 +449,13 @@ if __name__ == "__main__":
     #     if summary.title == SummaryTitle.OBJECT:
     #         order_address = summary.value
     # logger.debug(f"Order {order_id} address: {order_address}")
-    #
+
     # users_ids_list = _get_responsible_users_ids_by_order_address(order_address)
     # logger.debug(f"Responsible users IDs: {users_ids_list}")
 
-    # config = get_default_config()
+    # config = get_order_classification_default_config()
     # logger.debug(f"Order Classification config:\n{config}\n")
-    #
+
     # responsible_uds_list = [
     #     UDS(**responsible_uds)
     #     for responsible_uds in config.responsible_users
@@ -441,3 +465,34 @@ if __name__ == "__main__":
     # df = DataFrame(responsible_uds_list)
     # df["address_list"] = df["address_list"].apply(lambda x: "\n".join(x))
     # df.to_excel(f"./ЕДС c адресам {datetime.now()}.xlsx", index=False)
+
+    # try:
+    #     # Get template from config
+    #     templates_list = [
+    #         MessageTemplate(**template) for template in config.messages_templates
+    #     ]
+    #     logger.debug(f"Messages Templates: {templates_list}")
+    #     template_name = MessageTemplateName.INITIAL
+    #     message_template = get_message_template(
+    #         templates_list=templates_list,
+    #         template_name=template_name,
+    #     )
+
+    #     # Check if template exists and enabled
+    #     if not message_template:
+    #         raise HTTPException(
+    #             status_code=status.HTTP_404_NOT_FOUND,
+    #             detail=(
+    #                 f"Message template with name '{template_name}' "
+    #                 "not found or disabled or empty"
+    #             ),
+    #         )
+
+    #     # Send message to resident to show that order is processing
+    #     message_text = message_template.text
+    #     send_message_to_resident_chat(
+    #         order_id=order_id,
+    #         text=message_text,
+    #     )
+    # except HTTPException as e:
+    #     logger.error(f"{e.detail}")

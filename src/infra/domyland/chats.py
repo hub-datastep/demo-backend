@@ -94,7 +94,7 @@ def send_message_to_resident_chat(
 
 def get_message_template(
     templates_list: list[MessageTemplate],
-    template_name: str | None = None,
+    template_name: str,
 ) -> MessageTemplate | None:
     """
     Get message template from list by name.
@@ -103,9 +103,11 @@ def get_message_template(
     found_template: MessageTemplate | None = None
     for template in templates_list:
         if (
-            template_name
-            and template_name in template.name
+            template_name.strip()
+            and template_name.lower().strip() in template.name.lower().strip()
             and not template.is_disabled
+            and template.text
+            and template.text.strip()
         ):
             found_template = template
             break
