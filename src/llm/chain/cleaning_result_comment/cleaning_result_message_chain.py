@@ -189,7 +189,7 @@ if __name__ == "__main__":
 
     test_cases["Сообщение от LLM"] = None
     test_cases["Пояснение к Сообщению"] = None
-    test_cases["order_status_comment"] = None
+    test_cases["Отфильтрованный Коммент Исполнителя"] = None
     for i, case in tqdm(
         test_cases.iterrows(),
         desc="Generate Message",
@@ -208,7 +208,7 @@ if __name__ == "__main__":
         )
         case["Сообщение от LLM"] = response.message
         case["Пояснение к Сообщению"] = response.comment
-        case["order_status_comment"] = response.order_status_comment
+        case["Отфильтрованный Коммент Исполнителя"] = response.filtered_comment
 
         test_cases.loc[i] = case
 
