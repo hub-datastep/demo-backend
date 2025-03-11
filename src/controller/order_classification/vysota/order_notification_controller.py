@@ -1,10 +1,13 @@
-from fastapi import status, APIRouter, Response
+from fastapi import APIRouter, Response, status
 from fastapi.requests import Request
 from fastapi_versioning import version
 from loguru import logger
 
 from model.order_classification import order_get_info
 from model.order_notification import order_notification_model
+from scheme.order_notification.order_notification_logs_scheme import (
+    OrderNotificationLog,
+)
 from scheme.order_notification.order_notification_scheme import (
     OrderNotificationRequestBody,
 )
@@ -33,7 +36,7 @@ def order_notifications(
     return status.HTTP_200_OK
 
 
-@router.post("/order_status_updated", response_model=OrderClassificationRecord)
+@router.post("/order_status_updated", response_model=OrderNotificationLog)
 @version(1)
 def classify_order(
     body: OrderNotificationRequestBody,
@@ -43,12 +46,12 @@ def classify_order(
     client: str | None = None,
 ):
     """
-    Вебхук для обновления аварийности заявки в Домиленд.
+    Вебхук для ивента "Статус Заявки Обновлён" в Домиленд.
     """
 
     logger.debug(f"OrderStatus Updated request body:\n{body}")
 
-    model_response = order_notification_model.classify_order(
+    model_response = order_notification_model.process_event(
         body=body,
         client=client,
     )
