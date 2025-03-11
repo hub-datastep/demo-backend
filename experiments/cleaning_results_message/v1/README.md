@@ -20,3 +20,5 @@ LLM для написания ответа для жителя в чате в з
 [Гугл Таблица с заявками из FigJam](https://docs.google.com/spreadsheets/d/1_FtWPwR1s6B89eFQz6zXJrWdy2liM9J9/edit?gid=2009465560#gid=2009465560)
 
 [Эпик в Notion](https://www.notion.so/krenels/196af01b43d2803d8746c831c8a1c48d#1acaf01b43d280ab9542c5d730e5f677)
+
+[Гугл Таблица с результатами](https://docs.google.com/spreadsheets/d/1LQtupeBLsXBJ4UM7T5grCpHsCyvH5MxctQczcDyfQ5I/edit?gid=1479997960#gid=1479997960)
