@@ -110,7 +110,7 @@ def process_event(
             if user.id == TRANSFER_ACCOUNT_ID:
                 is_transfer_account_in_responsible_users = True
                 break
-            if "клининг" in user.fullName:
+            if "клининг" in user.fullName.lower():
                 is_cleaning_account_in_responsible_users = True
                 break
 
@@ -126,7 +126,7 @@ def process_event(
         order_history = order_details.order.statusHistory
         for record in order_history:
             for user in record.responsibleUsers:
-                if "клининг" in user.fullName:
+                if "клининг" in user.fullName.lower():
                     is_cleaning_account_was_in_responsible_users = True
                     break
 
@@ -280,7 +280,7 @@ def process_event(
 
     # logger.debug(f"Order Notification Log:\n{log_record}")
     log_record = save_order_notification_log_record(
-        record=log_record,
+        log_record=log_record,
         client=client,
     )
 
