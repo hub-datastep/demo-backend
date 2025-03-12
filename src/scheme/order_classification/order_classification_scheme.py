@@ -110,7 +110,7 @@ class OrderDetails(SQLModel):
     order: Order
     # List of order params
     service: Service
-    customer: Resident
+    # customer: Resident
 
 
 class OrderData(SQLModel):
