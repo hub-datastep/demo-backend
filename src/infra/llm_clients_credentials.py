@@ -1,8 +1,9 @@
 from fastapi import HTTPException, status
 from langchain_openai import AzureChatOpenAI
+from loguru import logger
+from scheme.order_classification.client_credentials_scheme import ClientCredentials
 
 from infra.env import env
-from scheme.order_classification.client_credentials_scheme import ClientCredentials
 
 
 class Client:
@@ -40,6 +41,7 @@ def _get_client_credentials(client: str) -> ClientCredentials:
         )
 
     credentials = ClientCredentials(**LLM_CLIENTS_CREDENTIALS[client])
+    logger.info(f"LLM Credentials: using '{client}' client Azure OpenAI Credentials")
 
     return credentials
 
@@ -51,12 +53,18 @@ def _get_default_deployment_by_service(
     Получает название деплоймента по сервису, которые мы предоставляем.
     """
 
-    if service == Service.ORDER_CLASSIFICATION:
-        return env.AZURE_DEPLOYMENT_NAME_ORDER_CLASSIFICATION
-    elif service == Service.MAPPING:
-        return env.AZURE_DEPLOYMENT_NAME_MAPPING
+    deployment_name = None
 
-    return None
+    if service == Service.ORDER_CLASSIFICATION:
+        deployment_name = env.AZURE_DEPLOYMENT_NAME_ORDER_CLASSIFICATION
+    elif service == Service.MAPPING:
+        deployment_name = env.AZURE_DEPLOYMENT_NAME_MAPPING
+
+    logger.info(
+        f"LLM Credentials: using default Azure OpenAI Credentials (deployment: '{deployment_name}')"
+    )
+
+    return deployment_name
 
 
 def get_llm_by_client_credentials(

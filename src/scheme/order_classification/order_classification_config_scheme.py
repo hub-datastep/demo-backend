@@ -1,6 +1,6 @@
 from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlmodel import SQLModel, Field, Relationship
+from sqlmodel import Field, Relationship, SQLModel
 
 
 class OrderClassificationConfigBase(SQLModel):
@@ -8,7 +8,9 @@ class OrderClassificationConfigBase(SQLModel):
     client: str | None = Field(default=None)
     is_use_order_classification: bool | None = Field(default=False)
     is_use_order_updating: bool | None = Field(default=False)
+    is_use_send_message: bool | None = Field(default=False)
     responsible_users: list[dict] | None = Field(default=None, sa_column=Column(JSONB))
+    messages_templates: list[dict] | None = Field(default=None, sa_column=Column(JSONB))
 
 
 class OrderClassificationConfig(OrderClassificationConfigBase, table=True):
@@ -28,13 +30,28 @@ class RulesWithParams(SQLModel):
 
 
 class ResponsibleUser(SQLModel):
+    # User ID in Domyland
     user_id: str
     name: str | None = None
+    order_class: str | None = None
     is_disabled: bool | None = None
 
 
 class ResponsibleUserWithAddresses(ResponsibleUser):
     address_list: list[str]
+
+
+class MessageTemplate(SQLModel):
+    # Название шаблона
+    name: str | None = None
+    # Описание шаблона
+    description: str | None = None
+    # Текст шаблона
+    text: str | None = None
+    # Можно ли использовать шаблон или нет
+    is_disabled: bool | None = None
+    # Классы заявок, для которых можно использовать шаблон
+    order_classes: list[str] | None = []
 
 
 from scheme.user.user_scheme import User

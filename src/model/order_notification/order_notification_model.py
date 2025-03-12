@@ -1,0 +1,287 @@
+from fastapi import HTTPException, status
+
+from infra.domyland.chats import get_message_template, send_message_to_resident_chat
+from infra.domyland.constants import (
+    AI_USER_ID,
+    AlertTypeID,
+    MessageTemplateName,
+    OrderStatusID,
+    RESPONSIBLE_DEPT_ID,
+    TRANSFER_ACCOUNT_ID,
+)
+from infra.domyland.orders import (
+    get_order_details_by_id,
+    get_query_from_order_details,
+    update_order_status_details,
+)
+from infra.llm_clients_credentials import get_llm_by_client_credentials, Service
+from llm.chain.cleaning_result_comment.cleaning_result_message_chain import (
+    get_cleaning_results_message,
+    get_cleaning_results_message_chain,
+)
+from loguru import logger
+from scheme.order_classification.order_classification_config_scheme import (
+    MessageTemplate,
+    ResponsibleUser,
+)
+from scheme.order_classification.order_classification_scheme import MessageFileToSend
+from scheme.order_notification.order_notification_logs_scheme import (
+    OrderNotificationLog,
+)
+from scheme.order_notification.order_notification_scheme import (
+    OrderNotificationRequestBody,
+)
+from util.json_serializing import serialize_obj
+
+from model.order_classification.order_classification_config_model import (
+    get_order_classification_default_config,
+)
+from model.order_notification.order_notification_logs_model import (
+    save_order_notification_log_record,
+)
+
+
+def _get_responsible_users_by_order_class(
+    responsible_users: list[ResponsibleUser],
+    order_class: str,
+) -> list[ResponsibleUser]:
+    """
+    Filter Responsible Users list by Order Class.
+    """
+
+    filtered_users = []
+
+    for user in responsible_users:
+        if user.order_class == order_class and not user.is_disabled:
+            filtered_users.append(user)
+
+    return filtered_users
+
+
+def process_event(
+    body: OrderNotificationRequestBody,
+    client: str | None = None,
+) -> OrderNotificationLog:
+    alert_type_id = body.alertTypeId
+
+    order_id = body.data.orderId
+    order_status_id = body.data.orderStatusId
+
+    log_record = OrderNotificationLog(
+        input_request_body=serialize_obj(body),
+        order_id=order_id,
+        order_status_id=order_status_id,
+        actions_logs=[],
+    )
+
+    try:
+        # Check if event type is "order status updated"
+        if alert_type_id != AlertTypeID.ORDER_STATUS_UPDATED:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Order with ID {order_id} has alert type ID {alert_type_id}, "
+                    f"but status ID {AlertTypeID.ORDER_STATUS_UPDATED} required"
+                ),
+            )
+
+        config = get_order_classification_default_config(
+            client=client,
+        )
+
+        # Get order details
+        order_details = get_order_details_by_id(order_id=order_id)
+        log_record.order_details = serialize_obj(order_details)
+
+        # Get resident order query
+        order_query = get_query_from_order_details(order_details=order_details)
+        is_query_exists = order_query is not None and order_query.strip() != ""
+        log_record.order_query = order_query
+
+        # Check if order status is "pending" ("Ожидание")
+        is_order_in_pending_status = order_status_id == OrderStatusID.PENDING
+
+        # Check if order responsible users include "Александр Специалист"
+        # or include cleaning account
+        is_transfer_account_in_responsible_users = False
+        is_cleaning_account_in_responsible_users = False
+        order_responsible_users = order_details.order.responsibleUsers
+        for user in order_responsible_users:
+            if user.id == TRANSFER_ACCOUNT_ID:
+                is_transfer_account_in_responsible_users = True
+                break
+            if "клининг" in user.fullName.lower():
+                is_cleaning_account_in_responsible_users = True
+                break
+
+        # Check if order status comment exists
+        order_status_comment = order_details.order.orderStatusComment
+        is_status_comment_exists = (
+            order_status_comment is not None and order_status_comment.strip() != ""
+        )
+        log_record.order_status_comment = order_status_comment
+
+        # Check in order history if cleaning account was in responsible users
+        is_cleaning_account_was_in_responsible_users = False
+        order_history = order_details.order.statusHistory
+        for record in order_history:
+            for user in record.responsibleUsers:
+                if "клининг" in user.fullName.lower():
+                    is_cleaning_account_was_in_responsible_users = True
+                    break
+
+        # Check if cleaning-order is finished
+        is_cleaning_order_finished = (
+            is_order_in_pending_status
+            and is_query_exists
+            and (
+                is_cleaning_account_in_responsible_users
+                or is_cleaning_account_was_in_responsible_users
+            )
+            and (is_transfer_account_in_responsible_users or is_status_comment_exists)
+        )
+        log_record.actions_logs.append(
+            {
+                "action": "validate_event",
+                "metadata": {
+                    "is_order_in_pending_status": is_order_in_pending_status,
+                    "is_query_exists": is_query_exists,
+                    "is_cleaning_account_in_responsible_users": is_cleaning_account_in_responsible_users,
+                    "is_cleaning_account_was_in_responsible_users": is_cleaning_account_was_in_responsible_users,
+                    "is_transfer_account_in_responsible_users": is_transfer_account_in_responsible_users,
+                    "is_status_comment_exists": is_status_comment_exists,
+                    "is_cleaning_order_finished": is_cleaning_order_finished,
+                },
+            }
+        )
+
+        # Get order pinned files from Responsible Users
+        order_files = order_details.order.files
+        is_files_exists = order_files is not None and len(order_files) > 0
+
+        # Check if event is valid (is finished cleaning-order)
+        if not is_cleaning_order_finished:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Event is not valid",
+            )
+
+        llm = get_llm_by_client_credentials(
+            client=client,
+            service=Service.ORDER_CLASSIFICATION,
+        )
+        chain = get_cleaning_results_message_chain(llm=llm)
+
+        # Generate message with LLM for resident about cleaning results
+        llm_response = get_cleaning_results_message(
+            chain=chain,
+            order_query=order_query,
+            order_status_comment=order_status_comment,
+        )
+        log_record.message_llm_response = serialize_obj(llm_response)
+        cleaning_results_text = llm_response.message
+        is_results_text_exists = (
+            cleaning_results_text is not None and cleaning_results_text.strip() != ""
+        )
+
+        # Check if text from LLM exists and can be sent
+        if not is_results_text_exists:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"LLM message is empty and cannot be sent",
+            )
+
+        files_to_send: list[MessageFileToSend] | None = None
+        if is_files_exists:
+            files_to_send = [
+                MessageFileToSend(fileName=file.name) for file in order_files
+            ]
+
+        # Get template from config
+        templates_list = [
+            MessageTemplate(**template) for template in config.messages_templates
+        ]
+        template_name = MessageTemplateName.CLEANING_RESULTS
+        message_template = get_message_template(
+            templates_list=templates_list,
+            template_name=template_name,
+        )
+
+        # Check if template exists and enabled
+        if not message_template:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=(
+                    f"Message template with name '{template_name}' "
+                    "not found or disabled or empty"
+                ),
+            )
+
+        # Send message to resident to show that order is processing
+        message_text = message_template.text
+        message_text = message_text.format(
+            cleaning_results_text=cleaning_results_text,
+        )
+        send_message_to_resident_response, send_message_to_resident_request_body = (
+            send_message_to_resident_chat(
+                order_id=order_id,
+                text=message_text,
+                files=files_to_send,
+            )
+        )
+        log_record.actions_logs.append(
+            {
+                "action": "send_message_to_resident",
+                "metadata": {
+                    "message_text": message_text,
+                    "request_body": send_message_to_resident_request_body,
+                    "response": send_message_to_resident_response,
+                },
+            }
+        )
+
+        # Update Order status to "Completed"
+        responsible_users_ids_list = [user.id for user in order_responsible_users]
+        update_order_status_response, update_order_status_request_body = (
+            update_order_status_details(
+                order_id=order_id,
+                responsible_dept_id=RESPONSIBLE_DEPT_ID,
+                # Set status to "Выполнено"
+                order_status_id=OrderStatusID.COMPLETED,
+                # Set responsible user to UDS
+                responsible_users_ids=responsible_users_ids_list,
+                # Update order inspector to AI Account
+                inspector_users_ids=[AI_USER_ID],
+            )
+        )
+        log_record.actions_logs.append(
+            {
+                "action": "update_order_status",
+                "metadata": {
+                    "request_body": update_order_status_request_body,
+                    "response": update_order_status_response,
+                },
+            }
+        )
+
+    except (HTTPException, Exception) as error:
+        log_record.is_error = True
+
+        # Получаем текст ошибки из атрибута detail для HTTPException
+        if isinstance(error, HTTPException):
+            comment = error.detail
+        # Для других исключений используем str(error)
+        else:
+            comment = str(error)
+        log_record.comment = comment
+
+        # Print error to logs
+        logger.error(comment)
+
+    # logger.debug(f"Order Notification Log:\n{log_record}")
+    log_record = save_order_notification_log_record(
+        log_record=log_record,
+        client=client,
+    )
+
+    return log_record
