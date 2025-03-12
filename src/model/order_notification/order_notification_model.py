@@ -1,3 +1,5 @@
+import traceback
+
 from fastapi import HTTPException, status
 
 from infra.domyland.chats import get_message_template, send_message_to_resident_chat
@@ -37,6 +39,7 @@ from model.order_classification.order_classification_config_model import (
     get_order_classification_default_config,
 )
 from model.order_notification.order_notification_logs_model import (
+    get_saved_log_record_by_order_id,
     save_order_notification_log_record,
 )
 
@@ -75,6 +78,40 @@ def process_event(
     )
 
     try:
+        # Check if order was already classified
+        saved_log_record = get_saved_log_record_by_order_id(
+            order_id=order_id,
+            client=client,
+        )
+        is_saved_log_record_exists = saved_log_record is not None
+        if is_saved_log_record_exists:
+            for log in saved_log_record.actions_logs:
+                # Check action name
+                if log.get("action") != "send_message_to_resident":
+                    continue
+
+                # Check metadata
+                log_metadata = log.get("metadata")
+                if not log_metadata:
+                    continue
+
+                # Check action response
+                action_response = log_metadata.get("response")
+                if not action_response:
+                    continue
+
+                # Check if was not error and this param exists
+                was_error = action_response.get("error")
+                if was_error is False:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail=(
+                            f"Event 'order_status_updated' for Order with ID {order_id} "
+                            "was already processed, "
+                            f"log record ID {saved_log_record.id}"
+                        ),
+                    )
+
         # Check if event type is "order status updated"
         if alert_type_id != AlertTypeID.ORDER_STATUS_UPDATED:
             raise HTTPException(
@@ -88,6 +125,8 @@ def process_event(
         config = get_order_classification_default_config(
             client=client,
         )
+        config_id = config.id
+        skipped_action_text = f"skipped by config with ID {config_id}"
 
         # Get order details
         order_details = get_order_details_by_id(order_id=order_id)
@@ -110,7 +149,7 @@ def process_event(
             if user.id == TRANSFER_ACCOUNT_ID:
                 is_transfer_account_in_responsible_users = True
                 break
-            if "клининг" in user.fullName.lower():
+            if user.fullName and "клининг" in user.fullName.lower():
                 is_cleaning_account_in_responsible_users = True
                 break
 
@@ -126,7 +165,7 @@ def process_event(
         order_history = order_details.order.statusHistory
         for record in order_history:
             for user in record.responsibleUsers:
-                if "клининг" in user.fullName.lower():
+                if user.fullName and "клининг" in user.fullName.lower():
                     is_cleaning_account_was_in_responsible_users = True
                     break
 
@@ -217,52 +256,80 @@ def process_event(
                 ),
             )
 
-        # Send message to resident to show that order is processing
+        # Combine message text
         message_text = message_template.text
         message_text = message_text.format(
             cleaning_results_text=cleaning_results_text,
         )
-        send_message_to_resident_response, send_message_to_resident_request_body = (
-            send_message_to_resident_chat(
-                order_id=order_id,
-                text=message_text,
-                files=files_to_send,
+
+        # Check if need send message
+        is_use_send_message = config.is_use_send_message
+        if is_use_send_message:
+            # Send message to resident to show that order is processing
+            send_message_to_resident_response, send_message_to_resident_request_body = (
+                send_message_to_resident_chat(
+                    order_id=order_id,
+                    text=message_text,
+                    files=files_to_send,
+                )
             )
-        )
-        log_record.actions_logs.append(
-            {
-                "action": "send_message_to_resident",
-                "metadata": {
-                    "message_text": message_text,
-                    "request_body": send_message_to_resident_request_body,
-                    "response": send_message_to_resident_response,
-                },
-            }
-        )
+            log_record.actions_logs.append(
+                {
+                    "action": "send_message_to_resident",
+                    "metadata": {
+                        "message_text": message_text,
+                        "request_body": send_message_to_resident_request_body,
+                        "response": send_message_to_resident_response,
+                    },
+                }
+            )
+        else:
+            log_record.actions_logs.append(
+                {
+                    "action": "send_message_to_resident",
+                    "metadata": {
+                        "message_text": message_text,
+                        "request_body": skipped_action_text,
+                        "response": skipped_action_text,
+                    },
+                }
+            )
 
         # Update Order status to "Completed"
-        responsible_users_ids_list = [user.id for user in order_responsible_users]
-        update_order_status_response, update_order_status_request_body = (
-            update_order_status_details(
-                order_id=order_id,
-                responsible_dept_id=RESPONSIBLE_DEPT_ID,
-                # Set status to "Выполнено"
-                order_status_id=OrderStatusID.COMPLETED,
-                # Set responsible user to UDS
-                responsible_users_ids=responsible_users_ids_list,
-                # Update order inspector to AI Account
-                inspector_users_ids=[AI_USER_ID],
+        is_use_order_updating = config.is_use_order_updating
+        if is_use_order_updating:
+            responsible_users_ids_list = [user.id for user in order_responsible_users]
+            update_order_status_response, update_order_status_request_body = (
+                update_order_status_details(
+                    order_id=order_id,
+                    responsible_dept_id=RESPONSIBLE_DEPT_ID,
+                    # Set status to "Выполнено"
+                    order_status_id=OrderStatusID.COMPLETED,
+                    # Set responsible user to UDS
+                    responsible_users_ids=responsible_users_ids_list,
+                    # Update order inspector to AI Account
+                    inspector_users_ids=[AI_USER_ID],
+                )
             )
-        )
-        log_record.actions_logs.append(
-            {
-                "action": "update_order_status",
-                "metadata": {
-                    "request_body": update_order_status_request_body,
-                    "response": update_order_status_response,
-                },
-            }
-        )
+            log_record.actions_logs.append(
+                {
+                    "action": "update_order_status",
+                    "metadata": {
+                        "request_body": update_order_status_request_body,
+                        "response": update_order_status_response,
+                    },
+                }
+            )
+        else:
+            log_record.actions_logs.append(
+                {
+                    "action": "update_order_status",
+                    "metadata": {
+                        "request_body": skipped_action_text,
+                        "response": skipped_action_text,
+                    },
+                }
+            )
 
     except (HTTPException, Exception) as error:
         log_record.is_error = True
@@ -272,6 +339,7 @@ def process_event(
             comment = error.detail
         # Для других исключений используем str(error)
         else:
+            logger.error(traceback.format_exc())
             comment = str(error)
         log_record.comment = comment
 

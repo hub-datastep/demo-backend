@@ -1,4 +1,5 @@
 import re
+import traceback
 
 from fastapi import HTTPException, status
 
@@ -412,6 +413,7 @@ def classify_order(
             comment = error.detail
         # Для других исключений используем str(error)
         else:
+            logger.error(traceback.format_exc())
             comment = str(error)
         history_record.comment = comment
 
