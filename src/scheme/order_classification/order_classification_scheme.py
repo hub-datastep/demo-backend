@@ -54,6 +54,14 @@ class OrderStatusHistory(SQLModel):
     responsibleUsers: list[OrderResponsibleUser] | None = []
 
 
+class OrderChatMessage(SQLModel):
+    text: str | None = ""
+
+
+class OrderChat(SQLModel):
+    items: list[OrderChatMessage] | None = []
+
+
 class Order(SQLModel):
     id: int
     serviceId: int
@@ -61,6 +69,8 @@ class Order(SQLModel):
     buildingId: int
     customerId: int
     placeId: int
+    # Chat with Resident
+    chat: OrderChat | None = None
     # Order Params from Resident
     summary: list[OrderSummary]
     # Files pinned to order from Responsible Users

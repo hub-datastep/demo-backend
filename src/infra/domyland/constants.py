@@ -30,6 +30,10 @@ DOMYLAND_APP_NAME = "Datastep"
 
 # Chat params
 ORDER_CLIENT_CHAT_TARGET_TYPE_ID = 2
+# Pattern to find initial message in order chat
+INITIAL_MESSAGE_KEYPHRASE = "обращение принято в работу"
+# Pattern to find cleaning-result meesage in order chat
+CLEANING_RESULT_KEYPHRASE = "Не забудьте оценить качество работы по заявке"
 
 # "Администрация" department ID
 RESPONSIBLE_DEPT_ID = 38

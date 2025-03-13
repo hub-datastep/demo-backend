@@ -6,6 +6,7 @@ from infra.domyland.chats import get_message_template, send_message_to_resident_
 from infra.domyland.constants import (
     AI_USER_ID,
     AlertTypeID,
+    CLEANING_RESULT_KEYPHRASE,
     MessageTemplateName,
     OrderStatusID,
     RESPONSIBLE_DEPT_ID,
@@ -34,6 +35,7 @@ from scheme.order_notification.order_notification_scheme import (
     OrderNotificationRequestBody,
 )
 from util.json_serializing import serialize_obj
+from util.order_messages import find_in_text
 
 from model.order_classification.order_classification_config_model import (
     get_order_classification_default_config,
@@ -265,24 +267,64 @@ def process_event(
         # Check if need send message
         is_use_send_message = config.is_use_send_message
         if is_use_send_message:
-            # Send message to resident to show that order is processing
-            send_message_to_resident_response, send_message_to_resident_request_body = (
-                send_message_to_resident_chat(
+            # Get Order Chat and Messages in it
+            order_chat = order_details.order.chat
+            is_chat_exists = order_chat is not None
+
+            order_chat_messages = order_chat.items if is_chat_exists else None
+            is_messages_exists_in_chat = (
+                order_chat_messages is not None and len(order_chat_messages) > 0
+            )
+
+            # Check if operators not answered yet
+            is_operator_answered: bool | None = None
+            if is_messages_exists_in_chat:
+                for message in order_chat_messages:
+                    # Find answer-message by keyphrase
+                    is_message_answer = find_in_text(
+                        text=message.text,
+                        to_find=CLEANING_RESULT_KEYPHRASE,
+                    )
+                    if is_message_answer:
+                        is_operator_answered = True
+                        break
+
+            # If not answered to resident, send message
+            if not is_operator_answered:
+                # Send message to resident to show that order is processing
+                (
+                    send_message_to_resident_response,
+                    send_message_to_resident_request_body,
+                ) = send_message_to_resident_chat(
                     order_id=order_id,
                     text=message_text,
                     files=files_to_send,
                 )
-            )
-            log_record.actions_logs.append(
-                {
-                    "action": "send_message_to_resident",
-                    "metadata": {
-                        "message_text": message_text,
-                        "request_body": send_message_to_resident_request_body,
-                        "response": send_message_to_resident_response,
-                    },
-                }
-            )
+                log_record.actions_logs.append(
+                    {
+                        "action": "send_message_to_resident",
+                        "metadata": {
+                            "message_text": message_text,
+                            "request_body": send_message_to_resident_request_body,
+                            "response": send_message_to_resident_response,
+                        },
+                    }
+                )
+            # Else skip message sending
+            else:
+                action_comment = (
+                    f"Message not sent, operators already answered to resident"
+                )
+                log_record.actions_logs.append(
+                    {
+                        "action": "send_message_to_resident",
+                        "metadata": {
+                            "message_text": message_text,
+                            "request_body": action_comment,
+                            "response": action_comment,
+                        },
+                    }
+                )
         else:
             log_record.actions_logs.append(
                 {

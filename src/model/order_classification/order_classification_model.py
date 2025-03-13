@@ -11,6 +11,7 @@ from infra.domyland.chats import (
 from infra.domyland.constants import (
     AI_USER_ID,
     AlertTypeID,
+    INITIAL_MESSAGE_KEYPHRASE,
     MessageTemplateName,
     ORDER_PROCESSED_BY_AI_MESSAGE,
     OrderClass,
@@ -35,6 +36,7 @@ from scheme.order_classification.order_classification_scheme import (
     SummaryTitle,
     SummaryType,
 )
+from util.order_messages import find_in_text
 
 from model.order_classification.order_classification_config_model import (
     get_order_classification_default_config,
@@ -341,36 +343,65 @@ def classify_order(
                 # Send initial message to resident chat in order if enabled
                 is_use_send_message = config.is_use_send_message
                 if is_use_send_message:
-                    # Get template from config
-                    templates_list = [
-                        MessageTemplate(**template)
-                        for template in config.messages_templates
-                    ]
-                    template_name = MessageTemplateName.INITIAL
-                    message_template = get_message_template(
-                        templates_list=templates_list,
-                        template_name=template_name,
+                    # Get Order Chat and Messages in it
+                    order_chat = order_details.order.chat
+                    is_chat_exists = order_chat is not None
+
+                    order_chat_messages = order_chat.items if is_chat_exists else None
+                    is_messages_exists_in_chat = (
+                        order_chat_messages is not None and len(order_chat_messages) > 0
                     )
 
-                    # Check if template exists and enabled
-                    if not message_template:
-                        raise HTTPException(
-                            status_code=status.HTTP_404_NOT_FOUND,
-                            detail=(
-                                f"Message template with name '{template_name}' "
-                                "not found or disabled or empty"
-                            ),
+                    # Check if operators not answered yet
+                    is_operator_answered: bool | None = None
+                    if is_messages_exists_in_chat:
+                        for message in order_chat_messages:
+                            # Find answer-message by keyphrase
+                            is_message_answer = find_in_text(
+                                text=message.text,
+                                to_find=INITIAL_MESSAGE_KEYPHRASE,
+                            )
+                            if is_message_answer:
+                                is_operator_answered = True
+                                break
+
+                    # If not answered to resident, send message
+                    if not is_operator_answered:
+                        # Get template from config
+                        templates_list = [
+                            MessageTemplate(**template)
+                            for template in config.messages_templates
+                        ]
+                        template_name = MessageTemplateName.INITIAL
+                        message_template = get_message_template(
+                            templates_list=templates_list,
+                            template_name=template_name,
                         )
 
-                    # Send message to resident to show that order is processing
-                    message_text = message_template.text
-                    send_message_to_resident_chat(
-                        order_id=order_id,
-                        text=message_text,
-                    )
+                        # Check if template exists and enabled
+                        if not message_template:
+                            raise HTTPException(
+                                status_code=status.HTTP_404_NOT_FOUND,
+                                detail=(
+                                    f"Message template with name '{template_name}' "
+                                    "not found or disabled or empty"
+                                ),
+                            )
+
+                        # Send message to resident to show that order is processing
+                        message_text = message_template.text
+                        send_message_to_resident_chat(
+                            order_id=order_id,
+                            text=message_text,
+                        )
+                    # Else skip message sending
+                    else:
+                        history_record.comment = (
+                            f"Message not sent, operators already answered to resident"
+                        )
                 else:
                     history_record.comment = (
-                        "Message not sent because disabled in config"
+                        f"Message not sent, disabled by config with ID {config_id}"
                     )
 
             # If skip order updating, set required fields with message with reason
