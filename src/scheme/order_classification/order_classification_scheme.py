@@ -28,7 +28,7 @@ class SummaryTitle:
 class OrderSummary(SQLModel):
     type: str | None = None
     title: str | None = None
-    value: str | int | None = None
+    value: str | int | list | None = None
 
 
 class OrderFile(SQLModel):

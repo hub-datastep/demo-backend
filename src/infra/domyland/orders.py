@@ -43,9 +43,9 @@ def get_order_details_by_id(order_id: int) -> OrderDetails:
     # ! DEBUG ONLY
     # * Just to save all order data to json-file
     # * Uncomment this if you need to save all response data
-    # with open(f"order-{order_id}-details.json", "w") as f:
+    # with open(f"order-{order_id}-details.json", "w", encoding="utf-8") as f:
     #     import json
-    #
+
     #     json.dump(response_data, f, ensure_ascii=False)
 
     order_details = OrderDetails(**response_data)
@@ -90,9 +90,9 @@ def get_order_status_details_by_id(order_id: int) -> OrderStatusDetails:
     # ! DEBUG ONLY
     # * Just to save all order data to json-file
     # * Uncomment this if you need to save all response data
-    # with open(f"order-{order_id}-status-details.json", "w") as f:
+    # with open(f"order-{order_id}-status-details.json", "w", encoding="utf-8") as f:
     #     import json
-    #
+
     #     json.dump(response_data, f, ensure_ascii=False)
 
     order_status_details = OrderStatusDetails(**response_data)
@@ -166,6 +166,7 @@ if __name__ == "__main__":
     # order_id = 3197122
     # Real Order with Photos from Cleaning Account
     order_id = 3198517
+    # order_id = 3333919
 
     # order_details = get_order_details_by_id(order_id)
     # logger.debug(f"Order {order_id} details: {order_details}")
