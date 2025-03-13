@@ -97,7 +97,7 @@ def process_event(
 
                 # Check action response
                 action_response = log_metadata.get("response")
-                if not action_response:
+                if not action_response or not isinstance(action_response, dict):
                     continue
 
                 # Check if was not error and this param exists
