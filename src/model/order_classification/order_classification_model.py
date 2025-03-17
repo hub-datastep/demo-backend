@@ -1,28 +1,36 @@
+import asyncio
 import re
 import traceback
 
 from fastapi import HTTPException, status
+from loguru import logger
 
 from infra.domyland.chats import (
     get_message_template,
+    request_send_message_to_resident,
     send_message_to_internal_chat,
-    send_message_to_resident_chat,
 )
 from infra.domyland.constants import (
     AI_USER_ID,
-    AlertTypeID,
     INITIAL_MESSAGE_KEYPHRASE,
-    MessageTemplateName,
     ORDER_PROCESSED_BY_AI_MESSAGE,
+    RESPONSIBLE_DEPT_ID,
+    AlertTypeID,
+    MessageTemplateName,
     OrderClass,
     OrderStatusID,
-    RESPONSIBLE_DEPT_ID,
 )
 from infra.domyland.orders import get_order_details_by_id, update_order_status_details
 from llm.chain.order_multi_classification.order_multi_classification_chain import (
     get_order_class,
 )
-from loguru import logger
+from model.order_classification.order_classification_config_model import (
+    get_order_classification_default_config,
+)
+from model.order_classification.order_classification_history_model import (
+    get_saved_record_by_order_id,
+    save_order_classification_record,
+)
 from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
     ResponsibleUserWithAddresses,
@@ -37,14 +45,6 @@ from scheme.order_classification.order_classification_scheme import (
     SummaryType,
 )
 from util.order_messages import find_in_text
-
-from model.order_classification.order_classification_config_model import (
-    get_order_classification_default_config,
-)
-from model.order_classification.order_classification_history_model import (
-    get_saved_record_by_order_id,
-    save_order_classification_record,
-)
 
 
 def normalize_resident_request_string(query: str) -> str:
@@ -390,14 +390,16 @@ def classify_order(
 
                         # Send message to resident to show that order is processing
                         message_text = message_template.text
-                        send_message_to_resident_chat(
-                            order_id=order_id,
-                            text=message_text,
+                        asyncio.run(
+                            request_send_message_to_resident(
+                                order_id=order_id,
+                                message_text=message_text,
+                            )
                         )
                     # Else skip message sending
                     else:
                         history_record.comment = (
-                            f"Message not sent, operators already answered to resident"
+                            "Message not sent, operators already answered to resident"
                         )
                 else:
                     history_record.comment = (
