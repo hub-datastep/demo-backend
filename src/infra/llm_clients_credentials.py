@@ -16,7 +16,7 @@ class Service:
     MAPPING = "mapping"
 
 
-LLM_CLIENTS_CREDENTIALS = {
+_LLM_CLIENTS_CREDENTIALS = {
     f"{Client.VYSOTA}": {
         "endpoint": env.VYSOTA_AZURE_OPENAI_ENDPOINT,
         "api_key": env.VYSOTA_AZURE_OPENAI_API_KEY,
@@ -31,7 +31,7 @@ LLM_CLIENTS_CREDENTIALS = {
 
 
 def _get_client_credentials(client: str) -> ClientCredentials:
-    available_clients_list = list(LLM_CLIENTS_CREDENTIALS.keys())
+    available_clients_list = list(_LLM_CLIENTS_CREDENTIALS.keys())
 
     # Check if client has credentials
     if client not in available_clients_list:
@@ -40,7 +40,7 @@ def _get_client_credentials(client: str) -> ClientCredentials:
             detail=f"Azure OpenAI Credentials for client '{client}' not found",
         )
 
-    credentials = ClientCredentials(**LLM_CLIENTS_CREDENTIALS[client])
+    credentials = ClientCredentials(**_LLM_CLIENTS_CREDENTIALS[client])
     logger.info(f"LLM Credentials: using '{client}' client Azure OpenAI Credentials")
 
     return credentials

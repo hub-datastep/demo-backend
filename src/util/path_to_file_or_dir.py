@@ -6,12 +6,15 @@ SEARCH_LIMIT_TARGET = "src"
 
 def _raise_file_not_found_exception(
     file_or_dir_name: str,
-    current_path: str,
-):
-    raise FileNotFoundError(f"File or Dir '{file_or_dir_name}' not found in '{current_path}'")
+    current_path: str | Path,
+) -> FileNotFoundError:
+    current_path = str(current_path)
+    return FileNotFoundError(
+        f"File or Dir '{file_or_dir_name}' not found in '{current_path}'"
+    )
 
 
-def find_path_to_file_or_dir(file_or_dir_name: str):
+def find_path_to_file_or_dir(file_or_dir_name: str) -> str:
     current_file_path = Path(__file__).resolve()
 
     # Текущая директория скрипта
@@ -24,10 +27,10 @@ def find_path_to_file_or_dir(file_or_dir_name: str):
 
         is_file_exists = file_path.exists()
         if is_file_exists:
-            return file_path
+            return str(file_path)
 
         if (current_path / SEARCH_LIMIT_TARGET).exists() and not is_file_exists:
-            _raise_file_not_found_exception(
+            raise _raise_file_not_found_exception(
                 file_or_dir_name=file_or_dir_name,
                 current_path=current_path,
             )
@@ -35,7 +38,7 @@ def find_path_to_file_or_dir(file_or_dir_name: str):
         # Поднимаемся на уровень выше
         current_path = current_path.parent
 
-    _raise_file_not_found_exception(
+    raise _raise_file_not_found_exception(
         file_or_dir_name=file_or_dir_name,
         current_path=current_path,
     )
