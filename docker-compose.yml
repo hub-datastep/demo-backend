@@ -22,6 +22,23 @@ services:
     depends_on:
       - db
 
+  order-chat-message-sending-consumer:
+    image: datastep-backend
+    restart: always
+    command: python3 /app/src/kafka/consumer/order_chat_message_sending.py
+    volumes:
+      - ./src:/app/src
+      - ./.env:/app/.env
+      # - ./.env.development:/app/.env.development
+      # - ./.env.production:/app/.env.production
+      - backend:${DATA_FOLDER_PATH}
+    env_file:
+      - .env
+      # - .env.${ENVIRONMENT}
+    depends_on:
+      - backend
+      - kafka
+
   mapping-with-parsing-consumer:
     image: datastep-backend
     restart: always
@@ -37,6 +54,7 @@ services:
       # - .env.${ENVIRONMENT}
     depends_on:
       - backend
+      - kafka
 
   nsi-fetch-consumer:
     image: datastep-backend
@@ -53,6 +71,7 @@ services:
       # - .env.${ENVIRONMENT}
     depends_on:
       - backend
+      - kafka
 
   redis-server:
     image: redis/redis-stack-server
