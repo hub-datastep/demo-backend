@@ -1,8 +1,8 @@
 from dotenv import load_dotenv
 from pydantic import BaseSettings
-from util.path_to_file_or_dir import find_path_to_file_or_dir
 
 from infra.environment_type import EnvironmentType
+from util.path_to_file_or_dir import find_path_to_file_or_dir
 
 # _ENV_PATH = get_envfile_path()
 
@@ -48,7 +48,7 @@ class Env(BaseSettings):
     # Internal Kafka Settings
     # Broker & Auth
     KAFKA_SERVERS: str
-    KAFKA_IS_USE_SSL: bool
+    KAFKA_IS_USE_SSL: bool | None
     KAFKA_USERNAME: str
     KAFKA_PASSWORD: str
     # Consumers & Topics

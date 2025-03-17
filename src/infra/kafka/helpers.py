@@ -1,9 +1,10 @@
 from pathlib import Path
-from ssl import CERT_REQUIRED, create_default_context, Purpose
+from ssl import CERT_REQUIRED, Purpose, create_default_context
 from typing import Any
 
 from faststream.kafka import KafkaBroker
 from faststream.security import SASLPlaintext
+
 from scheme.kafka.broker_settings_scheme import KafkaBrokerSettings
 
 
@@ -30,7 +31,9 @@ def _get_broker_security_settings(settings: KafkaBrokerSettings) -> SASLPlaintex
 
 
 def create_kafka_broker(settings: KafkaBrokerSettings) -> KafkaBroker:
-    security = _get_broker_security_settings(settings=settings)
+    security: SASLPlaintext | None = None
+    if settings.is_use_ssl:
+        security = _get_broker_security_settings(settings=settings)
 
     broker = KafkaBroker(
         settings.servers_list,

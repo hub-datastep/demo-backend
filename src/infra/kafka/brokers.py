@@ -1,8 +1,6 @@
-from scheme.kafka.broker_settings_scheme import KafkaBrokerSettings
-
 from infra.env import env
 from infra.kafka.helpers import create_kafka_broker
-
+from scheme.kafka.broker_settings_scheme import KafkaBrokerSettings
 
 # * Unistroy Kafka Broker
 _unistroy_servers_list = env.UNISTROY_KAFKA_SERVERS.split(",")
