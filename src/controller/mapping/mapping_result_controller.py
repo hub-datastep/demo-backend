@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
-from sqlmodel import Session
 
 from infra.database import get_session
+from infra.kafka.brokers import unistroy_kafka_broker
 from middleware.kafka_middleware import with_kafka_broker_connection
-from middleware.mode_middleware import TenantMode, modes_required
+from middleware.mode_middleware import modes_required, TenantMode
 from model.auth.auth_model import get_current_user
-from model.mapping.result import mapping_result_model, mapping_iteration_model
+from model.mapping.result import mapping_iteration_model, mapping_result_model
 from repository.mapping import mapping_iteration_repository
 from scheme.file.utd_card_message_scheme import UTDCardOutputMessage
 from scheme.mapping.result.mapping_iteration_scheme import (
@@ -15,14 +15,15 @@ from scheme.mapping.result.mapping_iteration_scheme import (
 )
 from scheme.mapping.result.mapping_result_scheme import (
     MappingResult,
-    MappingResultUpdate,
     MappingResultsUpload,
+    MappingResultUpdate,
 )
 from scheme.mapping.result.similar_nomenclature_search_scheme import (
-    SimilarNomenclatureSearch,
     SimilarNomenclature,
+    SimilarNomenclatureSearch,
 )
 from scheme.user.user_scheme import UserRead
+from sqlmodel import Session
 
 router = APIRouter()
 
@@ -97,7 +98,7 @@ def update_mapping_results_list(
 @router.post("/upload/kafka", response_model=UTDCardOutputMessage)
 @version(1)
 @modes_required([TenantMode.CLASSIFIER])
-@with_kafka_broker_connection
+@with_kafka_broker_connection(unistroy_kafka_broker)
 async def upload_results_to_kafka(
     body: MappingResultsUpload,
     session: Session = Depends(get_session),
