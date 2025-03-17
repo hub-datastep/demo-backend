@@ -94,4 +94,4 @@ class Env(BaseSettings):
     UNISTROY_KAFKA_NSI_MATERIALS_TOPIC: str
 
 
-env = Env()
+env = Env()  # type: ignore
