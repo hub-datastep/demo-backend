@@ -141,10 +141,12 @@ services:
       - IS_PERSISTENT=TRUE
 
   kafka:
-    image: bitnami/kafka:3.5.0
+    image: bitnami/kafka
     restart: always
     ports:
       - "9092:9092"
+    volumes:
+      - kafka:/bitnami/kafka
     environment:
       - KAFKA_ENABLE_KRAFT=yes
       - KAFKA_CFG_NODE_ID=1
@@ -196,4 +198,5 @@ volumes:
   chroma-db:
     driver: local
   volumes-viewer:
+  kafka:
   kafka-ui:
