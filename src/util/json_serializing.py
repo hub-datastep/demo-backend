@@ -1,5 +1,5 @@
-from datetime import date, datetime
 import json
+from datetime import date, datetime
 from typing import Any
 
 from pandas import Timestamp
@@ -13,7 +13,7 @@ def dataframe_serialer(obj: Any) -> str | None:
     return obj
 
 
-def serialize_obj(obj: SQLModel | BaseModel | dict | None = None) -> dict:
+def serialize_obj(obj: SQLModel | BaseModel | dict | None = None) -> dict | None:
     """
     Сериализует объект, делая их пригодными для сохранения в БД.
     """
@@ -42,7 +42,7 @@ def serialize_obj(obj: SQLModel | BaseModel | dict | None = None) -> dict:
 
 def serialize_objs_list(
     objs_list: list[SQLModel | dict] | None = None,
-) -> list[dict]:
+) -> list[dict | None] | None:
     """
     Сериализует список объектов, делая их пригодными для сохранения в БД.
     """
