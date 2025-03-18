@@ -1,4 +1,3 @@
-import asyncio
 import re
 import traceback
 
@@ -7,8 +6,8 @@ from loguru import logger
 
 from infra.domyland.chats import (
     get_message_template,
-    request_send_message_to_resident,
     send_message_to_internal_chat,
+    send_message_to_resident_chat,
 )
 from infra.domyland.constants import (
     AI_USER_ID,
@@ -390,11 +389,9 @@ def classify_order(
 
                         # Send message to resident to show that order is processing
                         message_text = message_template.text
-                        asyncio.run(
-                            request_send_message_to_resident(
-                                order_id=order_id,
-                                message_text=message_text,
-                            )
+                        send_message_to_resident_chat(
+                            order_id=order_id,
+                            text=message_text,
                         )
                     # Else skip message sending
                     else:
