@@ -16,16 +16,17 @@ router = APIRouter()
 @version(1)
 @with_kafka_broker_connection(kafka_broker)
 async def send_test_message_to_kafka(
+    body: dict,
     topic: str,
+    key: str | None = None,
     current_user: UserRead = Depends(get_current_user),
 ):
-    message = "Hello from Datastep!!"
     await send_message_to_kafka(
         broker=kafka_broker,
-        message_body=message,
+        message_body=body,
         topic=topic,
+        key=key,
     )
-    return message
 
 
 @router.post("/utd_card")
