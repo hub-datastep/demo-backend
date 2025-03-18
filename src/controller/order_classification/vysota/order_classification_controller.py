@@ -1,4 +1,4 @@
-from fastapi import APIRouter, status, Depends, Response
+from fastapi import APIRouter, Depends, Response, status
 from fastapi_versioning import version
 from loguru import logger
 from sqlmodel import Session
@@ -6,8 +6,8 @@ from sqlmodel import Session
 from controller.user.user_controller import get_current_user
 from infra.database import get_session
 from model.order_classification import (
-    order_classification_model,
     order_classification_config_model,
+    order_classification_model,
 )
 from scheme.order_classification.order_classification_config_scheme import (
     OrderClassificationConfig,

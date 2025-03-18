@@ -31,6 +31,9 @@ data/fastembed/models--qdrant--multilingual-e5-large-onnx
 # TO-DO files
 *[Tt][Oo][Dd][Oo]*
 
+/[Tt][Ee][Ss][Tt]*.py
+/src/[Tt][Ee][Ss][Tt]*.py
+
 # Classifier files
 data/model_*
 

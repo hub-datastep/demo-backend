@@ -7,11 +7,11 @@ from pathlib import Path
 from faststream import FastStream
 
 from infra.env import env
-from infra.kafka import kafka_broker
+from infra.kafka.brokers import unistroy_kafka_broker
 from util.uuid import generate_uuid
 
 app = FastStream(
-    kafka_broker,
+    unistroy_kafka_broker,
     title="NSI Fetch",
 )
 
@@ -39,7 +39,7 @@ def _save_to_json(file_path: str, data) -> None:
         json.dump(data, f, ensure_ascii=False)
 
 
-@kafka_broker.subscriber(
+@unistroy_kafka_broker.subscriber(
     env.UNISTROY_KAFKA_NSI_CATEGORIES_TOPIC,
     **UNISTROY_KAFKA_NSI_CONSUMERS_SETTINGS,
 )
@@ -52,7 +52,7 @@ async def get_all_categories(body):
     _save_to_json(categories_path, body)
 
 
-@kafka_broker.subscriber(
+@unistroy_kafka_broker.subscriber(
     env.UNISTROY_KAFKA_NSI_MATERIALS_TOPIC,
     **UNISTROY_KAFKA_NSI_CONSUMERS_SETTINGS,
 )

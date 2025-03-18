@@ -2,6 +2,7 @@ import re
 import traceback
 
 from fastapi import HTTPException, status
+from loguru import logger
 
 from infra.domyland.chats import (
     get_message_template,
@@ -10,19 +11,25 @@ from infra.domyland.chats import (
 )
 from infra.domyland.constants import (
     AI_USER_ID,
-    AlertTypeID,
     INITIAL_MESSAGE_KEYPHRASE,
-    MessageTemplateName,
     ORDER_PROCESSED_BY_AI_MESSAGE,
+    RESPONSIBLE_DEPT_ID,
+    AlertTypeID,
+    MessageTemplateName,
     OrderClass,
     OrderStatusID,
-    RESPONSIBLE_DEPT_ID,
 )
 from infra.domyland.orders import get_order_details_by_id, update_order_status_details
 from llm.chain.order_multi_classification.order_multi_classification_chain import (
     get_order_class,
 )
-from loguru import logger
+from model.order_classification.order_classification_config_model import (
+    get_order_classification_default_config,
+)
+from model.order_classification.order_classification_history_model import (
+    get_saved_record_by_order_id,
+    save_order_classification_record,
+)
 from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
     ResponsibleUserWithAddresses,
@@ -37,14 +44,6 @@ from scheme.order_classification.order_classification_scheme import (
     SummaryType,
 )
 from util.order_messages import find_in_text
-
-from model.order_classification.order_classification_config_model import (
-    get_order_classification_default_config,
-)
-from model.order_classification.order_classification_history_model import (
-    get_saved_record_by_order_id,
-    save_order_classification_record,
-)
 
 
 def normalize_resident_request_string(query: str) -> str:
@@ -397,7 +396,7 @@ def classify_order(
                     # Else skip message sending
                     else:
                         history_record.comment = (
-                            f"Message not sent, operators already answered to resident"
+                            "Message not sent, operators already answered to resident"
                         )
                 else:
                     history_record.comment = (
