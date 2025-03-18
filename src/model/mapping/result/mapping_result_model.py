@@ -1,13 +1,20 @@
 import re
 
 from fastapi import BackgroundTasks, HTTPException, status
+from loguru import logger
+from pandas import DataFrame, read_sql
+from pydantic import BaseModel
+from sqlalchemy import text
+from sqlmodel import Session, SQLModel
 
 from infra.env import env
 from infra.kafka.brokers import unistroy_kafka_broker
 from infra.kafka.helpers import send_message_to_kafka
-from loguru import logger
-from pandas import DataFrame, read_sql
-from pydantic import BaseModel
+from model.mapping.result import (
+    llm_mapping_knowledge_base_model,
+    mapping_iteration_model,
+)
+from model.tenant import tenant_model
 from repository.mapping import mapping_result_repository
 from scheme.file.utd_card_message_scheme import (
     MappedMaterial,
@@ -32,15 +39,7 @@ from scheme.mapping.result.similar_nomenclature_search_scheme import (
     SimilarNomenclatureSearch,
 )
 from scheme.user.user_scheme import UserRead
-from sqlalchemy import text
-from sqlmodel import Session, SQLModel
 from util.json_serializing import serialize_obj
-
-from model.mapping.result import (
-    llm_mapping_knowledge_base_model,
-    mapping_iteration_model,
-)
-from model.tenant import tenant_model
 
 SIMILAR_NOMS_COLUMNS = [
     "id",
@@ -169,8 +168,8 @@ def update_mapping_results_list(
     session: Session,
     body: MappingResultUpdate,
 ) -> list[MappingResult]:
-    # Init fastapi background tasks
-    background_tasks = BackgroundTasks()
+    # Init FastAPI background tasks
+    # background_tasks = BackgroundTasks()
 
     # Check if Mapping Iteration exists
     iteration_id = body.iteration_id
@@ -306,6 +305,7 @@ async def upload_results_to_kafka(
         broker=unistroy_kafka_broker,
         message_body=output_message.dict(),
         topic=env.UNISTROY_MAPPING_RESULTS_OUTPUT_TOPIC,
+        key=utd_entity.idn_number,
     )
 
     return output_message
