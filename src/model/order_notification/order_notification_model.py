@@ -1,28 +1,36 @@
+import asyncio
 import traceback
 
 from fastapi import HTTPException, status
+from loguru import logger
 
-from infra.domyland.chats import get_message_template, send_message_to_resident_chat
+from infra.domyland.chats import get_message_template, request_send_message_to_resident
 from infra.domyland.constants import (
     AI_USER_ID,
-    AlertTypeID,
     CLEANING_RESULT_KEYPHRASE,
-    MessageTemplateName,
-    OrderStatusID,
     RESPONSIBLE_DEPT_ID,
     TRANSFER_ACCOUNT_ID,
+    AlertTypeID,
+    MessageTemplateName,
+    OrderStatusID,
 )
 from infra.domyland.orders import (
     get_order_details_by_id,
     get_query_from_order_details,
     update_order_status_details,
 )
-from infra.llm_clients_credentials import get_llm_by_client_credentials, Service
+from infra.llm_clients_credentials import Service, get_llm_by_client_credentials
 from llm.chain.cleaning_result_comment.cleaning_result_message_chain import (
     get_cleaning_results_message,
     get_cleaning_results_message_chain,
 )
-from loguru import logger
+from model.order_classification.order_classification_config_model import (
+    get_order_classification_default_config,
+)
+from model.order_notification.order_notification_logs_model import (
+    get_saved_log_record_by_order_id,
+    save_order_notification_log_record,
+)
 from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
     ResponsibleUser,
@@ -34,16 +42,8 @@ from scheme.order_notification.order_notification_logs_scheme import (
 from scheme.order_notification.order_notification_scheme import (
     OrderNotificationRequestBody,
 )
-from util.json_serializing import serialize_obj
+from util.json_serializing import serialize_obj, serialize_objs_list
 from util.order_messages import find_in_text
-
-from model.order_classification.order_classification_config_model import (
-    get_order_classification_default_config,
-)
-from model.order_notification.order_notification_logs_model import (
-    get_saved_log_record_by_order_id,
-    save_order_notification_log_record,
-)
 
 
 def _get_responsible_users_by_order_class(
@@ -196,10 +196,6 @@ def process_event(
             }
         )
 
-        # Get order pinned files from Responsible Users
-        order_files = order_details.order.files
-        is_files_exists = order_files is not None and len(order_files) > 0
-
         # Check if event is valid (is finished cleaning-order)
         if not is_cleaning_order_finished:
             raise HTTPException(
@@ -231,6 +227,10 @@ def process_event(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"LLM message is empty and cannot be sent",
             )
+
+        # Get order pinned files from Responsible Users
+        order_files = order_details.order.files
+        is_files_exists = order_files is not None and len(order_files) > 0
 
         files_to_send: list[MessageFileToSend] | None = None
         if is_files_exists:
@@ -292,19 +292,32 @@ def process_event(
             # If not answered to resident, send message
             if not is_operator_answered:
                 # Send message to resident to show that order is processing
-                (
-                    send_message_to_resident_response,
-                    send_message_to_resident_request_body,
-                ) = send_message_to_resident_chat(
-                    order_id=order_id,
-                    text=message_text,
-                    files=files_to_send,
+
+                asyncio.run(
+                    request_send_message_to_resident(
+                        order_id=order_id,
+                        message_text=message_text,
+                        files=files_to_send,
+                    )
                 )
+                # Fill logs just to save any logs from action
+                logs_text = "request to send message successfully sent to kafka"
+                send_message_to_resident_response = logs_text
+                send_message_to_resident_request_body = logs_text
+                # (
+                #     send_message_to_resident_response,
+                #     send_message_to_resident_request_body,
+                # ) = send_message_to_resident_chat(
+                #     order_id=order_id,
+                #     text=message_text,
+                #     files=files_to_send,
+                # )
                 log_record.actions_logs.append(
                     {
                         "action": "send_message_to_resident",
                         "metadata": {
                             "message_text": message_text,
+                            "message_files": serialize_objs_list(files_to_send),
                             "request_body": send_message_to_resident_request_body,
                             "response": send_message_to_resident_response,
                         },
