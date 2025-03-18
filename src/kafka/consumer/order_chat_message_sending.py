@@ -48,12 +48,16 @@ async def order_chat_message_send_consumer(
     for _, message in messages_to_send.items():
         order_id = message.order_id
         message_text = message.message_text
+        files = message.files
 
-        logger.debug(f"Message text for Order with ID {order_id}:\n{message_text}")
+        logger.debug(f"Message for Order with ID {order_id}")
+        logger.debug(f"Message text:\n{message_text}")
+        logger.debug(f"Files:\n{files}")
 
         send_message_to_resident_chat(
             order_id=order_id,
             text=message.message_text,
+            files=files,
         )
 
 

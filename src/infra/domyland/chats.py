@@ -124,10 +124,12 @@ def get_message_template(
 async def request_send_message_to_resident(
     order_id: int,
     message_text: str,
+    files: list[MessageFileToSend] | None = None,
 ):
     body = MessageSendRequest(
         order_id=order_id,
         message_text=message_text,
+        files=files,
     )
     await send_message_to_kafka(
         broker=kafka_broker,
