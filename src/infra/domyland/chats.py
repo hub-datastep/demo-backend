@@ -1,10 +1,5 @@
 import requests
 from fastapi import HTTPException
-from scheme.order_classification.order_classification_config_scheme import (
-    MessageTemplate,
-)
-from scheme.order_classification.order_classification_scheme import MessageFileToSend
-from util.json_serializing import serialize_objs_list
 
 from infra.domyland.auth import (
     get_ai_account_auth_token,
@@ -15,6 +10,16 @@ from infra.domyland.constants import (
     DOMYLAND_API_BASE_URL,
     ORDER_CLIENT_CHAT_TARGET_TYPE_ID,
 )
+from infra.env import env
+from infra.kafka.brokers import kafka_broker
+from infra.kafka.helpers import send_message_to_kafka
+from middleware.kafka_middleware import with_kafka_broker_connection
+from scheme.kafka.send_message_consumer_scheme import MessageSendRequest
+from scheme.order_classification.order_classification_config_scheme import (
+    MessageTemplate,
+)
+from scheme.order_classification.order_classification_scheme import MessageFileToSend
+from util.json_serializing import serialize_objs_list
 
 
 def send_message_to_internal_chat(
@@ -113,6 +118,25 @@ def get_message_template(
             break
 
     return found_template
+
+
+@with_kafka_broker_connection(kafka_broker)
+async def request_send_message_to_resident(
+    order_id: int,
+    message_text: str,
+    files: list[MessageFileToSend] | None = None,
+):
+    body = MessageSendRequest(
+        order_id=order_id,
+        message_text=message_text,
+        files=files,
+    )
+    await send_message_to_kafka(
+        broker=kafka_broker,
+        message_body=body,
+        topic=env.KAFKA_ORDER_CHAT_MESSAGE_SENDING_TOPIC,
+        key=str(order_id),
+    )
 
 
 if __name__ == "__main__":

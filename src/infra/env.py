@@ -45,6 +45,16 @@ class Env(BaseSettings):
 
     DATA_FOLDER_PATH: str = find_path_to_file_or_dir("data")
 
+    # Internal Kafka Settings
+    # Broker & Auth
+    KAFKA_SERVERS: str
+    KAFKA_IS_USE_SSL: bool | None
+    KAFKA_USERNAME: str
+    KAFKA_PASSWORD: str
+    # Consumers & Topics
+    KAFKA_ORDERS_CONSUMERS_GROUP: str
+    KAFKA_ORDER_CHAT_MESSAGE_SENDING_TOPIC: str
+
     # Domyland Credentials
     # AI Account
     DOMYLAND_AUTH_AI_ACCOUNT_EMAIL: str
@@ -69,6 +79,7 @@ class Env(BaseSettings):
     UNISTROY_KAFKA_SERVERS: str
     UNISTROY_IS_KAFKA_WITH_SSL: bool
     UNISTROY_SASL_MECHANISM: str
+    UNISTROY_SSL_CERT_FILE_PATH: str
     # Credentials
     UNISTROY_KAFKA_USERNAME: str
     UNISTROY_KAFKA_PASSWORD: str
@@ -83,4 +94,4 @@ class Env(BaseSettings):
     UNISTROY_KAFKA_NSI_MATERIALS_TOPIC: str
 
 
-env = Env()
+env = Env()  # type: ignore

@@ -2,24 +2,25 @@ import re
 
 from fastapi import BackgroundTasks, HTTPException, status
 from loguru import logger
-from pandas import read_sql, DataFrame
+from pandas import DataFrame, read_sql
 from pydantic import BaseModel
 from sqlalchemy import text
-from sqlmodel import SQLModel, Session
+from sqlmodel import Session, SQLModel
 
 from infra.env import env
-from infra.kafka import send_message_to_kafka
+from infra.kafka.brokers import unistroy_kafka_broker
+from infra.kafka.helpers import send_message_to_kafka
 from model.mapping.result import (
-    mapping_iteration_model,
     llm_mapping_knowledge_base_model,
+    mapping_iteration_model,
 )
 from model.tenant import tenant_model
 from repository.mapping import mapping_result_repository
 from scheme.file.utd_card_message_scheme import (
     MappedMaterial,
     UTDCardMetadatas,
-    UTDCardStatus,
     UTDCardOutputMessage,
+    UTDCardStatus,
 )
 from scheme.mapping.mapping_scheme import MappingOneNomenclatureRead
 from scheme.mapping.result.mapping_iteration_scheme import (
@@ -28,14 +29,14 @@ from scheme.mapping.result.mapping_iteration_scheme import (
     MappingIteration,
 )
 from scheme.mapping.result.mapping_result_scheme import (
-    MappingResultUpdate,
-    MappingResultsUpload,
-    MappingResult,
     CorrectedResult,
+    MappingResult,
+    MappingResultsUpload,
+    MappingResultUpdate,
 )
 from scheme.mapping.result.similar_nomenclature_search_scheme import (
-    SimilarNomenclatureSearch,
     SimilarNomenclature,
+    SimilarNomenclatureSearch,
 )
 from scheme.user.user_scheme import UserRead
 from util.json_serializing import serialize_obj
@@ -167,8 +168,8 @@ def update_mapping_results_list(
     session: Session,
     body: MappingResultUpdate,
 ) -> list[MappingResult]:
-    # Init fastapi background tasks
-    background_tasks = BackgroundTasks()
+    # Init FastAPI background tasks
+    # background_tasks = BackgroundTasks()
 
     # Check if Mapping Iteration exists
     iteration_id = body.iteration_id
@@ -301,8 +302,10 @@ async def upload_results_to_kafka(
 
     # Send message to Unistroy Kafka link-topic with url to check results
     await send_message_to_kafka(
+        broker=unistroy_kafka_broker,
         message_body=output_message.dict(),
         topic=env.UNISTROY_MAPPING_RESULTS_OUTPUT_TOPIC,
+        key=utd_entity.idn_number,
     )
 
     return output_message
