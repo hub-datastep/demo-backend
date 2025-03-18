@@ -16,9 +16,9 @@ app = FastStream(
 _KAFKA_SETTINGS = {
     "group_id": env.KAFKA_ORDERS_CONSUMERS_GROUP,
     # Получать 1 сообщение (False) или несколько сразу (True)
-    "batch": False,
+    "batch": True,
     # Кол-во обрабатываемых сообщений за раз
-    "max_records": 1,
+    "max_records": 100,
     # Если нет смещения, читать только последнее сообщение
     "auto_offset_reset": "latest",
 }
@@ -29,16 +29,32 @@ _KAFKA_SETTINGS = {
     **_KAFKA_SETTINGS,
 )
 async def order_chat_message_send_consumer(
-    body: MessageSendRequest,
+    messages_list: list[MessageSendRequest],
 ):
-    logger.debug(
-        f"Message text for Order with ID {body.order_id}:\n{body.message_text}"
-    )
+    logger.debug(f"Messages batch ({len(messages_list)} items):\n{messages_list}")
 
-    send_message_to_resident_chat(
-        order_id=body.order_id,
-        text=body.message_text,
-    )
+    # If no messages, just exit
+    if not messages_list:
+        return
+
+    # Collecting unique messages list to send resident
+    messages_to_send: dict[str, MessageSendRequest] = {}
+    for message in messages_list:
+        order_id = message.order_id
+        if str(order_id) not in list(messages_to_send.keys()):
+            messages_to_send.update({f"{order_id}": message})
+
+    # Send messages to residents orders chats
+    for _, message in messages_to_send.items():
+        order_id = message.order_id
+        message_text = message.message_text
+
+        logger.debug(f"Message text for Order with ID {order_id}:\n{message_text}")
+
+        send_message_to_resident_chat(
+            order_id=order_id,
+            text=message.message_text,
+        )
 
 
 if __name__ == "__main__":
