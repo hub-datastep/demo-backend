@@ -3,6 +3,10 @@ import time
 import requests
 from fastapi import HTTPException
 from loguru import logger
+
+from infra.domyland.auth import get_ai_account_auth_token, get_domyland_headers
+from infra.domyland.constants import DOMYLAND_API_BASE_URL, DOMYLAND_CRM_BASE_URL
+from infra.order_classification import WAIT_TIME_IN_SEC
 from scheme.order_classification.order_classification_scheme import (
     OrderDetails,
     SummaryTitle,
@@ -10,9 +14,10 @@ from scheme.order_classification.order_classification_scheme import (
 )
 from scheme.order_notification.order_notification_scheme import OrderStatusDetails
 
-from infra.domyland.auth import get_ai_account_auth_token, get_domyland_headers
-from infra.domyland.constants import DOMYLAND_API_BASE_URL
-from infra.order_classification import WAIT_TIME_IN_SEC
+
+def get_crm_order_url(order_id: int) -> str:
+    url = f"{DOMYLAND_CRM_BASE_URL}/{order_id}"
+    return url
 
 
 def get_order_details_by_id(order_id: int) -> OrderDetails:

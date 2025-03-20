@@ -24,6 +24,8 @@ class MessageTemplateName:
 
 # API
 DOMYLAND_API_BASE_URL = "https://sud-api.domyland.ru"
+# CRM
+DOMYLAND_CRM_BASE_URL = "https://vs.domyland.ru/exploitation/dispatcher/orders"
 
 # Auth params
 DOMYLAND_APP_NAME = "Datastep"
