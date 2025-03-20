@@ -293,14 +293,6 @@ def process_event(
                 logs_text = "request to send message successfully sent to kafka"
                 send_message_to_resident_response = logs_text
                 send_message_to_resident_request_body = logs_text
-                # (
-                #     send_message_to_resident_response,
-                #     send_message_to_resident_request_body,
-                # ) = send_message_to_resident_chat(
-                #     order_id=order_id,
-                #     text=message_text,
-                #     files=files_to_send,
-                # )
                 log_record.actions_logs.append(
                     {
                         "action": ActionLogName.SEND_MESSAGE_TO_RESIDENT,
