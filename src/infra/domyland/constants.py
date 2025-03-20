@@ -20,6 +20,7 @@ class OrderClass:
 class MessageTemplateName:
     INITIAL = "Первичная Отбивка"
     CLEANING_RESULTS = "Результаты Работы Клининга"
+    SLA_PING = "Пинг про SLA"
 
 
 # API
