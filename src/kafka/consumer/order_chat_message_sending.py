@@ -1,5 +1,7 @@
 import asyncio
+import traceback
 
+from fastapi import HTTPException
 from faststream import FastStream
 from loguru import logger
 
@@ -31,34 +33,47 @@ _KAFKA_SETTINGS = {
 async def order_chat_message_send_consumer(
     messages_list: list[MessageSendRequest],
 ):
-    logger.debug(f"Messages batch ({len(messages_list)} items):\n{messages_list}")
 
-    # If no messages, just exit
-    if not messages_list:
-        return
+    try:
+        logger.debug(f"Messages batch ({len(messages_list)} items):\n{messages_list}")
 
-    # Collecting unique messages list to send resident
-    messages_to_send: dict[str, MessageSendRequest] = {}
-    for message in messages_list:
-        order_id = message.order_id
-        if str(order_id) not in list(messages_to_send.keys()):
-            messages_to_send.update({f"{order_id}": message})
+        # If no messages, just exit
+        if not messages_list:
+            return
 
-    # Send messages to residents orders chats
-    for _, message in messages_to_send.items():
-        order_id = message.order_id
-        message_text = message.message_text
-        files = message.files
+        # Collecting unique messages list to send resident
+        messages_to_send: dict[str, MessageSendRequest] = {}
+        for message in messages_list:
+            order_id = message.order_id
+            if str(order_id) not in list(messages_to_send.keys()):
+                messages_to_send.update({f"{order_id}": message})
 
-        logger.debug(f"Message for Order with ID {order_id}")
-        logger.debug(f"Message text:\n{message_text}")
-        logger.debug(f"Files:\n{files}")
+        # Send messages to residents orders chats
+        for _, message in messages_to_send.items():
+            order_id = message.order_id
+            message_text = message.message_text
+            files = message.files
 
-        send_message_to_resident_chat(
-            order_id=order_id,
-            text=message.message_text,
-            files=files,
-        )
+            logger.debug(f"Message for Order with ID {order_id}")
+            logger.debug(f"Message text:\n{message_text}")
+            logger.debug(f"Files:\n{files}")
+
+            send_message_to_resident_chat(
+                order_id=order_id,
+                text=message.message_text,
+                files=files,
+            )
+    except (HTTPException, Exception) as error:
+        # Получаем текст ошибки из атрибута detail для HTTPException
+        if isinstance(error, HTTPException):
+            comment = error.detail
+        # Для других исключений используем str(error)
+        else:
+            logger.error(traceback.format_exc())
+            comment = str(error)
+
+        # Print error to logs
+        logger.error(comment)
 
 
 if __name__ == "__main__":
