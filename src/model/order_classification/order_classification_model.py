@@ -30,6 +30,7 @@ from model.order_classification.order_classification_history_model import (
     get_saved_record_by_order_id,
     save_order_classification_record,
 )
+from model.order_notification.order_sla_ping_model import start_order_sla_tracking
 from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
     ResponsibleUserWithAddresses,
@@ -159,9 +160,7 @@ def classify_order(
                 ),
             )
 
-        config = get_order_classification_default_config(
-            client=client,
-        )
+        config = get_order_classification_default_config(client=client)
 
         config_id = config.id
         # Is needed to classify order
@@ -226,8 +225,7 @@ def classify_order(
                 ),
             )
 
-        # Get classes with rules from config
-        # And check if this param exists
+        # Get classes with rules from config and check if this param exists
         rules_by_classes = config.rules_by_classes
 
         if rules_by_classes is None:
@@ -333,6 +331,19 @@ def classify_order(
                     inspector_users_ids=[AI_USER_ID],
                 )
 
+                # Get template from config
+                templates_list = [
+                    MessageTemplate(**template)
+                    for template in config.messages_templates
+                ]
+
+                # Start tracking Order SLA and ping Responsible Users
+                start_order_sla_tracking(
+                    order_id=order_id,
+                    responsible_users_list=[responsible_uds],
+                    messages_templates=templates_list,
+                )
+
                 # Mark order as processed by AI
                 send_message_to_internal_chat(
                     order_id=order_id,
@@ -366,26 +377,11 @@ def classify_order(
 
                     # If not answered to resident, send message
                     if not is_operator_answered:
-                        # Get template from config
-                        templates_list = [
-                            MessageTemplate(**template)
-                            for template in config.messages_templates
-                        ]
                         template_name = MessageTemplateName.INITIAL
                         message_template = get_message_template(
                             templates_list=templates_list,
                             template_name=template_name,
                         )
-
-                        # Check if template exists and enabled
-                        if not message_template:
-                            raise HTTPException(
-                                status_code=status.HTTP_404_NOT_FOUND,
-                                detail=(
-                                    f"Message template with name '{template_name}' "
-                                    "not found or disabled or empty"
-                                ),
-                            )
 
                         # Send message to resident to show that order is processing
                         message_text = message_template.text
