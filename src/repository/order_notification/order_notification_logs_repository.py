@@ -1,13 +1,13 @@
+from sqlalchemy import func
+from sqlmodel import Session, and_, select
+
 from infra.database import engine
 from infra.domyland.constants import OrderStatusID
-from scheme.order_notification.order_notification_logs_scheme import (
-    OrderNotificationLog,
-)
-from sqlalchemy import func
-from sqlmodel import and_, select, Session
-
 from repository.order_classification.order_classification_history_repository import (
     create_schema_and_table,
+)
+from scheme.order_notification.order_notification_logs_scheme import (
+    OrderNotificationLog,
 )
 
 
@@ -66,3 +66,24 @@ def save_log_record(
         session.commit()
         session.refresh(log_record)
         return log_record
+
+
+def update_log_record(
+    log_record: OrderNotificationLog,
+    client: str | None = None,
+) -> OrderNotificationLog:
+    # Set schema to save record in specified history table
+    log_record.__table__.schema = client
+
+    with Session(engine) as session:
+        # Create schema and table if not exists
+        create_schema_and_table(
+            session=session,
+            client=client,
+        )
+
+        # Save history record
+        db_log_record = session.merge(log_record)
+        session.commit()
+        session.refresh(db_log_record)
+        return db_log_record
