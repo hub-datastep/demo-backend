@@ -1,5 +1,5 @@
 import requests
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 from infra.domyland.auth import (
     get_ai_account_auth_token,
@@ -116,6 +116,16 @@ def get_message_template(
         ):
             found_template = template
             break
+
+    # Check if template exists and enabled
+    if not found_template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"Message template with name '{template_name}' "
+                "not found or disabled or empty"
+            ),
+        )
 
     return found_template
 

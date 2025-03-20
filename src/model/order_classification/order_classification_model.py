@@ -159,9 +159,7 @@ def classify_order(
                 ),
             )
 
-        config = get_order_classification_default_config(
-            client=client,
-        )
+        config = get_order_classification_default_config(client=client)
 
         config_id = config.id
         # Is needed to classify order
@@ -226,8 +224,7 @@ def classify_order(
                 ),
             )
 
-        # Get classes with rules from config
-        # And check if this param exists
+        # Get classes with rules from config and check if this param exists
         rules_by_classes = config.rules_by_classes
 
         if rules_by_classes is None:
@@ -376,16 +373,6 @@ def classify_order(
                             templates_list=templates_list,
                             template_name=template_name,
                         )
-
-                        # Check if template exists and enabled
-                        if not message_template:
-                            raise HTTPException(
-                                status_code=status.HTTP_404_NOT_FOUND,
-                                detail=(
-                                    f"Message template with name '{template_name}' "
-                                    "not found or disabled or empty"
-                                ),
-                            )
 
                         # Send message to resident to show that order is processing
                         message_text = message_template.text
