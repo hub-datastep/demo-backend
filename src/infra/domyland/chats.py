@@ -100,7 +100,7 @@ def send_message_to_resident_chat(
 def get_message_template(
     templates_list: list[MessageTemplate],
     template_name: str,
-) -> MessageTemplate | None:
+) -> MessageTemplate:
     """
     Get message template from list by name.
     """
