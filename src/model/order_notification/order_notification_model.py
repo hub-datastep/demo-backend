@@ -29,6 +29,7 @@ from model.order_classification.order_classification_config_model import (
     get_order_classification_default_config,
 )
 from model.order_notification.order_notification_logs_model import (
+    check_if_action_was_unsuccessful,
     get_saved_log_record_by_order_id,
     save_order_notification_log_record,
 )
@@ -88,32 +89,19 @@ def process_event(
         )
         is_saved_log_record_exists = saved_log_record is not None
         if is_saved_log_record_exists:
-            for log in saved_log_record.actions_logs:
-                # Check action name
-                if log.get("action") != "send_message_to_resident":
-                    continue
-
-                # Check metadata
-                log_metadata = log.get("metadata")
-                if not log_metadata:
-                    continue
-
-                # Check action response
-                action_response = log_metadata.get("response")
-                if not action_response or not isinstance(action_response, dict):
-                    continue
-
-                # Check if was not error and this param exists
-                was_error = action_response.get("error")
-                if was_error is False:
-                    raise HTTPException(
-                        status_code=status.HTTP_409_CONFLICT,
-                        detail=(
-                            f"Event 'order_status_updated' for Order with ID {order_id} "
-                            "was already processed, "
-                            f"log record ID {saved_log_record.id}"
-                        ),
-                    )
+            was_error = check_if_action_was_unsuccessful(
+                action_name=ActionLogName.SEND_MESSAGE_TO_RESIDENT,
+                log_record=saved_log_record,
+            )
+            if not was_error:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=(
+                        f"Event 'order_status_updated' for Order with ID {order_id} "
+                        "was already processed, "
+                        f"log record ID {saved_log_record.id}"
+                    ),
+                )
 
         # Check if event type is "order status updated"
         if alert_type_id != AlertTypeID.ORDER_STATUS_UPDATED:
