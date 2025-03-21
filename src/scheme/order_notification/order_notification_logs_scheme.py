@@ -4,6 +4,8 @@ from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
+from util.dates import get_now_utc
+
 
 class OrderNotificationLogBase(SQLModel):
     is_error: bool = False
@@ -27,4 +29,4 @@ class OrderNotificationLog(OrderNotificationLogBase, table=True):
     __tablename__ = "order_notification_logs"
 
     id: int | None = Field(default=None, primary_key=True)
-    created_at: datetime | None = Field(default_factory=datetime.utcnow)
+    created_at: datetime | None = Field(default_factory=get_now_utc)
