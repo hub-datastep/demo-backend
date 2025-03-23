@@ -59,7 +59,7 @@ def get_order_details_by_id(order_id: int) -> OrderDetails:
 
 def get_query_from_order_details(order_details: OrderDetails) -> str | None:
     """
-    Extract resident query from order details.
+    Extract Resident Query from Order details.
     """
 
     # Get resident order query

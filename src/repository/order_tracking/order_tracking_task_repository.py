@@ -24,7 +24,9 @@ def get_uncompleted(
     st = st.where(OrderTrackingTask.is_completed == False)
     st = st.where(OrderTrackingTask.next_action.isnot(None))
     st = st.where(
-        OrderTrackingTask.internal_status.notin_(ORDER_TASK_NOT_TRACKING_STATUSES),
+        OrderTrackingTask.internal_status.notin_(
+            ORDER_TASK_NOT_TRACKING_STATUSES,
+        ),
     )
 
     results_list = list(session.exec(st).unique().all())
