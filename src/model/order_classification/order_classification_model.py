@@ -19,7 +19,11 @@ from infra.domyland.constants import (
     OrderClass,
     OrderStatusID,
 )
-from infra.domyland.orders import get_order_details_by_id, update_order_status_details
+from infra.domyland.orders import (
+    get_order_details_by_id,
+    get_query_from_order_details,
+    update_order_status_details,
+)
 from llm.chain.order_multi_classification.order_multi_classification_chain import (
     get_order_class,
 )
@@ -41,7 +45,6 @@ from scheme.order_classification.order_classification_history_scheme import (
 from scheme.order_classification.order_classification_scheme import (
     OrderClassificationRequest,
     SummaryTitle,
-    SummaryType,
 )
 from util.order_messages import find_in_text
 
@@ -181,15 +184,8 @@ def classify_order(
         order_details = get_order_details_by_id(order_id=order_id)
         history_record.order_details = order_details.dict()
 
-        # TODO: use get_query_from_order_details instead
         # Get resident order query
-        order_query: str | None = None
-        for order_form in order_details.service.orderForm:
-            if (
-                order_form.type == SummaryType.TEXT
-                and order_form.title == SummaryTitle.COMMENT
-            ):
-                order_query = order_form.value
+        order_query = get_query_from_order_details(order_details=order_details)
         # logger.debug(f"Order {order_id} query: '{order_query}'")
         history_record.order_query = order_query
 

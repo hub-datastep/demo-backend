@@ -19,7 +19,7 @@ class SummaryTitle:
     ADDRESS = "Адрес"
     OBJECT = "Объект"
     ISSUE = "Что случилось?"
-    COMMENT = "Комментарий"
+    COMMENT = "Комментар"
     ATTACH_PHOTO = "Прикрепите фото"
     WHAT_REASON = "С чем связано обращение?"
     JOB_TYPE = "Выберите вид работ"
@@ -28,7 +28,7 @@ class SummaryTitle:
 class OrderSummary(SQLModel):
     type: str | None = None
     title: str | None = None
-    value: str | int | list | None = None
+    value: str | int | float | list | None = None
 
 
 class OrderFile(SQLModel):
