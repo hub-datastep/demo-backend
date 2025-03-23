@@ -30,7 +30,6 @@ from model.order_classification.order_classification_history_model import (
     get_saved_record_by_order_id,
     save_order_classification_record,
 )
-from model.order_notification.order_sla_ping_model import start_order_sla_tracking
 from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
     ResponsibleUserWithAddresses,
@@ -338,11 +337,11 @@ def classify_order(
                 ]
 
                 # Start tracking Order SLA and ping Responsible Users
-                start_order_sla_tracking(
-                    order_id=order_id,
-                    responsible_users_list=[responsible_uds],
-                    messages_templates=templates_list,
-                )
+                # start_order_sla_tracking(
+                #     order_id=order_id,
+                #     responsible_users_list=[responsible_uds],
+                #     messages_templates=templates_list,
+                # )
 
                 # Mark order as processed by AI
                 send_message_to_internal_chat(
