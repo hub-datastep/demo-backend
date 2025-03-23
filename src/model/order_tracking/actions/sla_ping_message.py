@@ -40,7 +40,7 @@ def start_order_sla_tracking(
     responsible_users_list: list[ResponsibleUser],
     messages_templates: list[MessageTemplate],
 ):
-    # Get template for SLA ping-message
+    # * Get template for SLA ping-message
     template_name = MessageTemplateName.SLA_PING
     message_template = get_message_template(
         templates_list=messages_templates,
@@ -48,12 +48,12 @@ def start_order_sla_tracking(
     )
     message_text = message_template.text
 
-    # Combine CRM Order URL
+    # * Combine CRM Order URL
     crm_order_url = get_crm_order_url(order_id=order_id)
 
     # TODO: Schedule pinging Responsible Users
 
-    # Send ping-messages to Responsible Users
+    # * Send ping-messages to Responsible Users
     for user in responsible_users_list:
         user_id = user.user_id
         telegram_username = user.telegram_username
