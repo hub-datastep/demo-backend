@@ -43,16 +43,16 @@ class OrderTrackingTask(OrderTrackingTaskBase, table=True):
 
 class OrderTrackingTaskActinLog(SQLModel):
     """
-    Схема логов, которые сохраняются в `actions_logs` в `OrderTrackingTask`
+    Logs that saved in `actions_logs` in `OrderTrackingTask`
     """
 
     # Была ли ошибка при выполнении
     is_error: bool | None = False
     # Название экшена
-    name: str
+    name: str | None = None
     # Дата и время начала выполнения
-    started_at: datetime
+    started_at: datetime | None = None
     # Дата и время конца выполнения
-    finished_at: datetime
+    finished_at: datetime | None = None
     # Дополнительная информация
-    metadatas: dict
+    metadatas: dict | None = None
