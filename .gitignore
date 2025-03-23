@@ -12,6 +12,7 @@ __pycache__/
 # IDEA
 .idea/
 .vscode/
+*.code-workspace
 
 # Mkdocs
 site/
