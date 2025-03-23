@@ -22,11 +22,11 @@ class CreditSlipData(SQLModel):
     # guid объекта строительства
     building_guid: str
     # Название объекта строительства
-    building_name: str | None = None
+    building_name: str
     # guid Генерального Подрядчика(сейчас это константа)
     gen_contractor_guid: str
     # guid категории материалов
-    material_category_guid: str | None = None
+    material_category_guid: str
 
 
 class UTDDocument(SQLModel):
