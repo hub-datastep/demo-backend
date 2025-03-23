@@ -22,7 +22,7 @@ def get_crm_order_url(order_id: int) -> str:
 
 def get_order_details_by_id(order_id: int) -> OrderDetails:
     """
-    Получение всех данных о заявке по её ID.
+    Fetch all Order data by ID from Domyland.
     """
 
     # Authorize in Domyland API

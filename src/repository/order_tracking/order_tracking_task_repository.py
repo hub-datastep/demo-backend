@@ -47,7 +47,7 @@ def create(
 def update(
     session: Session,
     task: OrderTrackingTask,
-) -> OrderTrackingTask | None:
+) -> OrderTrackingTask:
     db_task = session.merge(task)
     session.commit()
     session.refresh(db_task)
