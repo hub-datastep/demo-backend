@@ -45,8 +45,6 @@ async def order_chat_message_send_consumer(
         messages_to_send: dict[str, MessageSendRequest] = {}
         for message in messages_list:
             order_id = message.order_id
-            # TODO: check order log in DB again
-            # like in order notification event processing func
             if str(order_id) not in list(messages_to_send.keys()):
                 messages_to_send.update({f"{order_id}": message})
 
