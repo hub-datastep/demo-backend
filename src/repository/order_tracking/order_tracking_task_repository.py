@@ -17,6 +17,18 @@ def get_by_id(
     return result
 
 
+def get_by_order_id(
+    session: Session,
+    order_id: int,
+) -> OrderTrackingTask | None:
+    st = select(OrderTrackingTask)
+    st = st.where(OrderTrackingTask.order_id == order_id)
+
+    result = session.exec(st).first()
+
+    return result
+
+
 def get_uncompleted(
     session: Session,
 ) -> list[OrderTrackingTask]:

@@ -88,11 +88,13 @@ def classify_order(
 
     logger.debug(f"New Order Classification request body:\n{body}")
 
+    # * Classify new Order
     model_response = order_classification_model.classify_order(
         body=body,
         client=client,
     )
 
+    # * Replace Status Code if error
     response_status = status.HTTP_200_OK
     if model_response.is_error:
         response_status = status.HTTP_400_BAD_REQUEST

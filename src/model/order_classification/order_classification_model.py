@@ -30,6 +30,7 @@ from model.order_classification.order_classification_history_model import (
     get_saved_record_by_order_id,
     save_order_classification_record,
 )
+from model.order_tracking.order_tracking_task_model import start_order_tracking
 from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
     ResponsibleUserWithAddresses,
@@ -124,7 +125,7 @@ def classify_order(
     )
 
     try:
-        # Check if order was already classified
+        # * Check if order was already classified
         saved_record = get_saved_record_by_order_id(
             order_id=order_id,
             client=client,
@@ -139,7 +140,7 @@ def classify_order(
                 ),
             )
 
-        # Check if order status is "pending" ("Ожидание")
+        # * Check if order status is "pending" ("Ожидание")
         if order_status_id != OrderStatusID.PENDING:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -149,7 +150,7 @@ def classify_order(
                 ),
             )
 
-        # Check if event type is "new order"
+        # * Check if event type is "new order"
         if alert_type_id != AlertTypeID.NEW_ORDER:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -160,8 +161,14 @@ def classify_order(
             )
 
         config = get_order_classification_default_config(client=client)
-
         config_id = config.id
+
+        # * Start Tracking new Order
+        start_order_tracking(
+            config_id=config_id,
+            order_id=order_id,
+        )
+
         # Is needed to classify order
         is_use_order_classification = config.is_use_order_classification
         # Is needed to update order in Domyland
@@ -175,12 +182,12 @@ def classify_order(
             f"skipped by order classification config with ID {config_id}"
         )
 
-        # Get order details
+        # * Get order details
         order_details = get_order_details_by_id(order_id=order_id)
         history_record.order_details = order_details.dict()
 
         # TODO: use get_query_from_order_details instead
-        # Get resident order query
+        # * Get resident order query
         order_query: str | None = None
         for order_form in order_details.service.orderForm:
             if (
