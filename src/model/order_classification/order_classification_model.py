@@ -47,6 +47,7 @@ from scheme.order_classification.order_classification_scheme import (
     OrderClassificationRequest,
     SummaryTitle,
 )
+from util.json_serializing import serialize_obj
 from util.order_messages import find_in_text
 
 
@@ -187,14 +188,14 @@ def classify_order(
 
         # * Get order details
         order_details = get_order_details_by_id(order_id=order_id)
-        history_record.order_details = order_details.dict()
+        history_record.order_details = serialize_obj(order_details)
 
         # * Get resident order query
         order_query = get_query_from_order_details(order_details=order_details)
         # logger.debug(f"Order {order_id} query: '{order_query}'")
         history_record.order_query = order_query
 
-        # Check if resident comment exists and not empty if enabled
+        # * Check if resident comment exists and not empty if enabled
         is_order_query_exists = order_query is not None
         is_order_query_empty = is_order_query_exists and not bool(order_query.strip())
 
@@ -204,7 +205,7 @@ def classify_order(
                 detail=f"Order with ID {order_id} has no comment, cannot classify order",
             )
 
-        # Get resident address (object)
+        # * Get resident address (object)
         order_address: str | None = None
         for summary in order_details.order.summary:
             if summary.title == SummaryTitle.OBJECT:
@@ -212,7 +213,7 @@ def classify_order(
         # logger.debug(f"Order {order_id} address: '{order_address}'")
         history_record.order_address = order_address
 
-        # Check if resident address exists and not empty if enabled
+        # * Check if resident address exists and not empty if enabled
         is_order_address_exists = order_address is not None
         is_order_address_empty = is_order_address_exists and not bool(
             order_address.strip()
@@ -227,7 +228,7 @@ def classify_order(
                 ),
             )
 
-        # Get classes with rules from config and check if this param exists
+        # * Get classes with rules from config and check if this param exists
         rules_by_classes = config.rules_by_classes
 
         if rules_by_classes is None:
@@ -239,7 +240,7 @@ def classify_order(
                 ),
             )
 
-        # Run LLM to classify order
+        # * Run LLM to classify order
         if is_use_order_classification:
             # Normalize order query for LLM chain
             normalized_query = normalize_resident_request_string(order_query)
@@ -270,16 +271,16 @@ def classify_order(
 
         # TODO: update 'is_emergency' param usage
 
-        # Update order emergency class in Domyland
+        # * Update order emergency class in Domyland
         if is_emergency and is_use_order_classification:
-            # Check if responsible users is set in config
+            # * Check if responsible users is set in config
             if config.responsible_users is None:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Responsible users is not set in config with ID {config_id}",
                 )
 
-            # Get responsible UDS user id
+            # * Get responsible UDS user id
             uds_list = [
                 ResponsibleUserWithAddresses(**uds_data)
                 for uds_data in config.responsible_users
@@ -289,7 +290,7 @@ def classify_order(
                 order_address=order_address,
             )
 
-            # Check if responsible UDS is found
+            # * Check if responsible UDS is found
             if responsible_uds is None:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
@@ -301,7 +302,7 @@ def classify_order(
 
             history_record.responsible_user_id = responsible_uds.user_id
 
-            # Get order class params
+            # * Get order class params
             class_params = _get_class_params(
                 rules_by_classes=rules_by_classes,
                 class_name_to_find=order_class,
@@ -315,8 +316,7 @@ def classify_order(
 
             is_uds_disabled = responsible_uds.is_disabled
 
-            # Update order responsible user if enabled
-            # And send message
+            # * Update order responsible user if enabled and send message
             if (
                 is_use_order_updating
                 and is_use_order_with_this_class_updating
@@ -333,7 +333,7 @@ def classify_order(
                     inspector_users_ids=[AI_USER_ID],
                 )
 
-                # Get template from config
+                # * Get template from config
                 templates_list = [
                     MessageTemplate(**template)
                     for template in config.messages_templates
@@ -346,7 +346,7 @@ def classify_order(
                 #     messages_templates=templates_list,
                 # )
 
-                # Mark order as processed by AI
+                # * Mark order as processed by AI
                 send_message_to_internal_chat(
                     order_id=order_id,
                     message=ORDER_PROCESSED_BY_AI_MESSAGE,

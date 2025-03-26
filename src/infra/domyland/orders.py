@@ -17,6 +17,7 @@ from scheme.order_classification.order_classification_scheme import (
 )
 from scheme.order_notification.order_notification_scheme import OrderStatusDetails
 
+
 def get_crm_order_url(order_id: int) -> str:
     url = f"{DOMYLAND_CRM_BASE_URL}/{order_id}"
     return url
