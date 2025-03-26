@@ -7,8 +7,12 @@ from loguru import logger
 from infra.domyland.auth import get_ai_account_auth_token, get_domyland_headers
 from infra.domyland.constants import DOMYLAND_API_BASE_URL, DOMYLAND_CRM_BASE_URL
 from infra.order_classification import WAIT_TIME_IN_SEC
+from scheme.order_classification.order_classification_config_scheme import (
+    ResponsibleUser,
+)
 from scheme.order_classification.order_classification_scheme import (
     OrderDetails,
+    OrderResponsibleUser,
     SummaryTitle,
     SummaryType,
 )
@@ -73,6 +77,22 @@ def get_query_from_order_details(order_details: OrderDetails) -> str | None:
             break
 
     return order_query
+
+
+def get_responsible_users_by_config_ids(
+    order_responsible_users: list[OrderResponsibleUser] | None = None,
+    config_responsible_users: list[ResponsibleUser] | None = None,
+) -> None | list[ResponsibleUser]:
+    if not order_responsible_users or not config_responsible_users:
+        return None
+
+    found_responsible_users: list[ResponsibleUser] = []
+    for user_in_order in order_responsible_users:
+        for user_in_config in config_responsible_users:
+            if str(user_in_order.id) == user_in_config.user_id:
+                found_responsible_users.append(user_in_config)
+
+    return found_responsible_users
 
 
 def get_order_status_details_by_id(order_id: int) -> OrderStatusDetails:
