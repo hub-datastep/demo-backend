@@ -54,7 +54,7 @@ class Env(BaseSettings):
     # Consumers & Topics
     KAFKA_ORDERS_CONSUMERS_GROUP: str
     KAFKA_ORDER_CHAT_MESSAGE_SENDING_TOPIC: str
-    KAFKA_ORDER_SLA_PING_MESSAGE_TOPIC: str
+    KAFKA_ORDER_TELEGRAM_MESSAGE_TOPIC: str
 
     # Domyland Credentials
     # AI Account
