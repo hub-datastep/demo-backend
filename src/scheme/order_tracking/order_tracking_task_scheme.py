@@ -5,6 +5,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
 from infra.order_tracking.action import OrderTrackingTaskAction
+from infra.order_tracking.task_status import OrderTrackingTaskStatus
 from scheme.order_classification.order_classification_config_scheme import (
     OrderClassificationConfig,
 )
@@ -18,7 +19,7 @@ class OrderTrackingTaskBase(SQLModel):
     # Данные заявки, которые получали последний раз
     last_order_details: dict | None = Field(default=None, sa_column=Column(JSONB))
     # Внутренний статус задачи
-    internal_status: str | None
+    internal_status: str | None = Field(default=OrderTrackingTaskStatus.PENDING)
     # Экшен, который нужно сделать
     next_action: str | None = Field(default=OrderTrackingTaskAction.FETCH_ORDER_DETAILS)
     # Логи предыдущих экшенов
