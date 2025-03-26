@@ -1,9 +1,12 @@
+import traceback
 from pathlib import Path
 from ssl import CERT_REQUIRED, Purpose, create_default_context
 from typing import Any
 
+from fastapi import HTTPException, status
 from faststream.kafka import KafkaBroker
 from faststream.security import SASLPlaintext
+from loguru import logger
 
 from scheme.kafka.broker_settings_scheme import KafkaBrokerSettings
 
@@ -48,13 +51,23 @@ async def send_message_to_kafka(
     topic: str,
     key: str | None = None,
 ):
-    # Convert key to bytes if key defined
-    b_key: bytes | None = None
-    if key:
-        b_key = key.encode()
+    try:
+        # Convert key to bytes if key defined
+        b_key: bytes | None = None
+        if key:
+            b_key = key.encode()
 
-    await broker.publish(
-        message_body,
-        topic=topic,
-        key=b_key,
-    )
+        await broker.publish(
+            message_body,
+            topic=topic,
+            key=b_key,
+        )
+    except Exception as e:
+        logger.error(traceback.format_exc())
+
+        error_str = str(e)
+        logger.error(f"Error occurred while sending message to Kafka:\n{error_str}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{error_str}",
+        )

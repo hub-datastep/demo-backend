@@ -14,10 +14,8 @@ from scheme.order_classification.order_classification_scheme import (
     OrderDetails,
     OrderResponsibleUser,
     SummaryTitle,
-    SummaryType,
 )
 from scheme.order_notification.order_notification_scheme import OrderStatusDetails
-
 
 def get_crm_order_url(order_id: int) -> str:
     url = f"{DOMYLAND_CRM_BASE_URL}/{order_id}"
@@ -67,13 +65,12 @@ def get_query_from_order_details(order_details: OrderDetails) -> str | None:
     """
 
     # Get resident order query
+    keyword = SummaryTitle.COMMENT.lower().strip()
     order_query: str | None = None
-    for order_form in order_details.service.orderForm:
-        if (
-            order_form.type == SummaryType.TEXT
-            and order_form.title == SummaryTitle.COMMENT
-        ):
-            order_query = order_form.value
+    for param in order_details.order.summary:
+        # Search comment param
+        if param.title and keyword in param.title.lower().strip():
+            order_query = param.value
             break
 
     return order_query
