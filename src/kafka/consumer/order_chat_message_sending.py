@@ -35,6 +35,8 @@ _SETTINGS = {
 
 _CLIENT = Client.VYSOTA if env.IS_DEV_ENV else None
 
+WAIT_TIME_IN_SEC = 30
+
 
 @kafka_broker.subscriber(
     env.KAFKA_ORDER_CHAT_MESSAGE_SENDING_TOPIC,
@@ -43,9 +45,12 @@ _CLIENT = Client.VYSOTA if env.IS_DEV_ENV else None
 async def order_chat_message_send_consumer(
     messages_list: list[MessageSendRequest],
 ):
-
     try:
         logger.debug(f"Messages batch ({len(messages_list)} items):\n{messages_list}")
+
+        logger.debug(f"Wait {WAIT_TIME_IN_SEC} seconds, before process request")
+        await asyncio.sleep(WAIT_TIME_IN_SEC)
+        logger.debug(f"Timeout passed, so processing request")
 
         # If no messages, just exit
         if not messages_list:
@@ -110,20 +115,21 @@ async def order_chat_message_send_consumer(
             }
 
             # Try to update action logs
-            for i, log_record in enumerate(saved_log_record.actions_logs):
-                # Check action name
-                log_action_name: str | None = log_record.get("action")
-                if (
-                    log_action_name
-                    and log_action_name.strip().lower()
-                    != ActionLogName.SEND_MESSAGE_TO_RESIDENT.strip().lower()
-                ):
-                    saved_log_record.actions_logs[i] = action_log
-                    update_order_notification_log_record(
-                        log_record=saved_log_record,
-                        client=_CLIENT,
-                    )
-                    break
+            if is_saved_log_record_exists:
+                for i, log_record in enumerate(saved_log_record.actions_logs):
+                    # Check action name
+                    log_action_name: str | None = log_record.get("action")
+                    if (
+                        log_action_name
+                        and log_action_name.strip().lower()
+                        != ActionLogName.SEND_MESSAGE_TO_RESIDENT.strip().lower()
+                    ):
+                        saved_log_record.actions_logs[i] = action_log
+                        update_order_notification_log_record(
+                            log_record=saved_log_record,
+                            client=_CLIENT,
+                        )
+                        break
 
     except (HTTPException, Exception) as error:
         # Получаем текст ошибки из атрибута detail для HTTPException
