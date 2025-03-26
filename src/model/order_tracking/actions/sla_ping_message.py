@@ -11,6 +11,7 @@ from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
     ResponsibleUser,
 )
+from util.seconds_to_time_str import get_time_str_from_seconds
 
 
 def send_sla_ping_message(
@@ -56,11 +57,20 @@ def send_sla_ping_message(
                 ),
             )
 
+        # Get SLA time text
+        sla_time_str = get_time_str_from_seconds(seconds=abs(sla_time_left_in_sec))
+        if sla_time_left_in_sec > 0:
+            sla_time_text = f"До окончания SLA времени выполнения этой заявки осталось {sla_time_str}"
+        else:
+            sla_time_text = (
+                f"SLA времени выполнения этой заявки просрочен на {sla_time_str}"
+            )
+
         # Format message
         formatted_message_text = message_text.format(
             telegram_username=telegram_username,
+            sla_time_text=sla_time_text,
             crm_order_url=crm_order_url,
-            sla_time_left=f"{sla_time_left_in_sec} секунд",
         )
 
         logger.debug(
