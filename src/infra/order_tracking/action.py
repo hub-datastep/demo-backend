@@ -4,5 +4,8 @@ class OrderTrackingTaskAction:
     UPDATE_ORDER_STATUS = "Update Order Status"
 
     # Send Message Actions
-    SEND_NEW_ORDER_MESSAGE = "Send SLA Ping-Message"
+    SEND_NEW_ORDER_MESSAGE = "Send New Order Message"
     SEND_SLA_PING_MESSAGE = "Send SLA Ping-Message"
+
+
+TIME_DEPENDENT_ACTIONS = [OrderTrackingTaskAction.SEND_SLA_PING_MESSAGE]
