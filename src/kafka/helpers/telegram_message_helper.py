@@ -10,10 +10,12 @@ async def request_to_send_telegram_message(
     order_id: int,
     message_text: str,
     chat_id: str,
+    message_thread_id: int | None = None,
 ):
     body = OrderTelegramMessage(
         message_text=message_text,
         chat_id=chat_id,
+        message_thread_id=message_thread_id,
     )
     await send_message_to_kafka(
         broker=kafka_broker,

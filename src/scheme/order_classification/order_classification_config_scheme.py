@@ -39,6 +39,7 @@ class ResponsibleUser(SQLModel):
     # order_classes_list: list[str] | None = []
     telegram_username: str | None = None
     telegram_chat_id: str | None = None
+    telegram_thread_id: int | None = None
     is_disabled: bool | None = None
 
 

@@ -34,6 +34,7 @@ def send_new_order_message(
         user_id = user.user_id
         telegram_username = user.telegram_username
         telegram_chat_id = user.telegram_chat_id
+        telegram_thread_id = user.telegram_thread_id
 
         # Check if Responsible User has Telegram username
         if not telegram_username:
@@ -75,5 +76,6 @@ def send_new_order_message(
                 order_id=order_id,
                 message_text=formatted_message_text,
                 chat_id=telegram_chat_id,
+                message_thread_id=telegram_thread_id,
             )
         )
