@@ -62,6 +62,8 @@ from scheme.role.role_scheme import Role
 from scheme.order_classification.order_classification_config_scheme import OrderClassificationConfig
 # noinspection PyUnresolvedReferences
 from scheme.solution_imitation.solution_imitation_config_scheme import SolutionImitationConfig
+# noinspection PyUnresolvedReferences
+from scheme.order_tracking.order_tracking_task_scheme import OrderTrackingTask
 
 # target_metadata = mymodel.Base.metadata
 target_metadata = SQLModel.metadata

@@ -21,6 +21,22 @@ services:
       # - .env.${ENVIRONMENT}
     depends_on:
       - db
+  
+  orders-tasks-tracking:
+    image: datastep-backend
+    restart: always
+    command: python3 /app/src/orders_tasks_tracking.py
+    volumes:
+      - ./src:/app/src
+      - ./.env:/app/.env
+      # - ./.env.development:/app/.env.development
+      # - ./.env.production:/app/.env.production
+      - backend:${DATA_FOLDER_PATH}
+    env_file:
+      - .env
+      # - .env.${ENVIRONMENT}
+    depends_on:
+      - db
 
   order-chat-message-sending-consumer:
     image: datastep-backend

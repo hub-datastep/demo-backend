@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, Response, status
+import traceback
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi_versioning import version
 from loguru import logger
 from sqlmodel import Session
 
 from controller.user.user_controller import get_current_user
 from infra.database import get_session
+from infra.domyland.orders import get_order_details_by_id
 from model.order_classification import (
     order_classification_config_model,
     order_classification_model,
@@ -17,6 +20,7 @@ from scheme.order_classification.order_classification_history_scheme import (
 )
 from scheme.order_classification.order_classification_scheme import (
     OrderClassificationRequest,
+    OrderDetails,
 )
 from scheme.user.user_scheme import UserRead
 
@@ -49,6 +53,26 @@ def get_classification_config_by_user_id(
     )
 
 
+@router.get("/order_details/{order_id}", response_model=OrderDetails | None)
+@version(1)
+def get_order_details_by_order_id(
+    order_id: int,
+    session: Session = Depends(get_session),
+    current_user: UserRead = Depends(get_current_user),
+):
+    try:
+        order_details = get_order_details_by_id(order_id=order_id)
+        return order_details
+    except Exception as error:
+        logger.error(f"{traceback.format_exc()}")
+        error_str = str(error)
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{error_str}",
+        )
+
+
 @router.post("/new_order", response_model=OrderClassificationRecord)
 @version(1)
 def classify_order(
@@ -64,11 +88,13 @@ def classify_order(
 
     logger.debug(f"New Order Classification request body:\n{body}")
 
+    # * Classify new Order
     model_response = order_classification_model.classify_order(
         body=body,
         client=client,
     )
 
+    # * Replace Status Code if error
     response_status = status.HTTP_200_OK
     if model_response.is_error:
         response_status = status.HTTP_400_BAD_REQUEST
