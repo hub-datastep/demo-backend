@@ -20,10 +20,14 @@ class OrderClass:
 class MessageTemplateName:
     INITIAL = "Первичная Отбивка"
     CLEANING_RESULTS = "Результаты Работы Клининга"
+    NEW_ORDER = "Новая Заявка"
+    SLA_PING = "Пинг про SLA"
 
 
 # API
 DOMYLAND_API_BASE_URL = "https://sud-api.domyland.ru"
+# CRM
+DOMYLAND_CRM_BASE_URL = "https://vs.domyland.ru/exploitation/dispatcher/orders"
 
 # Auth params
 DOMYLAND_APP_NAME = "Datastep"

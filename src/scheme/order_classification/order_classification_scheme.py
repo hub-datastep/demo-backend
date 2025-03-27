@@ -83,6 +83,8 @@ class Order(SQLModel):
     orderStatusId: int | None = None
     # Current Status Comment
     orderStatusComment: str | None = ""
+    # Timestamp of SLA solve time
+    solveTimeSLA: int | None = None
 
 
 class OrderForm(SQLModel):
