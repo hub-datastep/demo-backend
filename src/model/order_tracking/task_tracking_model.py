@@ -103,6 +103,8 @@ def process_order_tracking_task(
     session: Session,
     task: OrderTrackingTask,
 ):
+    action_log = OrderTrackingTaskActinLog()
+
     try:
         # * Update Task Internal Status
         task.internal_status = OrderTrackingTaskStatus.TRACKING
@@ -148,7 +150,6 @@ def process_order_tracking_task(
 
         current_time = get_now_utc()
         current_timestamp = int(current_time.timestamp())
-        action_log = OrderTrackingTaskActinLog()
 
         # * ############################ * #
         # *  Not time-dependent Actions  * #
