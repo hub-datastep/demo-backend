@@ -33,7 +33,7 @@ def get_uncompleted(
     session: Session,
 ) -> list[OrderTrackingTask]:
     st = select(OrderTrackingTask)
-    st = st.where(OrderTrackingTask.is_completed == False)
+    st = st.where(OrderTrackingTask.is_completed.isnot(True))
     st = st.where(OrderTrackingTask.next_action.isnot(None))
     st = st.where(
         OrderTrackingTask.internal_status.notin_(

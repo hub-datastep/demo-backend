@@ -27,7 +27,7 @@ class OrderTrackingTaskBase(SQLModel):
     # Дата и время, когда нужно сделать экшен
     action_time: datetime | None = None
     # Закончили ли задачу
-    is_completed: bool | None = None
+    is_completed: bool | None = Field(default=False)
     # Дата и время, когда создали задачу
     created_at: datetime | None = None
     # Дата и время, когда закончили задачу
