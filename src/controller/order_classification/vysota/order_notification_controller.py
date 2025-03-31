@@ -35,8 +35,8 @@ def order_notifications(
     order_get_info.get_order_details(body=body, url=url)
     return status.HTTP_200_OK
 
-
-@router.post("/order_status_updated", response_model=OrderNotificationLog)
+# Раскомментить когда починится баг когда мы ставим заявку в "выполнено" без отписки
+@router.post("/order_status_updated")  # response_model=OrderNotificationLog временно закомментировано
 @version(1)
 def classify_order(
     body: OrderNotificationRequestBody,
@@ -67,7 +67,10 @@ def classify_order(
     # Удалить когда починится баг когда мы ставим заявку в "выполнено" без отписки
     logger.debug("Логика обработки ивента 'order_status_updated' временно закоменчена, чтобы не ставить клининг заявки в 'выполнено'")
 
-    model_response = {}
+    model_response = {
+        "order_id": None,
+        "order_status_id": None
+    }
     response.status_code = status.HTTP_200_OK
 
     return model_response
