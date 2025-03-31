@@ -49,16 +49,25 @@ def classify_order(
     Вебхук для ивента "Статус Заявки Обновлён" в Домиленд.
     """
 
-    logger.debug(f"OrderStatus Updated request body:\n{body}")
+    # Раскомментить когда починится баг когда мы ставим заявку в "выполнено" без отписки
+    # logger.debug(f"OrderStatus Updated request body:\n{body}")
 
-    model_response = order_notification_model.process_event(
-        body=body,
-        client=client,
-    )
+    # Раскомментить когда починится баг когда мы ставим заявку в "выполнено" без отписки
+    # model_response = order_notification_model.process_event(
+    #     body=body,
+    #     client=client,
+    # )
 
-    response_status = status.HTTP_200_OK
-    if model_response.is_error:
-        response_status = status.HTTP_400_BAD_REQUEST
-    response.status_code = response_status
+    # Раскомментить когда починится баг когда мы ставим заявку в "выполнено" без отписки
+    # response_status = status.HTTP_200_OK
+    # if model_response.is_error:
+    #     response_status = status.HTTP_400_BAD_REQUEST
+    # response.status_code = response_status
+
+    # Удалить когда починится баг когда мы ставим заявку в "выполнено" без отписки
+    logger.debug("Логика обработки ивента 'order_status_updated' временно закоменчена, чтобы не ставить клининг заявки в 'выполнено'")
+
+    model_response = {}
+    response.status_code = status.HTTP_200_OK
 
     return model_response
