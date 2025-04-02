@@ -15,7 +15,7 @@ from scheme.order_classification.order_classification_config_scheme import (
 
 def send_new_order_message(
     order_id: int,
-    responsible_users_list: list[ResponsibleUser],
+    responsible_user: ResponsibleUser,
     messages_templates: list[MessageTemplate],
 ):
     # * Get template for SLA ping-message
@@ -29,53 +29,52 @@ def send_new_order_message(
     # * Combine CRM Order URL
     crm_order_url = get_crm_order_url(order_id=order_id)
 
-    # * Send ping-messages to Responsible Users
-    for user in responsible_users_list:
-        user_id = user.user_id
-        telegram_username = user.telegram_username
-        telegram_chat_id = user.telegram_chat_id
-        telegram_thread_id = user.telegram_thread_id
+    user_id = responsible_user.user_id
+    telegram_username = responsible_user.telegram_username
+    telegram_chat_id = responsible_user.telegram_chat_id
+    telegram_thread_id = responsible_user.telegram_thread_id
 
-        # Check if Responsible User has Telegram username
-        if not telegram_username:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=(
-                    f"Responsible user with ID '{user_id}' "
-                    "has no telegram username, cannot send ping-message"
-                ),
-            )
-
-        # Check if Responsible User has Telegram Chat ID
-        if not telegram_chat_id:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=(
-                    f"Responsible user with ID '{user_id}' "
-                    "has no telegram chat ID, cannot send ping-message"
-                ),
-            )
-
-        # Format message
-        formatted_message_text = message_text.format(
-            telegram_username=telegram_username,
-            crm_order_url=crm_order_url,
+    # * Check if Responsible User has Telegram username
+    if not telegram_username:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"Responsible user with ID '{user_id}' "
+                "has no telegram username, cannot send ping-message"
+            ),
         )
 
-        logger.debug(
-            f"New Order message for Responsible User:\n"
-            f"ID: {user_id}\n"
-            f"Telegram Username: {telegram_username}\n"
-            f"Telegram Chat ID: {telegram_chat_id}"
+    # * Check if Responsible User has Telegram Chat ID
+    if not telegram_chat_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"Responsible user with ID '{user_id}' "
+                "has no telegram chat ID, cannot send ping-message"
+            ),
         )
-        logger.debug(f"Ping-message text:\n{formatted_message_text}")
 
-        # Send request to ping Responsible User
-        asyncio.run(
-            request_to_send_telegram_message(
-                order_id=order_id,
-                message_text=formatted_message_text,
-                chat_id=telegram_chat_id,
-                message_thread_id=telegram_thread_id,
-            )
+    # * Format message
+    formatted_message_text = message_text.format(
+        telegram_username=telegram_username,
+        crm_order_url=crm_order_url,
+    )
+
+    logger.debug(
+        f"New Order message for Responsible User:\n"
+        f"ID: {user_id}\n"
+        f"Telegram Username: {telegram_username}\n"
+        f"Telegram Chat ID: {telegram_chat_id}"
+    )
+    logger.debug(f"Ping-message text:\n{formatted_message_text}")
+
+    # * Request Telegram message for Responsible User
+    logger.success(f"Sending new Order Message...")
+    asyncio.run(
+        request_to_send_telegram_message(
+            order_id=order_id,
+            message_text=formatted_message_text,
+            chat_id=telegram_chat_id,
+            message_thread_id=telegram_thread_id,
         )
+    )
