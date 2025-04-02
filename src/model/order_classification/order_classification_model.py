@@ -37,7 +37,7 @@ from model.order_classification.order_classification_history_model import (
 from model.order_tracking.order_tracking_task_model import start_order_tracking
 from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
-    ResponsibleUserWithAddresses,
+    ResponsibleUser,
     RulesWithParams,
 )
 from scheme.order_classification.order_classification_history_scheme import (
@@ -76,9 +76,9 @@ def normalize_resident_request_string(query: str) -> str:
 
 
 def _get_responsible_user_by_order_address(
-    responsible_users_list: list[ResponsibleUserWithAddresses],
+    responsible_users_list: list[ResponsibleUser],
     order_address: str,
-) -> ResponsibleUserWithAddresses | None:
+) -> ResponsibleUser | None:
     """
     Ищет в списке Исполнителя, у которого есть нужный адрес.
     """
@@ -86,7 +86,11 @@ def _get_responsible_user_by_order_address(
     for responsible_user in responsible_users_list:
         addresses_list = responsible_user.address_list
 
-        # Check if responsible user addresses contains order address
+        # Check if Responsible User addresses exist
+        if not addresses_list:
+            return None
+
+        # Check if Responsible User addresses contains Order address
         for address in addresses_list:
             if address.lower() in order_address.lower():
                 return responsible_user
@@ -274,7 +278,7 @@ def classify_order(
         # * Update order emergency class in Domyland
         if is_emergency and is_use_order_classification:
             # * Check if responsible users is set in config
-            if config.responsible_users is None:
+            if not config.responsible_users:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Responsible users is not set in config with ID {config_id}",
@@ -282,8 +286,7 @@ def classify_order(
 
             # * Get responsible UDS user id
             uds_list = [
-                ResponsibleUserWithAddresses(**uds_data)
-                for uds_data in config.responsible_users
+                ResponsibleUser(**uds_data) for uds_data in config.responsible_users
             ]
             responsible_uds = _get_responsible_user_by_order_address(
                 responsible_users_list=uds_list,
