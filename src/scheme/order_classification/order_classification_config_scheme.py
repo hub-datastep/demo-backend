@@ -1,3 +1,5 @@
+from datetime import datetime, time
+
 from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
@@ -29,6 +31,36 @@ class RulesWithParams(SQLModel):
     is_use_order_updating: bool | None = None
 
 
+class WorkTime(SQLModel):
+    """
+    Time when Responsible User works
+    """
+
+    # When Responsible User starts working
+    start_at: datetime | time
+    # When Responsible User finishes working
+    finish_at: datetime | time
+    # Is Time Period Enabled
+    is_disabled: bool | None = None
+
+
+class WorkSchedule(SQLModel):
+    """
+    Responsible User work schedule by weekdays with excluded datetimes
+    """
+
+    # Weekdays with time pedriods
+    monday: WorkTime | None = None
+    tuesday: WorkTime | None = None
+    wednesday: WorkTime | None = None
+    thursday: WorkTime | None = None
+    friday: WorkTime | None = None
+    saturday: WorkTime | None = None
+    sunday: WorkTime | None = None
+    # Excluded datetimes periods
+    excluded: list[WorkTime] | None = None
+
+
 class ResponsibleUser(SQLModel):
     # User ID in Domyland
     user_id: str
@@ -41,8 +73,13 @@ class ResponsibleUser(SQLModel):
     address_list: list[str] | None = None
     # Username in Telegram
     telegram_username: str | None = None
+    # Chat in Telegram
     telegram_chat_id: str | None = None
+    # Chat Topic in Telegram
     telegram_thread_id: int | None = None
+    # Working Hours
+    work_schedule: WorkSchedule | None = None
+    # Is User Enabled
     is_disabled: bool | None = None
 
 
