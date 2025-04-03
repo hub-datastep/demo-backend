@@ -43,6 +43,7 @@ def get_uncompleted() -> list[OrderTrackingTask]:
             ),
         )
         st = st.options(joinedload(OrderTrackingTask.config))
+        st = st.order_by(OrderTrackingTask.created_at.asc())
 
         results_list = list(session.exec(st).unique().all())
 
