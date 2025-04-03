@@ -3,7 +3,9 @@ from datetime import datetime, time, timedelta
 
 from fastapi import HTTPException
 from loguru import logger
+from sqlmodel import Session
 
+from infra.database import engine
 from infra.domyland.constants import OrderStatusID
 from infra.domyland.orders import (
     get_address_from_order_details,
@@ -13,6 +15,7 @@ from infra.domyland.orders import (
 from infra.env import env
 from infra.order_tracking.action import TIME_DEPENDENT_ACTIONS, OrderTrackingTaskAction
 from infra.order_tracking.task_status import OrderTrackingTaskStatus
+from model.order_classification import order_classification_config_model
 from model.order_tracking.actions.new_order_message import send_new_order_message
 from model.order_tracking.actions.sla_ping_message import send_sla_ping_message
 from repository.order_tracking import order_tracking_task_repository
@@ -149,7 +152,13 @@ def process_order_tracking_task(
 ):
     action_log = OrderTrackingTaskActinLog()
     order_id = task.order_id
-    config = task.config
+    config_id = task.config_id
+
+    with Session(engine) as session:
+        config = order_classification_config_model.get_config_by_id(
+            session=session,
+            config_id=config_id,
+        )
 
     try:
         # * Update Task Internal Status to TRACKING
