@@ -6,6 +6,7 @@ from loguru import logger
 
 from infra.domyland.constants import OrderStatusID
 from infra.domyland.orders import (
+    get_address_from_order_details,
     get_order_details_by_id,
     get_responsible_users_by_config_ids,
 )
@@ -161,6 +162,10 @@ def process_order_tracking_task(
         logger.debug(f"Fetching details of Order with ID {order_id}..")
         order_details = get_order_details_by_id(order_id=order_id)
         order = order_details.order
+        order_address = get_address_from_order_details(
+            order_id=order_id,
+            order_details=order_details,
+        )
 
         # * Set last Order Details in Task
         task.last_order_details = serialize_obj(order_details)
@@ -265,6 +270,7 @@ def process_order_tracking_task(
                     # Send Message
                     send_new_order_message(
                         order_id=order_id,
+                        order_address=order_address,
                         responsible_user=user,
                         messages_templates=templates_list,
                     )
@@ -359,6 +365,7 @@ def process_order_tracking_task(
                         # Send Message
                         send_sla_ping_message(
                             order_id=order_id,
+                            order_address=order_address,
                             responsible_user=user,
                             messages_templates=templates_list,
                             sla_solve_time_in_sec=sla_solve_time_in_sec,
