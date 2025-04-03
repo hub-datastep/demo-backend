@@ -20,6 +20,7 @@ from infra.domyland.constants import (
     OrderStatusID,
 )
 from infra.domyland.orders import (
+    get_address_from_order_details,
     get_order_details_by_id,
     get_query_from_order_details,
     update_order_status_details,
@@ -45,7 +46,6 @@ from scheme.order_classification.order_classification_history_scheme import (
 )
 from scheme.order_classification.order_classification_scheme import (
     OrderClassificationRequest,
-    SummaryTitle,
 )
 from util.json_serializing import serialize_obj
 from util.order_messages import find_in_text
@@ -195,42 +195,20 @@ def classify_order(
         history_record.order_details = serialize_obj(order_details)
 
         # * Get resident order query
-        order_query = get_query_from_order_details(order_details=order_details)
+        order_query = get_query_from_order_details(
+            order_id=order_id,
+            order_details=order_details,
+        )
         # logger.debug(f"Order {order_id} query: '{order_query}'")
         history_record.order_query = order_query
 
-        # * Check if resident comment exists and not empty if enabled
-        is_order_query_exists = order_query is not None
-        is_order_query_empty = is_order_query_exists and not bool(order_query.strip())
-
-        if not is_order_query_exists or is_order_query_empty:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Order with ID {order_id} has no comment, cannot classify order",
-            )
-
         # * Get resident address (object)
-        order_address: str | None = None
-        for summary in order_details.order.summary:
-            if summary.title == SummaryTitle.OBJECT:
-                order_address = summary.value
+        order_address = get_address_from_order_details(
+            order_id=order_id,
+            order_details=order_details,
+        )
         # logger.debug(f"Order {order_id} address: '{order_address}'")
         history_record.order_address = order_address
-
-        # * Check if resident address exists and not empty if enabled
-        is_order_address_exists = order_address is not None
-        is_order_address_empty = is_order_address_exists and not bool(
-            order_address.strip()
-        )
-
-        if not is_order_address_exists or is_order_address_empty:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=(
-                    f"Order with ID {order_id} has no address, "
-                    f"cannot find responsible UDS"
-                ),
-            )
 
         # * Get classes with rules from config and check if this param exists
         rules_by_classes = config.rules_by_classes
