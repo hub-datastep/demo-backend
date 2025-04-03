@@ -124,8 +124,10 @@ def process_event(
         log_record.order_details = serialize_obj(order_details)
 
         # Get resident order query
-        order_query = get_query_from_order_details(order_details=order_details)
-        is_query_exists = order_query is not None and order_query.strip() != ""
+        order_query = get_query_from_order_details(
+            order_id=order_id,
+            order_details=order_details,
+        )
         log_record.order_query = order_query
 
         # Check if order status is "pending" ("Ожидание")
@@ -163,7 +165,6 @@ def process_event(
         # Check if cleaning-order is finished
         is_cleaning_order_finished = (
             is_order_in_pending_status
-            and is_query_exists
             and (
                 is_cleaning_account_in_responsible_users
                 or is_cleaning_account_was_in_responsible_users
@@ -175,7 +176,6 @@ def process_event(
                 "action": ActionLogName.VALIDATE_EVENT,
                 "metadata": {
                     "is_order_in_pending_status": is_order_in_pending_status,
-                    "is_query_exists": is_query_exists,
                     "is_cleaning_account_in_responsible_users": is_cleaning_account_in_responsible_users,
                     "is_cleaning_account_was_in_responsible_users": is_cleaning_account_was_in_responsible_users,
                     "is_transfer_account_in_responsible_users": is_transfer_account_in_responsible_users,
@@ -236,16 +236,6 @@ def process_event(
             templates_list=templates_list,
             template_name=template_name,
         )
-
-        # Check if template exists and enabled
-        if not message_template:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=(
-                    f"Message template with name '{template_name}' "
-                    "not found or disabled or empty"
-                ),
-            )
 
         # Combine message text
         message_text = message_template.text

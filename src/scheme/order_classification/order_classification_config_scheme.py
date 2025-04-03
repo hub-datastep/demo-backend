@@ -1,3 +1,5 @@
+from datetime import datetime, time
+
 from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
@@ -29,6 +31,59 @@ class RulesWithParams(SQLModel):
     is_use_order_updating: bool | None = None
 
 
+class TelegramChat(SQLModel):
+    """
+    Responsible User Telegram Chat with addresses.
+    """
+
+    name: str | None = None
+    # ID of Chat
+    chat_id: str
+    # ID of Chat Topic
+    thread_id: int | None = None
+    # Address list of Chat
+    address_list: list[str] | None = None
+    # Is Chat Enabled
+    is_disabled: bool | None = None
+
+
+class TelegramUser(SQLModel):
+    # Username of Responsible User in Telegram
+    username: str
+    # Chats list of Responsible User
+    chats: list[TelegramChat] | None = None
+
+
+class WorkTime(SQLModel):
+    """
+    Time when Responsible User works
+    """
+
+    # When Responsible User starts working
+    start_at: datetime | time
+    # When Responsible User finishes working
+    finish_at: datetime | time
+    # Is Time Period Enabled
+    is_disabled: bool | None = None
+
+
+class WorkSchedule(SQLModel):
+    """
+    Responsible User work schedule by weekdays with excluded datetimes
+    """
+
+    # Weekdays with time pedriods
+    monday: WorkTime | None = None
+    tuesday: WorkTime | None = None
+    wednesday: WorkTime | None = None
+    thursday: WorkTime | None = None
+    friday: WorkTime | None = None
+    saturday: WorkTime | None = None
+    sunday: WorkTime | None = None
+    # Excluded datetimes periods
+    excluded: list[WorkTime] | None = None
+
+
 class ResponsibleUser(SQLModel):
     # User ID in Domyland
     user_id: str
@@ -37,14 +92,14 @@ class ResponsibleUser(SQLModel):
     order_class: str | None = None
     # TODO: decide if we need store classes for users
     # order_classes_list: list[str] | None = []
-    telegram_username: str | None = None
-    telegram_chat_id: str | None = None
-    telegram_thread_id: int | None = None
+    # Addresses (Оbjects) list where Responsible User works
+    address_list: list[str] | None = None
+    # Telegram of Responsible User
+    telegram: TelegramUser | None = None
+    # Working Hours
+    work_schedule: WorkSchedule | None = None
+    # Is User Enabled
     is_disabled: bool | None = None
-
-
-class ResponsibleUserWithAddresses(ResponsibleUser):
-    address_list: list[str]
 
 
 class MessageTemplate(SQLModel):

@@ -20,6 +20,7 @@ from infra.domyland.constants import (
     OrderStatusID,
 )
 from infra.domyland.orders import (
+    get_address_from_order_details,
     get_order_details_by_id,
     get_query_from_order_details,
     update_order_status_details,
@@ -37,7 +38,7 @@ from model.order_classification.order_classification_history_model import (
 from model.order_tracking.order_tracking_task_model import start_order_tracking
 from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
-    ResponsibleUserWithAddresses,
+    ResponsibleUser,
     RulesWithParams,
 )
 from scheme.order_classification.order_classification_history_scheme import (
@@ -45,7 +46,6 @@ from scheme.order_classification.order_classification_history_scheme import (
 )
 from scheme.order_classification.order_classification_scheme import (
     OrderClassificationRequest,
-    SummaryTitle,
 )
 from util.json_serializing import serialize_obj
 from util.order_messages import find_in_text
@@ -76,9 +76,9 @@ def normalize_resident_request_string(query: str) -> str:
 
 
 def _get_responsible_user_by_order_address(
-    responsible_users_list: list[ResponsibleUserWithAddresses],
+    responsible_users_list: list[ResponsibleUser],
     order_address: str,
-) -> ResponsibleUserWithAddresses | None:
+) -> ResponsibleUser | None:
     """
     Ищет в списке Исполнителя, у которого есть нужный адрес.
     """
@@ -86,7 +86,11 @@ def _get_responsible_user_by_order_address(
     for responsible_user in responsible_users_list:
         addresses_list = responsible_user.address_list
 
-        # Check if responsible user addresses contains order address
+        # Check if Responsible User addresses exist
+        if not addresses_list:
+            return None
+
+        # Check if Responsible User addresses contains Order address
         for address in addresses_list:
             if address.lower() in order_address.lower():
                 return responsible_user
@@ -191,42 +195,20 @@ def classify_order(
         history_record.order_details = serialize_obj(order_details)
 
         # * Get resident order query
-        order_query = get_query_from_order_details(order_details=order_details)
+        order_query = get_query_from_order_details(
+            order_id=order_id,
+            order_details=order_details,
+        )
         # logger.debug(f"Order {order_id} query: '{order_query}'")
         history_record.order_query = order_query
 
-        # * Check if resident comment exists and not empty if enabled
-        is_order_query_exists = order_query is not None
-        is_order_query_empty = is_order_query_exists and not bool(order_query.strip())
-
-        if not is_order_query_exists or is_order_query_empty:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Order with ID {order_id} has no comment, cannot classify order",
-            )
-
         # * Get resident address (object)
-        order_address: str | None = None
-        for summary in order_details.order.summary:
-            if summary.title == SummaryTitle.OBJECT:
-                order_address = summary.value
+        order_address = get_address_from_order_details(
+            order_id=order_id,
+            order_details=order_details,
+        )
         # logger.debug(f"Order {order_id} address: '{order_address}'")
         history_record.order_address = order_address
-
-        # * Check if resident address exists and not empty if enabled
-        is_order_address_exists = order_address is not None
-        is_order_address_empty = is_order_address_exists and not bool(
-            order_address.strip()
-        )
-
-        if not is_order_address_exists or is_order_address_empty:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=(
-                    f"Order with ID {order_id} has no address, "
-                    f"cannot find responsible UDS"
-                ),
-            )
 
         # * Get classes with rules from config and check if this param exists
         rules_by_classes = config.rules_by_classes
@@ -274,7 +256,7 @@ def classify_order(
         # * Update order emergency class in Domyland
         if is_emergency and is_use_order_classification:
             # * Check if responsible users is set in config
-            if config.responsible_users is None:
+            if not config.responsible_users:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Responsible users is not set in config with ID {config_id}",
@@ -282,8 +264,7 @@ def classify_order(
 
             # * Get responsible UDS user id
             uds_list = [
-                ResponsibleUserWithAddresses(**uds_data)
-                for uds_data in config.responsible_users
+                ResponsibleUser(**uds_data) for uds_data in config.responsible_users
             ]
             responsible_uds = _get_responsible_user_by_order_address(
                 responsible_users_list=uds_list,

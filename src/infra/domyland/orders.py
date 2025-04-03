@@ -1,7 +1,7 @@
 import time
 
 import requests
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from loguru import logger
 
 from infra.domyland.auth import get_ai_account_auth_token, get_domyland_headers
@@ -16,6 +16,7 @@ from scheme.order_classification.order_classification_scheme import (
     SummaryTitle,
 )
 from scheme.order_notification.order_notification_scheme import OrderStatusDetails
+from util.validation import is_exists_and_not_empty
 
 
 def get_crm_order_url(order_id: int) -> str:
@@ -60,21 +61,71 @@ def get_order_details_by_id(order_id: int) -> OrderDetails:
     return order_details
 
 
-def get_query_from_order_details(order_details: OrderDetails) -> str | None:
+def get_param_by_name_from_order_details(
+    order_details: OrderDetails,
+    param_name: str,
+) -> str | None:
     """
-    Extract Resident Query from Order details.
+    Extract param by name from Order details.
     """
 
-    # Get resident order query
-    keyword = SummaryTitle.COMMENT.lower().strip()
-    order_query: str | None = None
+    keyword = param_name.lower().strip()
+    param_value: str | None = None
     for param in order_details.order.summary:
         # Search comment param
         if param.title and keyword in param.title.lower().strip():
-            order_query = param.value
+            param_value = param.value
             break
 
+    return param_value
+
+
+def get_query_from_order_details(
+    order_id: int,
+    order_details: OrderDetails,
+) -> str | None:
+    """
+    Extract Resident query from Order details. Raise error if not found or empty.
+    """
+
+    # Get resident order query
+    order_query = get_param_by_name_from_order_details(
+        order_details=order_details,
+        param_name=SummaryTitle.COMMENT,
+    )
+
+    # * Check if resident comment exists and not empty if enabled
+    if not is_exists_and_not_empty(order_query):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Order with ID {order_id} has no comment",
+        )
+
     return order_query
+
+
+def get_address_from_order_details(
+    order_id: int,
+    order_details: OrderDetails,
+) -> str | None:
+    """
+    Extract Order address from Order details. Raise error if not found or empty.
+    """
+
+    # Get resident address (object)
+    order_address = get_param_by_name_from_order_details(
+        order_details=order_details,
+        param_name=SummaryTitle.OBJECT,
+    )
+
+    # * Check if resident address exists and not empty if enabled
+    if not is_exists_and_not_empty(order_address):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Order with ID {order_id} has no address",
+        )
+
+    return order_address
 
 
 def get_responsible_users_by_config_ids(
