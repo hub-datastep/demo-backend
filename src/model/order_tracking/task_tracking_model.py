@@ -284,9 +284,9 @@ def process_order_tracking_task(
                     sla_solve_timestamp = order.solveTimeSLA
                     logger.debug(f"SLA Solve Timestamp: {sla_solve_timestamp}")
                     if sla_solve_timestamp:
-                        sla_solve_time_in_sec = sla_solve_timestamp - current_timestamp
+                        sla_left_time_in_sec = sla_solve_timestamp - current_timestamp
                         sla_ping_datetime = datetime.fromtimestamp(
-                            timestamp=current_timestamp + sla_solve_time_in_sec / 2
+                            timestamp=current_timestamp + sla_left_time_in_sec / 2,
                         )
                         logger.debug(f"Next SLA ping datetime: {sla_ping_datetime}")
                         task.action_time = sla_ping_datetime
@@ -361,7 +361,7 @@ def process_order_tracking_task(
 
                         # Count SLA time left
                         sla_solve_timestamp = order.solveTimeSLA
-                        sla_solve_time_in_sec = sla_solve_timestamp - current_timestamp
+                        sla_left_time_in_sec = sla_solve_timestamp - current_timestamp
 
                         # Send Message
                         send_sla_ping_message(
