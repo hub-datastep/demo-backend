@@ -85,6 +85,8 @@ class Order(SQLModel):
     orderStatusComment: str | None = ""
     # Timestamp of SLA solve time
     solveTimeSLA: int | None = None
+    # Timestamp Order created at
+    createdAt: int | None = None
 
 
 class OrderForm(SQLModel):
