@@ -25,11 +25,11 @@ def get_default_config(
 
 
 def get_config_by_id(
-    session: Session,
     config_id: int,
 ) -> OrderClassificationConfig | None:
-    config = session.get(OrderClassificationConfig, config_id)
-    return config
+    with Session(engine) as session:
+        config = session.get(OrderClassificationConfig, config_id)
+        return config
 
 
 def get_config_by_user_id(

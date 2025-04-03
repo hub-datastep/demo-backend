@@ -31,11 +31,9 @@ router = APIRouter()
 @version(1)
 def get_classification_config_by_id(
     config_id: int,
-    session: Session = Depends(get_session),
     current_user: UserRead = Depends(get_current_user),
 ):
     return order_classification_config_model.get_order_classification_config_by_id(
-        session=session,
         config_id=config_id,
     )
 

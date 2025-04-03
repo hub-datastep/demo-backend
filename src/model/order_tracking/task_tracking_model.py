@@ -3,9 +3,7 @@ from datetime import datetime, time, timedelta
 
 from fastapi import HTTPException
 from loguru import logger
-from sqlmodel import Session
 
-from infra.database import engine
 from infra.domyland.constants import OrderStatusID
 from infra.domyland.orders import (
     get_address_from_order_details,
@@ -154,11 +152,7 @@ def process_order_tracking_task(
     order_id = task.order_id
     config_id = task.config_id
 
-    with Session(engine) as session:
-        config = order_classification_config_model.get_config_by_id(
-            session=session,
-            config_id=config_id,
-        )
+    config = order_classification_config_model.get_config_by_id(config_id)
 
     try:
         # * Update Task Internal Status to TRACKING
