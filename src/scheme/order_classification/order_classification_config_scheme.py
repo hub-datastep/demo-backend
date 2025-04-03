@@ -31,6 +31,29 @@ class RulesWithParams(SQLModel):
     is_use_order_updating: bool | None = None
 
 
+class TelegramChat(SQLModel):
+    """
+    Responsible User Telegram Chat with addresses.
+    """
+
+    name: str | None = None
+    # ID of Chat
+    chat_id: str
+    # ID of Chat Topic
+    thread_id: int | None = None
+    # Address list of Chat
+    address_list: list[str] | None = None
+    # Is Chat Enabled
+    is_disabled: bool | None = None
+
+
+class TelegramUser(SQLModel):
+    # Username of Responsible User in Telegram
+    username: str
+    # Chats list of Responsible User
+    chats: list[TelegramChat] | None = None
+
+
 class WorkTime(SQLModel):
     """
     Time when Responsible User works
@@ -71,12 +94,8 @@ class ResponsibleUser(SQLModel):
     # order_classes_list: list[str] | None = []
     # Addresses (Оbjects) list where Responsible User works
     address_list: list[str] | None = None
-    # Username in Telegram
-    telegram_username: str | None = None
-    # Chat in Telegram
-    telegram_chat_id: str | None = None
-    # Chat Topic in Telegram
-    telegram_thread_id: int | None = None
+    # Telegram of Responsible User
+    telegram: TelegramUser | None = None
     # Working Hours
     work_schedule: WorkSchedule | None = None
     # Is User Enabled
