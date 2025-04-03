@@ -194,10 +194,8 @@ def process_order_tracking_task(
             )
             return
 
-        action = task.next_action
-        if action is None:
-            # TODO: Set action for recently created task
-            raise Exception(f"Task of Order with ID {order_id} has no action")
+        # * Do action if exists
+        action: str = task.next_action
 
         current_datetime = get_now_utc()
         current_timestamp = int(current_datetime.timestamp())
