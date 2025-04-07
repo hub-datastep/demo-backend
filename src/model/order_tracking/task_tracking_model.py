@@ -7,8 +7,11 @@ from loguru import logger
 from infra.domyland.constants import OrderStatusID
 from infra.domyland.orders import (
     get_address_from_order_details,
+    get_address_with_apartment_from_order_details,
     get_order_details_by_id,
+    get_query_from_order_details,
     get_responsible_users_by_config_ids,
+    get_responsible_users_full_names_by_order_id,
 )
 from infra.env import env
 from infra.order_tracking.action import TIME_DEPENDENT_ACTIONS, OrderTrackingTaskAction
@@ -30,6 +33,7 @@ from scheme.order_tracking.order_tracking_task_scheme import (
 )
 from util.dates import as_utc, get_now_utc, get_weekday_by_date
 from util.json_serializing import serialize_obj, serialize_objs_list
+from util.seconds_to_time_str import get_time_str_from_seconds
 
 # For DEV
 SLA_PING_PERIOD_IN_MIN_DEV = 1
@@ -170,6 +174,27 @@ def process_order_tracking_task(
             order_id=order_id,
             order_details=order_details,
         )
+        order_address_with_apartment = get_address_with_apartment_from_order_details(
+            order_id=order_id,
+            order_details=order_details,
+        )
+        order_createdAt = order_details.order.createdAt
+        order_serviceTitle = order_details.order.serviceTitle
+        order_query = get_query_from_order_details(
+            order_id=order_id,
+            order_details=order_details,
+        )
+        # * Get createdAt time text
+        order_createdAt_time_in_sec = order.createdAt
+        # Проверяем, что order.createdAt не является None
+        if order_createdAt_time_in_sec is None:
+            order_createdAt_time_str = ""
+        else:
+            order_createdAt_time_str = get_time_str_from_seconds(seconds=abs(order_createdAt_time_in_sec))
+
+        order_responsible_users_full_names = get_responsible_users_full_names_by_order_id(
+            order_id=order_id,
+        )
 
         # * Set last Order Details in Task
         task.last_order_details = serialize_obj(order_details)
@@ -273,6 +298,11 @@ def process_order_tracking_task(
                     send_new_order_message(
                         order_id=order_id,
                         order_address=order_address,
+                        order_address_with_apartment=order_address_with_apartment,
+                        order_serviceTitle=order_serviceTitle,
+                        order_query=order_query,
+                        order_createdAt_time_str=order_createdAt_time_str,
+                        order_responsible_users_full_names=order_responsible_users_full_names,
                         responsible_user=user,
                         messages_templates=templates_list,
                     )

@@ -15,13 +15,30 @@ from scheme.order_classification.order_classification_config_scheme import (
 
 def send_new_order_message(
     order_id: int,
-    order_address: str,
+    order_address: str | None,
+    order_address_with_apartment: str | None,
+    order_serviceTitle: str | None,
+    order_query: str | None,
+    order_createdAt_time_str: str | None,
+    order_responsible_users_full_names: list[str | None],
     responsible_user: ResponsibleUser,
     messages_templates: list[MessageTemplate],
 ):
     """
     Send New Order Message to Responsible User in Telegram Chat.
+    order_address - нужен для получения юзера по объекту
+    order_address_with_apartment - нужен для вывода адреса с квартирой в сообщение в тг
     """
+
+    # Преобразование параметров в пустую строку, если они равны None
+    order_address = order_address or ""
+    order_address_with_apartment = order_address_with_apartment or ""
+    order_serviceTitle = order_serviceTitle or ""
+    order_query = order_query or ""
+    order_createdAt_time_str = order_createdAt_time_str or ""
+    formatted_user_full_names: list[str] = [
+        full_name or "" for full_name in order_responsible_users_full_names
+    ]
 
     user_id = responsible_user.user_id
 
@@ -48,6 +65,12 @@ def send_new_order_message(
     formatted_message_text = message_text.format(
         telegram_username=telegram_username,
         crm_order_url=crm_order_url,
+        order_address_with_apartment=order_address_with_apartment,
+        order_serviceTitle=order_serviceTitle,
+        order_query=order_query,
+        order_createdAt_time_str=order_createdAt_time_str,
+        order_responsible_users_full_names=", ".join(formatted_user_full_names),
+        order_id=order_id
     )
 
     logger.debug(

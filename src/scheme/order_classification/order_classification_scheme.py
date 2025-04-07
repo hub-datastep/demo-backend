@@ -87,6 +87,8 @@ class Order(SQLModel):
     solveTimeSLA: int | None = None
     # Timestamp Order created at
     createdAt: int | None = None
+    # Название услуги, например "Требуется уборка", не уверен всегда ли параметр прилетает, поэтому перестаховался None
+    serviceTitle: str | None = ""
 
 
 class OrderForm(SQLModel):

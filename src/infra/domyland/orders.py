@@ -110,6 +110,8 @@ def get_address_from_order_details(
 ) -> str | None:
     """
     Extract Order address from Order details. Raise error if not found or empty.
+    Пример адреса объекта - "Корабельная ул, д. 1"
+    Похожая функция, получающая более точную информацию - get_address_with_apartment_from_order_details
     """
 
     # Get resident address (object)
@@ -128,6 +130,31 @@ def get_address_from_order_details(
     return order_address
 
 
+def get_address_with_apartment_from_order_details(
+    order_id: int,
+    order_details: OrderDetails,
+) -> str | None:
+    """
+    Extract Order address from Order details. Raise error if not found or empty.
+    Пример адреса с квартирой - "Корабельная ул, д. 1 кв 521"
+    """
+
+    # Get resident address (object)
+    order_address_with_apartment = get_param_by_name_from_order_details(
+        order_details=order_details,
+        param_name=SummaryTitle.ADDRESS,
+    )
+
+    # * Пока решил не рейзить эксепшн, чтобы не прерывать процесс сбора данных для заявки, потому что поле не обязательное
+    # if not is_exists_and_not_empty(order_address_with_apartment):
+    #     raise HTTPException(
+    #         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    #         detail=f"Order with ID {order_id} has no address with apartment",
+    #     )
+
+    return order_address_with_apartment
+
+
 def get_responsible_users_by_config_ids(
     order_responsible_users: list[OrderResponsibleUser] | None = None,
     config_responsible_users: list[ResponsibleUser] | None = None,
@@ -142,6 +169,36 @@ def get_responsible_users_by_config_ids(
                 found_responsible_users.append(user_in_config)
 
     return found_responsible_users
+
+
+def get_responsible_users_full_names_by_order_id(
+    order_id: int,
+) -> list[str | None]:
+    """
+    Fetch full names of responsible users for a given order ID.
+    Raise an HTTPException if responsible users are not found.
+    Пример массива фулл неймов юзеров из заявки - ['Специалист Александр ', 'Клининг Рпм-Четыре ']
+    """
+    try:
+        order_status_details = get_order_status_details_by_id(order_id)
+
+        # Проверяем, что responsibleUsers не является None
+        if order_status_details.responsibleUsers is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Order with ID {order_id} has no responsible users.",
+            )
+
+        # Создаем массив для хранения fullName пользователей
+        user_full_names = [user.fullName for user in order_status_details.responsibleUsers]
+
+        return user_full_names
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while fetching responsible users for order ID {order_id}: {str(e)}",
+        )
 
 
 def get_order_status_details_by_id(order_id: int) -> OrderStatusDetails:
@@ -239,12 +296,34 @@ if __name__ == "__main__":
     # Test Order
     # order_id = 3197122
     # Real Order with Photos from Cleaning Account
-    order_id = 3198517
-    # order_id = 3333919
-    # order_id = 3334010
+    # order_id = 3198517
+    # # order_id = 3333919
+    # # order_id = 3334010
 
     # order_details = get_order_details_by_id(order_id)
-    # logger.debug(f"Order {order_id} details: {order_details}")
+    # # logger.debug(f"Order {order_id} details: {order_details}")
 
-    # order_status_details = get_order_status_details_by_id(order_id)
-    # logger.debug(f"Order {order_id} status details: {order_status_details}")
+    # order_createdAt = order_details.order.createdAt
+    # logger.debug(f"Order {order_id} createdAt: {order_createdAt}")
+
+    # order_serviceTitle = order_details.order.serviceTitle
+    # logger.debug(f"Order {order_id} serviceTitle: {order_serviceTitle}")
+
+    # order_query = get_query_from_order_details(
+    #     order_id=order_id,
+    #     order_details=order_details,
+    # )
+    # logger.debug(f"Order {order_id} query: {order_query}")
+
+    # order_responsible_users_full_names = get_responsible_users_full_names_by_order_id(
+    #     order_id=order_id,
+    # )
+    # logger.debug(
+    #     f"Order {order_id} responsible users full names: {order_responsible_users_full_names}"
+    # )
+
+    # order_address_with_apartment = get_address_with_apartment_from_order_details(
+    #     order_id=order_id,
+    #     order_details=order_details,
+    # )
+    # logger.debug(f"Order {order_id} address with apartment: {order_address_with_apartment}")
