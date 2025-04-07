@@ -292,7 +292,7 @@ def update_order_status_details(
         )
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # Test Order
     # order_id = 3197122
     # Real Order with Photos from Cleaning Account
