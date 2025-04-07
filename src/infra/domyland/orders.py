@@ -16,6 +16,7 @@ from scheme.order_classification.order_classification_scheme import (
     SummaryTitle,
 )
 from scheme.order_notification.order_notification_scheme import OrderStatusDetails
+from util.format_timestamp_to_huma_readable import format_timestamp_to_human_readable
 from util.validation import is_exists_and_not_empty
 
 
@@ -305,6 +306,8 @@ def update_order_status_details(
 
     # order_createdAt = order_details.order.createdAt
     # logger.debug(f"Order {order_id} createdAt: {order_createdAt}")
+    # order_timestamp=format_timestamp_to_human_readable(order_createdAt)
+    # logger.debug(f"Order {order_id} format_timestamp_to_human_readable: {order_timestamp}")
 
     # order_serviceTitle = order_details.order.serviceTitle
     # logger.debug(f"Order {order_id} serviceTitle: {order_serviceTitle}")
