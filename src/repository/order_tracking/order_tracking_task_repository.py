@@ -67,3 +67,18 @@ def update(task: OrderTrackingTask) -> OrderTrackingTask:
         session.commit()
         session.refresh(db_task)
         return db_task
+
+
+from repository.base import BaseRepository
+
+
+class OrderTrackingTaskRepository(BaseRepository[OrderTrackingTask]):
+    """
+    Repository for OrderTrackingTask DB table.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(schema=OrderTrackingTask)
+
+
+order_tracking_task_repository = OrderTrackingTaskRepository()
