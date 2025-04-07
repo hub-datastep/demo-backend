@@ -1,10 +1,16 @@
 import time
 
 import requests
+from aiohttp.hdrs import METH_POST
 from fastapi import HTTPException, status
 from loguru import logger
 
-from infra.domyland.auth import get_ai_account_auth_token, get_domyland_headers
+from infra.domyland.auth import (
+    get_ai_account_auth_token,
+    get_ai_account_auth_token_async,
+    get_domyland_headers,
+)
+from infra.domyland.base import Domyland
 from infra.domyland.constants import DOMYLAND_API_BASE_URL, DOMYLAND_CRM_BASE_URL
 from infra.order_classification import WAIT_TIME_IN_SEC
 from scheme.order_classification.order_classification_config_scheme import (
@@ -16,7 +22,6 @@ from scheme.order_classification.order_classification_scheme import (
     SummaryTitle,
 )
 from scheme.order_notification.order_notification_scheme import OrderStatusDetails
-from util.format_timestamp_to_human_readable import format_timestamp_to_human_readable
 from util.validation import is_exists_and_not_empty
 
 
@@ -49,6 +54,34 @@ def get_order_details_by_id(order_id: int) -> OrderDetails:
             status_code=response.status_code,
             detail=f"OrderDetails GET: {response_data}",
         )
+
+    # ! DEBUG ONLY
+    # * Just to save all order data to json-file
+    # * Uncomment this if you need to save all response data
+    # with open(f"order-{order_id}-details.json", "w", encoding="utf-8") as f:
+    #     import json
+
+    #     json.dump(response_data, f, ensure_ascii=False)
+
+    order_details = OrderDetails(**response_data)
+    return order_details
+
+
+async def get_order_details_by_id_async(order_id: int) -> OrderDetails:
+    """
+    Fetch all Order data by ID from Domyland.
+    """
+
+    # Authorize in Domyland API
+    await get_ai_account_auth_token_async()
+
+    # Get order details
+    endpoint = f"initial-data/dispatcher/order-info/{order_id}"
+    response_data = await Domyland.request(
+        method=METH_POST,
+        endpoint=endpoint,
+    )
+    # logger.debug(f"Order {order_id} details:\n{response_data}")
 
     # ! DEBUG ONLY
     # * Just to save all order data to json-file
@@ -191,7 +224,9 @@ def get_responsible_users_full_names_by_order_id(
             )
 
         # Создаем массив для хранения fullName пользователей
-        user_full_names = [user.fullName for user in order_status_details.responsibleUsers]
+        user_full_names = [
+            user.fullName for user in order_status_details.responsibleUsers
+        ]
 
         return user_full_names
 
@@ -294,39 +329,39 @@ def update_order_status_details(
 
 
 # if __name__ == "__main__":
-    # Test Order
-    # order_id = 3197122
-    # Real Order with Photos from Cleaning Account
-    # order_id = 3198517
-    # # order_id = 3333919
-    # # order_id = 3334010
+#     # Test Order
+#     order_id = 3197122
+#     # Real Order with Photos from Cleaning Account
+#     order_id = 3198517
+#     # order_id = 3333919
+#     # order_id = 3334010
 
-    # order_details = get_order_details_by_id(order_id)
-    # # logger.debug(f"Order {order_id} details: {order_details}")
+#     order_details = get_order_details_by_id(order_id)
+#     # logger.debug(f"Order {order_id} details: {order_details}")
 
-    # order_createdAt = order_details.order.createdAt
-    # logger.debug(f"Order {order_id} createdAt: {order_createdAt}")
-    # order_timestamp=format_timestamp_to_human_readable(order_createdAt)
-    # logger.debug(f"Order {order_id} format_timestamp_to_human_readable: {order_timestamp}")
+#     order_createdAt = order_details.order.createdAt
+#     logger.debug(f"Order {order_id} createdAt: {order_createdAt}")
+#     order_timestamp=format_timestamp_to_human_readable(order_createdAt)
+#     logger.debug(f"Order {order_id} format_timestamp_to_human_readable: {order_timestamp}")
 
-    # order_serviceTitle = order_details.order.serviceTitle
-    # logger.debug(f"Order {order_id} serviceTitle: {order_serviceTitle}")
+#     order_serviceTitle = order_details.order.serviceTitle
+#     logger.debug(f"Order {order_id} serviceTitle: {order_serviceTitle}")
 
-    # order_query = get_query_from_order_details(
-    #     order_id=order_id,
-    #     order_details=order_details,
-    # )
-    # logger.debug(f"Order {order_id} query: {order_query}")
+#     order_query = get_query_from_order_details(
+#         order_id=order_id,
+#         order_details=order_details,
+#     )
+#     logger.debug(f"Order {order_id} query: {order_query}")
 
-    # order_responsible_users_full_names = get_responsible_users_full_names_by_order_id(
-    #     order_id=order_id,
-    # )
-    # logger.debug(
-    #     f"Order {order_id} responsible users full names: {order_responsible_users_full_names}"
-    # )
+#     order_responsible_users_full_names = get_responsible_users_full_names_by_order_id(
+#         order_id=order_id,
+#     )
+#     logger.debug(
+#         f"Order {order_id} responsible users full names: {order_responsible_users_full_names}"
+#     )
 
-    # order_address_with_apartment = get_address_with_apartment_from_order_details(
-    #     order_id=order_id,
-    #     order_details=order_details,
-    # )
-    # logger.debug(f"Order {order_id} address with apartment: {order_address_with_apartment}")
+#     order_address_with_apartment = get_address_with_apartment_from_order_details(
+#         order_id=order_id,
+#         order_details=order_details,
+#     )
+#     logger.debug(f"Order {order_id} address with apartment: {order_address_with_apartment}")
