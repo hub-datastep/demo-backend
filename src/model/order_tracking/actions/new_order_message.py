@@ -11,6 +11,7 @@ from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
     ResponsibleUser,
 )
+from util.seconds_to_time_str import get_time_str_from_seconds
 
 
 def send_new_order_message(
@@ -23,6 +24,7 @@ def send_new_order_message(
     order_responsible_users_full_names: list[str | None],
     responsible_user: ResponsibleUser,
     messages_templates: list[MessageTemplate],
+    sla_left_time_in_sec: int,
 ):
     """
     Send New Order Message to Responsible User in Telegram Chat.
@@ -61,6 +63,17 @@ def send_new_order_message(
         )
     )
 
+    # * Get SLA time text
+    # Отдаем просто "4 часа" если не просрочено, и отдаем строку "просрочен на 4 часа" если просрочен
+    # в темплейте сообщения перед этой переменной будет стоять "⏰ SLA выполнения -"
+    sla_time_str = get_time_str_from_seconds(seconds=abs(sla_left_time_in_sec))
+    if sla_left_time_in_sec > 0:
+        sla_time_text = sla_time_str
+    else:
+        sla_time_text = (
+            f"просрочен на {sla_time_str}"
+        )
+
     # * Format message
     formatted_message_text = message_text.format(
         telegram_username=telegram_username,
@@ -70,7 +83,8 @@ def send_new_order_message(
         order_query=order_query,
         order_createdAt_time_str=order_createdAt_time_str,
         order_responsible_users_full_names=", ".join(formatted_user_full_names),
-        order_id=order_id
+        order_id=order_id,
+        sla_time_text=sla_time_text
     )
 
     logger.debug(
