@@ -7,7 +7,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from infra.env import env
 
 engine = create_async_engine(
-    url=env.DB_CON_STR,
+    url=env.DB_CONNECTION_STRING_ASYNC,
     echo=False,
 )
 async_session_maker = async_sessionmaker(
