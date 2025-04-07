@@ -32,7 +32,7 @@ from scheme.order_tracking.order_tracking_task_scheme import (
     OrderTrackingTaskActinLog,
 )
 from util.dates import as_utc, get_now_utc, get_weekday_by_date
-from util.format_timestamp_to_huma_readable import format_timestamp_to_human_readable
+from util.format_timestamp_to_human_readable import format_timestamp_to_human_readable
 from util.json_serializing import serialize_obj, serialize_objs_list
 
 # For DEV
@@ -178,7 +178,6 @@ def process_order_tracking_task(
             order_id=order_id,
             order_details=order_details,
         )
-        order_createdAt = order_details.order.createdAt
         order_serviceTitle = order_details.order.serviceTitle
         order_query = get_query_from_order_details(
             order_id=order_id,
