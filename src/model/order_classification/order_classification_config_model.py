@@ -2,10 +2,10 @@ from fastapi import HTTPException, status
 from sqlmodel import Session
 
 from repository.order_classification.order_classification_config_repository import (
-    get_config_by_user_id,
-    get_config_by_id,
-    get_default_config,
     DEFAULT_CONFIG_ID,
+    get_config_by_id,
+    get_config_by_user_id,
+    get_default_config,
 )
 from scheme.order_classification.order_classification_config_scheme import (
     OrderClassificationConfig,
@@ -34,10 +34,9 @@ def get_order_classification_default_config(
 
 
 def get_order_classification_config_by_id(
-    session: Session,
     config_id: int,
 ) -> OrderClassificationConfig:
-    config = get_config_by_id(session, config_id)
+    config = get_config_by_id(config_id)
 
     if config is None:
         raise HTTPException(

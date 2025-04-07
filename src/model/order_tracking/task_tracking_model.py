@@ -1,16 +1,17 @@
 import traceback
-from datetime import datetime, time, timedelta
+from datetime import datetime, time
 
 from fastapi import HTTPException
 from loguru import logger
-from sqlmodel import Session
 
-from infra.database import engine
 from infra.domyland.constants import OrderStatusID
 from infra.domyland.orders import (
     get_address_from_order_details,
+    get_address_with_apartment_from_order_details,
     get_order_details_by_id,
+    get_query_from_order_details,
     get_responsible_users_by_config_ids,
+    get_responsible_users_full_names_by_order_id,
 )
 from infra.env import env
 from infra.order_tracking.action import TIME_DEPENDENT_ACTIONS, OrderTrackingTaskAction
@@ -18,6 +19,7 @@ from infra.order_tracking.task_status import OrderTrackingTaskStatus
 from model.order_classification import order_classification_config_model
 from model.order_tracking.actions.new_order_message import send_new_order_message
 from model.order_tracking.actions.sla_ping_message import send_sla_ping_message
+from model.order_tracking.helpers.done_actions_count import get_done_actions_count
 from repository.order_tracking import order_tracking_task_repository
 from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
@@ -31,6 +33,7 @@ from scheme.order_tracking.order_tracking_task_scheme import (
 )
 from util.dates import as_utc, get_now_utc, get_weekday_by_date
 from util.json_serializing import serialize_obj, serialize_objs_list
+from util.seconds_to_time_str import get_time_str_from_seconds
 
 # For DEV
 SLA_PING_PERIOD_IN_MIN_DEV = 1
@@ -154,11 +157,7 @@ def process_order_tracking_task(
     order_id = task.order_id
     config_id = task.config_id
 
-    with Session(engine) as session:
-        config = order_classification_config_model.get_config_by_id(
-            session=session,
-            config_id=config_id,
-        )
+    config = order_classification_config_model.get_config_by_id(config_id)
 
     try:
         # * Update Task Internal Status to TRACKING
@@ -174,6 +173,27 @@ def process_order_tracking_task(
         order_address = get_address_from_order_details(
             order_id=order_id,
             order_details=order_details,
+        )
+        order_address_with_apartment = get_address_with_apartment_from_order_details(
+            order_id=order_id,
+            order_details=order_details,
+        )
+        order_createdAt = order_details.order.createdAt
+        order_serviceTitle = order_details.order.serviceTitle
+        order_query = get_query_from_order_details(
+            order_id=order_id,
+            order_details=order_details,
+        )
+        # * Get createdAt time text
+        order_createdAt_time_in_sec = order.createdAt
+        # Проверяем, что order.createdAt не является None
+        if order_createdAt_time_in_sec is None:
+            order_createdAt_time_str = ""
+        else:
+            order_createdAt_time_str = get_time_str_from_seconds(seconds=abs(order_createdAt_time_in_sec))
+
+        order_responsible_users_full_names = get_responsible_users_full_names_by_order_id(
+            order_id=order_id,
         )
 
         # * Set last Order Details in Task
@@ -200,10 +220,8 @@ def process_order_tracking_task(
             )
             return
 
-        action = task.next_action
-        if action is None:
-            # TODO: Set action for recently created task
-            raise Exception(f"Task of Order with ID {order_id} has no action")
+        # * Do action if exists
+        action: str = task.next_action
 
         current_datetime = get_now_utc()
         current_timestamp = int(current_datetime.timestamp())
@@ -280,6 +298,11 @@ def process_order_tracking_task(
                     send_new_order_message(
                         order_id=order_id,
                         order_address=order_address,
+                        order_address_with_apartment=order_address_with_apartment,
+                        order_serviceTitle=order_serviceTitle,
+                        order_query=order_query,
+                        order_createdAt_time_str=order_createdAt_time_str,
+                        order_responsible_users_full_names=order_responsible_users_full_names,
                         responsible_user=user,
                         messages_templates=templates_list,
                     )
@@ -292,9 +315,9 @@ def process_order_tracking_task(
                     sla_solve_timestamp = order.solveTimeSLA
                     logger.debug(f"SLA Solve Timestamp: {sla_solve_timestamp}")
                     if sla_solve_timestamp:
-                        sla_solve_time_in_sec = sla_solve_timestamp - current_timestamp
+                        sla_left_time_in_sec = sla_solve_timestamp - current_timestamp
                         sla_ping_datetime = datetime.fromtimestamp(
-                            timestamp=current_timestamp + sla_solve_time_in_sec / 2
+                            timestamp=current_timestamp + sla_left_time_in_sec / 2,
                         )
                         logger.debug(f"Next SLA ping datetime: {sla_ping_datetime}")
                         task.action_time = sla_ping_datetime
@@ -369,7 +392,7 @@ def process_order_tracking_task(
 
                         # Count SLA time left
                         sla_solve_timestamp = order.solveTimeSLA
-                        sla_solve_time_in_sec = sla_solve_timestamp - current_timestamp
+                        sla_left_time_in_sec = sla_solve_timestamp - current_timestamp
 
                         # Send Message
                         send_sla_ping_message(
@@ -377,19 +400,44 @@ def process_order_tracking_task(
                             order_address=order_address,
                             responsible_user=user,
                             messages_templates=templates_list,
-                            sla_solve_time_in_sec=sla_solve_time_in_sec,
+                            sla_left_time_in_sec=sla_left_time_in_sec,
                         )
 
-                        # Set next action as SEND_SLA_PING_MESSAGE
-                        task.next_action = OrderTrackingTaskAction.SEND_SLA_PING_MESSAGE
-                        # Set Internal Status to WAITING_ACTION_TIME
-                        task.internal_status = (
-                            OrderTrackingTaskStatus.WAITING_ACTION_TIME
+                        logs_list = [
+                            OrderTrackingTaskActinLog(**log)
+                            for log in task.actions_logs
+                        ]
+                        actions_count = get_done_actions_count(
+                            action_name=action_log.name,
+                            logs_list=logs_list,
                         )
-                        # Set next action time as Now Time + SLA_PING_PERIOD_IN_MIN
-                        task.action_time = get_now_utc() + timedelta(
-                            minutes=SLA_PING_PERIOD_IN_MIN,
-                        )
+                        # If was already 2 SLA pings
+                        if actions_count >= 1:
+                            # Remove next action
+                            task.next_action = None
+                            # Set Internal Status to PENDING
+                            task.internal_status = OrderTrackingTaskStatus.PENDING
+                            # Remove action time
+                            task.action_time = None
+                        # Just send SLA ping
+                        else:
+                            # Set next action as SEND_SLA_PING_MESSAGE
+                            task.next_action = (
+                                OrderTrackingTaskAction.SEND_SLA_PING_MESSAGE
+                            )
+                            # Set Internal Status to WAITING_ACTION_TIME
+                            task.internal_status = (
+                                OrderTrackingTaskStatus.WAITING_ACTION_TIME
+                            )
+                            # Set next action time as Now Time + SLA_PING_PERIOD_IN_MIN
+                            # ? Circular Ping
+                            # task.action_time = get_now_utc() + timedelta(
+                            #     minutes=SLA_PING_PERIOD_IN_MIN,
+                            # )
+                            # ? Last SLA expired Ping
+                            task.action_time = datetime.fromtimestamp(
+                                timestamp=order.solveTimeSLA,
+                            )
 
     # * Errors Handling
     except (HTTPException, Exception) as error:

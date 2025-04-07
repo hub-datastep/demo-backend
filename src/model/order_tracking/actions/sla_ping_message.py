@@ -19,7 +19,7 @@ def send_sla_ping_message(
     order_address: str,
     responsible_user: ResponsibleUser,
     messages_templates: list[MessageTemplate],
-    sla_solve_time_in_sec: int,
+    sla_left_time_in_sec: int,
 ):
     """
     Send SLA Ping-Message to Responsible User in Telegram Chat.
@@ -47,8 +47,8 @@ def send_sla_ping_message(
     )
 
     # * Get SLA time text
-    sla_time_str = get_time_str_from_seconds(seconds=abs(sla_solve_time_in_sec))
-    if sla_solve_time_in_sec > 0:
+    sla_time_str = get_time_str_from_seconds(seconds=abs(sla_left_time_in_sec))
+    if sla_left_time_in_sec > 0:
         sla_time_text = (
             f"До окончания SLA времени выполнения этой заявки осталось {sla_time_str}"
         )

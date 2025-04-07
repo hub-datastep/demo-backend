@@ -11,9 +11,6 @@ if __name__ == "__main__":
         logger.debug(f"Tasks count: {len(tasks_list)}")
 
         for task in tasks_list:
-            result = process_order_tracking_task(
-                task=task,
-            )
-            print(result)
+            process_order_tracking_task(task=task)
 
         time.sleep(30)
