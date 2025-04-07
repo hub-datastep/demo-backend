@@ -1,5 +1,3 @@
-from loguru import logger
-from sqlalchemy.orm import joinedload
 from sqlmodel import Session, select
 
 from infra.database import engine
@@ -79,6 +77,21 @@ class OrderTrackingTaskRepository(BaseRepository[OrderTrackingTask]):
 
     def __init__(self) -> None:
         super().__init__(schema=OrderTrackingTask)
+
+    async def get_uncompleted(self) -> list[OrderTrackingTask]:
+        async with self.get_session() as session:
+            st = select(self.schema)
+            st = st.where(self.schema.is_completed.isnot(True))
+            st = st.where(self.schema.next_action.isnot(None))
+            st = st.where(
+                self.schema.internal_status.notin_(
+                    ORDER_TASK_NOT_TRACKING_STATUSES,
+                ),
+            )
+            st = st.order_by(self.schema.created_at.asc(), self.schema.id.asc())
+
+            result = await session.exec(st)
+            return list(result.unique().all())
 
 
 order_tracking_task_repository = OrderTrackingTaskRepository()
