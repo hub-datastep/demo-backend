@@ -402,6 +402,11 @@ def process_order_tracking_task(
                         send_sla_ping_message(
                             order_id=order_id,
                             order_address=order_address,
+                            order_address_with_apartment=order_address_with_apartment,
+                            order_serviceTitle=order_serviceTitle,
+                            order_query=order_query,
+                            order_createdAt_time_str=order_createdAt_time_str,
+                            order_responsible_users_full_names=order_responsible_users_full_names,
                             responsible_user=user,
                             messages_templates=templates_list,
                             sla_left_time_in_sec=sla_left_time_in_sec,
