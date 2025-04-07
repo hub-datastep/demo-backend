@@ -1,5 +1,3 @@
-import asyncio
-
 from loguru import logger
 
 from infra.domyland.chats import get_message_template
@@ -14,7 +12,7 @@ from scheme.order_classification.order_classification_config_scheme import (
 from util.seconds_to_time_str import get_time_str_from_seconds
 
 
-def send_sla_ping_message(
+async def send_sla_ping_message(
     order_id: int,
     order_address: str,
     order_address_with_apartment: str | None,
@@ -96,11 +94,10 @@ def send_sla_ping_message(
 
     # * Request Telegram message for Responsible User
     logger.success(f"Sending SLA Ping-Message...")
-    asyncio.run(
-        request_to_send_telegram_message(
-            order_id=order_id,
-            message_text=formatted_message_text,
-            chat_id=telegram_chat_id,
-            message_thread_id=telegram_thread_id,
-        )
+    message_body = await request_to_send_telegram_message(
+        message_key=str(order_id),
+        message_text=formatted_message_text,
+        chat_id=telegram_chat_id,
+        message_thread_id=telegram_thread_id,
     )
+    return message_body
