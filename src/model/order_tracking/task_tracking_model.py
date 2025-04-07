@@ -194,6 +194,12 @@ def process_order_tracking_task(
         order_responsible_users_full_names = get_responsible_users_full_names_by_order_id(
             order_id=order_id,
         )
+        current_datetime = get_now_utc()
+        current_timestamp = int(current_datetime.timestamp())
+        # Count SLA time left
+        sla_solve_timestamp = order.solveTimeSLA
+        sla_left_time_in_sec = sla_solve_timestamp - current_timestamp
+
 
         # * Set last Order Details in Task
         task.last_order_details = serialize_obj(order_details)
@@ -222,8 +228,6 @@ def process_order_tracking_task(
         # * Do action if exists
         action: str = task.next_action
 
-        current_datetime = get_now_utc()
-        current_timestamp = int(current_datetime.timestamp())
 
         # * Set Action Log Started At
         action_log.started_at = current_datetime
@@ -304,6 +308,7 @@ def process_order_tracking_task(
                         order_responsible_users_full_names=order_responsible_users_full_names,
                         responsible_user=user,
                         messages_templates=templates_list,
+                        sla_left_time_in_sec=sla_left_time_in_sec,
                     )
 
                     # Set next action as SEND_SLA_PING_MESSAGE
