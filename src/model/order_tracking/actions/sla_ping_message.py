@@ -9,6 +9,7 @@ from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
     ResponsibleUser,
 )
+from scheme.order_notification.order_telegram_message_scheme import OrderTelegramMessage
 from util.seconds_to_time_str import get_time_str_from_seconds
 
 
@@ -23,7 +24,7 @@ async def send_sla_ping_message(
     responsible_user: ResponsibleUser,
     messages_templates: list[MessageTemplate],
     sla_left_time_in_sec: int,
-):
+) -> OrderTelegramMessage:
     """
     Send SLA Ping-Message to Responsible User in Telegram Chat.
     """
@@ -80,7 +81,7 @@ async def send_sla_ping_message(
         order_createdAt_time_str=order_createdAt_time_str,
         order_responsible_users_full_names=", ".join(formatted_user_full_names),
         order_id=order_id,
-        sla_time_text=sla_time_text
+        sla_time_text=sla_time_text,
     )
 
     logger.debug(
