@@ -27,5 +27,6 @@ def handle_errors(func):
                 comment = str(error)
 
             logger.error(comment)
+            raise
 
     return wrapper
