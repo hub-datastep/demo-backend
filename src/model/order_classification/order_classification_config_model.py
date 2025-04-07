@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from sqlmodel import Session
 
+from model.base import BaseModel
 from repository.order_classification.order_classification_config_repository import (
     DEFAULT_CONFIG_ID,
     get_config_by_id,
@@ -62,3 +63,21 @@ def get_order_classification_config_by_user_id(
         )
 
     return config
+
+
+class OrderClassificationConfigModel(BaseModel[OrderClassificationConfig]):
+    """
+    A model class for interacting with the OrderClassificationConfig DB table.
+
+    This class extends the BaseModel to provide CRUD operations and additional
+    functionality specific to the OrderClassificationConfig schema.
+    """
+
+    def __init__(self) -> None:
+        """
+        Initialize the OrderClassificationConfigModel instance with the OrderClassificationConfig schema.
+        """
+        super().__init__(schema=OrderClassificationConfig)
+
+
+order_classification_config_model = OrderClassificationConfigModel()
