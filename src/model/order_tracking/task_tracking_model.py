@@ -32,8 +32,8 @@ from scheme.order_tracking.order_tracking_task_scheme import (
     OrderTrackingTaskActinLog,
 )
 from util.dates import as_utc, get_now_utc, get_weekday_by_date
+from util.format_timestamp_to_huma_readable import format_timestamp_to_human_readable
 from util.json_serializing import serialize_obj, serialize_objs_list
-from util.seconds_to_time_str import get_time_str_from_seconds
 
 # For DEV
 SLA_PING_PERIOD_IN_MIN_DEV = 1
@@ -190,7 +190,7 @@ def process_order_tracking_task(
         if order_createdAt_time_in_sec is None:
             order_createdAt_time_str = ""
         else:
-            order_createdAt_time_str = get_time_str_from_seconds(seconds=abs(order_createdAt_time_in_sec))
+            order_createdAt_time_str = format_timestamp_to_human_readable(abs(order_createdAt_time_in_sec))
 
         order_responsible_users_full_names = get_responsible_users_full_names_by_order_id(
             order_id=order_id,
