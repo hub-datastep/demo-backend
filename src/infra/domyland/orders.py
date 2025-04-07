@@ -16,7 +16,7 @@ from scheme.order_classification.order_classification_scheme import (
     SummaryTitle,
 )
 from scheme.order_notification.order_notification_scheme import OrderStatusDetails
-from util.format_timestamp_to_huma_readable import format_timestamp_to_human_readable
+from util.format_timestamp_to_human_readable import format_timestamp_to_human_readable
 from util.validation import is_exists_and_not_empty
 
 

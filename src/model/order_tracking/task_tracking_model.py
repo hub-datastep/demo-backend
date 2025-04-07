@@ -32,7 +32,7 @@ from scheme.order_tracking.order_tracking_task_scheme import (
     OrderTrackingTaskActinLog,
 )
 from util.dates import as_utc, get_now_utc, get_weekday_by_date
-from util.format_timestamp_to_huma_readable import format_timestamp_to_human_readable
+from util.format_timestamp_to_human_readable import format_timestamp_to_human_readable
 from util.json_serializing import serialize_obj, serialize_objs_list
 
 # For DEV
@@ -178,7 +178,6 @@ def process_order_tracking_task(
             order_id=order_id,
             order_details=order_details,
         )
-        order_createdAt = order_details.order.createdAt
         order_serviceTitle = order_details.order.serviceTitle
         order_query = get_query_from_order_details(
             order_id=order_id,
@@ -195,6 +194,12 @@ def process_order_tracking_task(
         order_responsible_users_full_names = get_responsible_users_full_names_by_order_id(
             order_id=order_id,
         )
+        current_datetime = get_now_utc()
+        current_timestamp = int(current_datetime.timestamp())
+        # Count SLA time left
+        sla_solve_timestamp = order.solveTimeSLA
+        sla_left_time_in_sec = sla_solve_timestamp - current_timestamp
+
 
         # * Set last Order Details in Task
         task.last_order_details = serialize_obj(order_details)
@@ -223,8 +228,6 @@ def process_order_tracking_task(
         # * Do action if exists
         action: str = task.next_action
 
-        current_datetime = get_now_utc()
-        current_timestamp = int(current_datetime.timestamp())
 
         # * Set Action Log Started At
         action_log.started_at = current_datetime
@@ -305,6 +308,7 @@ def process_order_tracking_task(
                         order_responsible_users_full_names=order_responsible_users_full_names,
                         responsible_user=user,
                         messages_templates=templates_list,
+                        sla_left_time_in_sec=sla_left_time_in_sec,
                     )
 
                     # Set next action as SEND_SLA_PING_MESSAGE
@@ -398,6 +402,11 @@ def process_order_tracking_task(
                         send_sla_ping_message(
                             order_id=order_id,
                             order_address=order_address,
+                            order_address_with_apartment=order_address_with_apartment,
+                            order_serviceTitle=order_serviceTitle,
+                            order_query=order_query,
+                            order_createdAt_time_str=order_createdAt_time_str,
+                            order_responsible_users_full_names=order_responsible_users_full_names,
                             responsible_user=user,
                             messages_templates=templates_list,
                             sla_left_time_in_sec=sla_left_time_in_sec,
