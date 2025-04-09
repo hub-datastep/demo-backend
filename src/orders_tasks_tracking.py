@@ -9,23 +9,28 @@ from repository.order_tracking.order_tracking_task_repository import (
     order_tracking_task_repository,
 )
 
-TRACKING_PERIOD_IN_SEC = 30
+_WAIT_TIME_IN_SEC = 30
+
+_CHUNK_SIZE = 100
 
 
 @with_kafka_broker_connection(kafka_broker)
 async def main():
     while True:
         tasks_list = await order_tracking_task_repository.get_uncompleted()
-        logger.debug(f"Tasks count: {len(tasks_list)}")
+        tasks_count = len(tasks_list)
+        logger.debug(f"Tasks count: {tasks_count}")
 
-        # Process all tasks concurrently
-        runs = [process_order_tracking_task(task=task) for task in tasks_list]
-        await asyncio.gather(*runs)
+        # Process tasks in chunks
+        for i in range(0, tasks_count, _CHUNK_SIZE):
+            tasks_chunk = tasks_list[i : i + _CHUNK_SIZE]
+            runs = [process_order_tracking_task(task=task) for task in tasks_chunk]
+            await asyncio.gather(*runs)
 
         logger.debug(
-            f"Wait {TRACKING_PERIOD_IN_SEC} seconds and check uncompleted tasks again..."
+            f"Wait {_WAIT_TIME_IN_SEC} seconds and check uncompleted tasks again..."
         )
-        await asyncio.sleep(TRACKING_PERIOD_IN_SEC)
+        await asyncio.sleep(_WAIT_TIME_IN_SEC)
 
 
 if __name__ == "__main__":
