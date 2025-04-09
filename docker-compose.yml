@@ -140,6 +140,8 @@ services:
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGPOOL_MAX_CONNECTIONS=1000
+      - PGPOOL_NUM_INIT_CHILDREN=250
     env_file:
       - .env
       # - .env.${ENVIRONMENT}

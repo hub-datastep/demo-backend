@@ -1,3 +1,5 @@
+from typing import TypeAlias
+
 from sqlmodel import SQLModel
 
 """
@@ -5,6 +7,8 @@ Docs with type of Domyland.
 
 https://public-api.domyland.ru/sud-api/webhooks/exploitation/
 """
+
+OrderSummaryValue: TypeAlias = str | int | float | list
 
 
 class SummaryType:
@@ -19,7 +23,7 @@ class SummaryTitle:
     ADDRESS = "Адрес"
     OBJECT = "Объект"
     ISSUE = "Что случилось?"
-    COMMENT = "Комментар"
+    COMMENT = "Коммент"
     ATTACH_PHOTO = "Прикрепите фото"
     WHAT_REASON = "С чем связано обращение?"
     JOB_TYPE = "Выберите вид работ"
@@ -28,7 +32,7 @@ class SummaryTitle:
 class OrderSummary(SQLModel):
     type: str | None = None
     title: str | None = None
-    value: str | int | float | list | None = None
+    value: OrderSummaryValue | None = None
 
 
 class OrderFile(SQLModel):

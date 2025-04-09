@@ -53,6 +53,7 @@ scikit-learn = "^1.5.2"
 faststream = {extras = ["cli", "kafka"], version = "^0.5.33"}
 watchfiles = "^1.0.3"
 pulsar-client = "3.6.1"
+asyncpg = "^0.30.0"
 
 
 [build-system]

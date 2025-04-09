@@ -7,7 +7,7 @@ from sqlmodel import Session
 
 from controller.user.user_controller import get_current_user
 from infra.database import get_session
-from infra.domyland.orders import get_order_details_by_id
+from infra.domyland.order import get_order_details_by_id
 from model.order_classification import (
     order_classification_config_model,
     order_classification_model,

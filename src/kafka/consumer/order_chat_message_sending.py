@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from faststream import FastStream
 from loguru import logger
 
-from infra.domyland.chats import send_message_to_resident_chat
+from infra.domyland.chat import send_message_to_resident_chat
 from infra.env import env
 from infra.kafka.brokers import kafka_broker
 from infra.llm_clients_credentials import Client

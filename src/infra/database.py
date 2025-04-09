@@ -1,6 +1,6 @@
 from typing import Generator
 
-from sqlmodel import create_engine, SQLModel, Session
+from sqlmodel import Session, SQLModel, create_engine
 
 from infra.env import env
 
