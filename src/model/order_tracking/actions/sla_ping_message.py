@@ -61,11 +61,11 @@ async def send_sla_ping_message(
     formatted_message_text = message_text.format(
         telegram_username=telegram_username,
         crm_order_url=crm_url,
-        order_address_with_apartment=address_with_apartment,
-        order_serviceTitle=service_title,
-        order_query=query,
-        order_createdAt_time_str=created_at_str,
-        order_responsible_users_full_names=", ".join(responsible_users_full_names),
+        address_with_apartment=address_with_apartment,
+        service_title=service_title,
+        query=query,
+        created_at_str=created_at_str,
+        responsible_users_full_names=", ".join(responsible_users_full_names),
         order_id=order_id,
         sla_time_text=sla_time_text,
     )
