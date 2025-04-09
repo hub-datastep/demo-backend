@@ -4,7 +4,7 @@ import traceback
 from fastapi import HTTPException, status
 from loguru import logger
 
-from infra.domyland.chats import get_message_template, request_send_message_to_resident
+from infra.domyland.chat import get_message_template, request_send_message_to_resident
 from infra.domyland.constants import (
     AI_USER_ID,
     CLEANING_RESULT_KEYPHRASE,
@@ -14,11 +14,8 @@ from infra.domyland.constants import (
     MessageTemplateName,
     OrderStatusID,
 )
-from infra.domyland.orders import (
-    get_order_details_by_id,
-    get_query_from_order_details,
-    update_order_status_details,
-)
+from infra.domyland.order import get_order_details_by_id, get_query_from_order_details
+from infra.domyland.order_status import update_order_status_details
 from infra.llm_clients_credentials import Service, get_llm_by_client_credentials
 from infra.order_notification import ActionLogName
 from llm.chain.cleaning_result_comment.cleaning_result_message_chain import (
@@ -124,10 +121,7 @@ def process_event(
         log_record.order_details = serialize_obj(order_details)
 
         # Get resident order query
-        order_query = get_query_from_order_details(
-            order_id=order_id,
-            order_details=order_details,
-        )
+        order_query = get_query_from_order_details(order_details=order_details)
         log_record.order_query = order_query
 
         # Check if order status is "pending" ("Ожидание")

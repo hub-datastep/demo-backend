@@ -1,11 +1,13 @@
 import requests
+from aiohttp.hdrs import METH_POST
 from fastapi import HTTPException
 
-from infra.domyland.constants import DOMYLAND_APP_NAME, DOMYLAND_API_BASE_URL
+from infra.domyland.base import Domyland
+from infra.domyland.constants import DOMYLAND_API_BASE_URL, DOMYLAND_APP_NAME
 from infra.env import env
 
 
-def get_domyland_headers(auth_token: str | None = None):
+def get_domyland_headers(auth_token: str | None = None) -> dict[str, str]:
     if auth_token is None:
         return {
             "AppName": DOMYLAND_APP_NAME,
@@ -44,7 +46,30 @@ def _get_auth_token(
     return auth_token
 
 
-def get_ai_account_auth_token():
+async def _get_auth_token_async(
+    username: str,
+    password: str,
+    tenant_name: str,
+) -> str:
+    req_body = {
+        "email": username,
+        "password": password,
+        "tenantName": tenant_name,
+    }
+
+    response_data = await Domyland.request(
+        method=METH_POST,
+        endpoint="auth",
+        json=req_body,
+    )
+
+    auth_token: str = response_data.get("token")
+    Domyland.auth_token = auth_token
+
+    return Domyland.auth_token
+
+
+def get_ai_account_auth_token() -> str:
     """
     Account for AI and classification.
     """
@@ -56,7 +81,19 @@ def get_ai_account_auth_token():
     )
 
 
-def get_public_account_auth_token():
+async def get_ai_account_auth_token_async() -> str:
+    """
+    Account for AI and classification.
+    """
+
+    return await _get_auth_token_async(
+        username=env.DOMYLAND_AUTH_AI_ACCOUNT_EMAIL,
+        password=env.DOMYLAND_AUTH_AI_ACCOUNT_PASSWORD,
+        tenant_name=env.DOMYLAND_AUTH_AI_ACCOUNT_TENANT_NAME,
+    )
+
+
+def get_public_account_auth_token() -> str:
     """
     Kind of Public Account for communication with residents.
     """

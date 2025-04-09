@@ -40,8 +40,26 @@ class Env(BaseSettings):
     CHROMA_HOST: str
     CHROMA_PORT: int
 
-    # DB
-    DB_CONNECTION_STRING: str
+    # Database
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_HOST: str
+    POSTGRES_PORT: str
+    POSTGRES_DB: str
+
+    @property
+    def DB_CONNECTION_STRING(self) -> str:
+        return (
+            f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
+
+    @property
+    def DB_CONNECTION_STRING_ASYNC(self) -> str:
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
 
     DATA_FOLDER_PATH: str = find_path_to_file_or_dir("data")
 

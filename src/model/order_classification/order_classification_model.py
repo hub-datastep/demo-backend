@@ -4,7 +4,7 @@ import traceback
 from fastapi import HTTPException, status
 from loguru import logger
 
-from infra.domyland.chats import (
+from infra.domyland.chat import (
     get_message_template,
     send_message_to_internal_chat,
     send_message_to_resident_chat,
@@ -19,12 +19,12 @@ from infra.domyland.constants import (
     OrderClass,
     OrderStatusID,
 )
-from infra.domyland.orders import (
+from infra.domyland.order import (
     get_address_from_order_details,
     get_order_details_by_id,
     get_query_from_order_details,
-    update_order_status_details,
 )
+from infra.domyland.order_status import update_order_status_details
 from llm.chain.order_multi_classification.order_multi_classification_chain import (
     get_order_class,
 )
@@ -195,18 +195,12 @@ def classify_order(
         history_record.order_details = serialize_obj(order_details)
 
         # * Get resident order query
-        order_query = get_query_from_order_details(
-            order_id=order_id,
-            order_details=order_details,
-        )
+        order_query = get_query_from_order_details(order_details=order_details)
         # logger.debug(f"Order {order_id} query: '{order_query}'")
         history_record.order_query = order_query
 
         # * Get resident address (object)
-        order_address = get_address_from_order_details(
-            order_id=order_id,
-            order_details=order_details,
-        )
+        order_address = get_address_from_order_details(order_details=order_details)
         # logger.debug(f"Order {order_id} address: '{order_address}'")
         history_record.order_address = order_address
 

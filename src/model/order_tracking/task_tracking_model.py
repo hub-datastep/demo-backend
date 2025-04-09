@@ -5,22 +5,22 @@ from fastapi import HTTPException
 from loguru import logger
 
 from infra.domyland.constants import OrderStatusID
-from infra.domyland.orders import (
-    get_address_from_order_details,
-    get_address_with_apartment_from_order_details,
-    get_order_details_by_id,
-    get_query_from_order_details,
+from infra.domyland.order import (
+    get_order_details_by_id_async,
     get_responsible_users_by_config_ids,
-    get_responsible_users_full_names_by_order_id,
 )
 from infra.env import env
 from infra.order_tracking.action import TIME_DEPENDENT_ACTIONS, OrderTrackingTaskAction
 from infra.order_tracking.task_status import OrderTrackingTaskStatus
-from model.order_classification import order_classification_config_model
+from model.order_classification.order_classification_config_model import (
+    order_classification_config_model,
+)
 from model.order_tracking.actions.new_order_message import send_new_order_message
 from model.order_tracking.actions.sla_ping_message import send_sla_ping_message
 from model.order_tracking.helpers.done_actions_count import get_done_actions_count
-from repository.order_tracking import order_tracking_task_repository
+from repository.order_tracking.order_tracking_task_repository import (
+    order_tracking_task_repository,
+)
 from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
     ResponsibleUser,
@@ -32,7 +32,6 @@ from scheme.order_tracking.order_tracking_task_scheme import (
     OrderTrackingTaskActinLog,
 )
 from util.dates import as_utc, get_now_utc, get_weekday_by_date
-from util.format_timestamp_to_human_readable import format_timestamp_to_human_readable
 from util.json_serializing import serialize_obj, serialize_objs_list
 
 # For DEV
@@ -66,17 +65,18 @@ def check_if_order_changed(
     if not prev_order_details:
         return True, True
 
+    order = order_details.order
+    prev_order = prev_order_details.order
+
     # Check if Responsible Users changed
-    responsible_users_ids = {user.id for user in order_details.order.responsibleUsers}
-    prev_responsible_users_ids = {
-        user.id for user in prev_order_details.order.responsibleUsers
-    }
+    responsible_users_ids = {user.id for user in order.responsibleUsers}
+    prev_responsible_users_ids = {user.id for user in prev_order.responsibleUsers}
     # TODO: check if responsible_users_ids includes TRANSFER_ACCOUNT_ID -> responsible users not chaged
     is_responsible_users_changed = responsible_users_ids != prev_responsible_users_ids
 
     # Check if Responsible Users changed
-    order_status_id = order_details.order.orderStatusId
-    prev_order_status_id = prev_order_details.order.orderStatusId
+    order_status_id = order.orderStatusId
+    prev_order_status_id = prev_order.orderStatusId
     is_order_status_changed = order_status_id != prev_order_status_id
 
     return is_responsible_users_changed, is_order_status_changed
@@ -128,7 +128,7 @@ def check_if_responsible_user_works_now(
     return False
 
 
-def mark_task_as_completed(
+async def mark_task_as_completed(
     task: OrderTrackingTask,
 ) -> OrderTrackingTask:
     """
@@ -143,63 +143,32 @@ def mark_task_as_completed(
     task.finished_at = get_now_utc()
 
     # Update Task
-    updated_task = order_tracking_task_repository.update(
-        task=task,
-    )
+    updated_task = await order_tracking_task_repository.update(obj=task)
 
     return updated_task
 
 
-def process_order_tracking_task(
+async def process_order_tracking_task(
     task: OrderTrackingTask,
 ):
     action_log = OrderTrackingTaskActinLog()
     order_id = task.order_id
     config_id = task.config_id
 
-    config = order_classification_config_model.get_config_by_id(config_id)
+    config = await order_classification_config_model.get_by_id(obj_id=config_id)
 
     try:
         # * Update Task Internal Status to TRACKING
         task.internal_status = OrderTrackingTaskStatus.TRACKING
-        order_tracking_task_repository.update(
-            task=task,
-        )
+        await order_tracking_task_repository.update(obj=task)
 
         # * Get Order details
         logger.debug(f"Fetching details of Order with ID {order_id}..")
-        order_details = get_order_details_by_id(order_id=order_id)
+        order_details = await get_order_details_by_id_async(order_id=order_id)
         order = order_details.order
-        order_address = get_address_from_order_details(
-            order_id=order_id,
-            order_details=order_details,
-        )
-        order_address_with_apartment = get_address_with_apartment_from_order_details(
-            order_id=order_id,
-            order_details=order_details,
-        )
-        order_serviceTitle = order_details.order.serviceTitle
-        order_query = get_query_from_order_details(
-            order_id=order_id,
-            order_details=order_details,
-        )
-        # * Get createdAt time text
-        order_createdAt_time_in_sec = order.createdAt
-        # Проверяем, что order.createdAt не является None
-        if order_createdAt_time_in_sec is None:
-            order_createdAt_time_str = ""
-        else:
-            order_createdAt_time_str = format_timestamp_to_human_readable(abs(order_createdAt_time_in_sec))
 
-        order_responsible_users_full_names = get_responsible_users_full_names_by_order_id(
-            order_id=order_id,
-        )
         current_datetime = get_now_utc()
         current_timestamp = int(current_datetime.timestamp())
-        # Count SLA time left
-        sla_solve_timestamp = order.solveTimeSLA
-        sla_left_time_in_sec = sla_solve_timestamp - current_timestamp
-
 
         # * Set last Order Details in Task
         task.last_order_details = serialize_obj(order_details)
@@ -220,14 +189,11 @@ def process_order_tracking_task(
         is_order_completed = order.orderStatusId == OrderStatusID.COMPLETED
         if is_order_completed:
             logger.success(f"Order with ID {order_id} is Completed")
-            mark_task_as_completed(
-                task=task,
-            )
+            await mark_task_as_completed(task=task)
             return
 
         # * Do action if exists
         action: str = task.next_action
-
 
         # * Set Action Log Started At
         action_log.started_at = current_datetime
@@ -298,17 +264,16 @@ def process_order_tracking_task(
                         )
 
                     # Send Message
-                    send_new_order_message(
-                        order_id=order_id,
-                        order_address=order_address,
-                        order_address_with_apartment=order_address_with_apartment,
-                        order_serviceTitle=order_serviceTitle,
-                        order_query=order_query,
-                        order_createdAt_time_str=order_createdAt_time_str,
-                        order_responsible_users_full_names=order_responsible_users_full_names,
+                    message_body = await send_new_order_message(
+                        order_details=order_details,
                         responsible_user=user,
                         messages_templates=templates_list,
-                        sla_left_time_in_sec=sla_left_time_in_sec,
+                    )
+                    action_log.metadatas.update(
+                        {
+                            "message_body": serialize_obj(message_body),
+                            "responsible_user_id": user_id,
+                        }
                     )
 
                     # Set next action as SEND_SLA_PING_MESSAGE
@@ -394,22 +359,17 @@ def process_order_tracking_task(
                                 f"({current_datetime})"
                             )
 
-                        # Count SLA time left
-                        sla_solve_timestamp = order.solveTimeSLA
-                        sla_left_time_in_sec = sla_solve_timestamp - current_timestamp
-
                         # Send Message
-                        send_sla_ping_message(
-                            order_id=order_id,
-                            order_address=order_address,
-                            order_address_with_apartment=order_address_with_apartment,
-                            order_serviceTitle=order_serviceTitle,
-                            order_query=order_query,
-                            order_createdAt_time_str=order_createdAt_time_str,
-                            order_responsible_users_full_names=order_responsible_users_full_names,
+                        message_body = await send_sla_ping_message(
+                            order_details=order_details,
                             responsible_user=user,
                             messages_templates=templates_list,
-                            sla_left_time_in_sec=sla_left_time_in_sec,
+                        )
+                        action_log.metadatas.update(
+                            {
+                                "message_body": serialize_obj(message_body),
+                                "responsible_user_id": user_id,
+                            }
                         )
 
                         logs_list = [
@@ -458,7 +418,7 @@ def process_order_tracking_task(
             comment = error.detail
         # Для других исключений используем str(error)
         else:
-            logger.error(traceback.format_exc())
+            logger.error(f"{traceback.format_exc()}")
             comment = str(error)
 
         log_metadatas = {
@@ -492,6 +452,4 @@ def process_order_tracking_task(
 
     # * Update Task
     task.actions_logs = new_actions_logs
-    order_tracking_task_repository.update(
-        task=task,
-    )
+    await order_tracking_task_repository.update(obj=task)

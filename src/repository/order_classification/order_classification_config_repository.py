@@ -1,6 +1,7 @@
 from sqlmodel import Session, select
 
 from infra.database import engine
+from repository.base import BaseRepository
 from scheme.order_classification.order_classification_config_scheme import (
     OrderClassificationConfig,
 )
@@ -40,3 +41,15 @@ def get_config_by_user_id(
     st = st.where(OrderClassificationConfig.user_id == user_id)
     config = session.exec(st).first()
     return config
+
+
+class OrderClassificationConfigRepository(BaseRepository[OrderClassificationConfig]):
+    """
+    Repository for OrderClassificationConfig DB table.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(schema=OrderClassificationConfig)
+
+
+order_classification_config_repository = OrderClassificationConfigRepository()
