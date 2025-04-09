@@ -38,10 +38,22 @@ def upgrade() -> None:
             postgresql.JSONB(astext_type=sa.Text()),
             nullable=True,
         ),
-        sa.Column("action_time", sa.DateTime(), nullable=True),
+        sa.Column(
+            "action_time",
+            sa.DateTime(timezone=True),
+            nullable=True,
+        ),
         sa.Column("is_completed", sa.Boolean(), nullable=True),
-        sa.Column("created_at", sa.DateTime(), nullable=True),
-        sa.Column("finished_at", sa.DateTime(), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=True,
+        ),
+        sa.Column(
+            "finished_at",
+            sa.DateTime(timezone=True),
+            nullable=True,
+        ),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(
             ["config_id"],

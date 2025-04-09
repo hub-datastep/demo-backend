@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column
+from sqlalchemy import Column, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -9,6 +9,7 @@ from infra.order_tracking.task_status import OrderTrackingTaskStatus
 from scheme.order_classification.order_classification_config_scheme import (
     OrderClassificationConfig,
 )
+from util.dates import get_now_utc
 
 
 class OrderTrackingTaskBase(SQLModel):
@@ -25,13 +26,22 @@ class OrderTrackingTaskBase(SQLModel):
     # Логи предыдущих экшенов
     actions_logs: list[dict] | None = Field(default=None, sa_column=Column(JSONB))
     # Дата и время, когда нужно сделать экшен
-    action_time: datetime | None = None
+    action_time: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True)),
+    )
     # Закончили ли задачу
     is_completed: bool | None = Field(default=False)
     # Дата и время, когда создали задачу
-    created_at: datetime | None = None
+    created_at: datetime | None = Field(
+        default_factory=get_now_utc,
+        sa_column=Column(DateTime(timezone=True)),
+    )
     # Дата и время, когда закончили задачу
-    finished_at: datetime | None = None
+    finished_at: datetime | None = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True)),
+    )
 
 
 class OrderTrackingTask(OrderTrackingTaskBase, table=True):
