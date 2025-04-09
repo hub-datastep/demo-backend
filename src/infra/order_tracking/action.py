@@ -7,4 +7,6 @@ class OrderTrackingTaskAction:
     SEND_SLA_PING_MESSAGE = "Send SLA Ping-Message"
 
 
-TIME_DEPENDENT_ACTIONS = [OrderTrackingTaskAction.SEND_SLA_PING_MESSAGE]
+TIME_DEPENDENT_ACTIONS = [
+    OrderTrackingTaskAction.SEND_SLA_PING_MESSAGE,
+]
