@@ -82,7 +82,6 @@ class OrderTrackingTaskRepository(BaseRepository[OrderTrackingTask]):
         async with self.get_session() as session:
             st = select(self.schema)
             st = st.where(self.schema.is_completed.isnot(True))
-            st = st.where(self.schema.next_action.isnot(None))
             st = st.where(
                 self.schema.internal_status.notin_(
                     ORDER_TASK_NOT_TRACKING_STATUSES,
