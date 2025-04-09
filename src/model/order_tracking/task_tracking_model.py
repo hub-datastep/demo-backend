@@ -193,7 +193,8 @@ async def process_order_tracking_task(
             return
 
         # * Do action if exists
-        action: str = task.next_action
+        action: str | None = task.next_action
+        is_action_exists = action is not None
 
         # * Set Action Log Started At
         action_log.started_at = current_datetime
@@ -204,7 +205,7 @@ async def process_order_tracking_task(
         # *  Not time-dependent Actions  * #
         # * ############################ * #
         logger.debug(f"Task of Order with ID {order_id} has action '{action}'")
-        if action not in TIME_DEPENDENT_ACTIONS:
+        if is_action_exists and action not in TIME_DEPENDENT_ACTIONS:
             # * Update Order Details in Task
             if action == OrderTrackingTaskAction.FETCH_ORDER_DETAILS:
                 action_log.name = OrderTrackingTaskAction.FETCH_ORDER_DETAILS
@@ -294,7 +295,7 @@ async def process_order_tracking_task(
         # * ######################## * #
         # *  Time-dependent Actions  * #
         # * ######################## * #
-        else:
+        elif is_action_exists and action in TIME_DEPENDENT_ACTIONS:
             # Check if action time exists
             action_time = task.action_time
             if action_time is not None:
