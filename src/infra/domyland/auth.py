@@ -103,3 +103,15 @@ def get_public_account_auth_token() -> str:
         password=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_PASSWORD,
         tenant_name=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_TENANT_NAME,
     )
+
+
+async def get_public_account_auth_token_async() -> str:
+    """
+    Kind of Public Account for communication with residents.
+    """
+
+    return await _get_auth_token_async(
+        username=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_EMAIL,
+        password=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_PASSWORD,
+        tenant_name=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_TENANT_NAME,
+    )
