@@ -35,10 +35,10 @@ def order_notifications(
     order_get_info.get_order_details(body=body, url=url)
     return status.HTTP_200_OK
 
-# Раскомментить когда починится баг когда мы ставим заявку в "выполнено" без отписки
-@router.post("/order_status_updated")  # response_model=OrderNotificationLog временно закомментировано
+
+@router.post("/order_status_updated", response_model=OrderNotificationLog)
 @version(1)
-def classify_order(
+async def process_order_status_updated_event(
     body: OrderNotificationRequestBody,
     # Init response to return object and change status code if needed
     response: Response,
@@ -49,28 +49,16 @@ def classify_order(
     Вебхук для ивента "Статус Заявки Обновлён" в Домиленд.
     """
 
-    # Раскомментить когда починится баг когда мы ставим заявку в "выполнено" без отписки
-    # logger.debug(f"OrderStatus Updated request body:\n{body}")
+    logger.debug(f"OrderStatus Updated request body:\n{body}")
 
-    # Раскомментить когда починится баг когда мы ставим заявку в "выполнено" без отписки
-    # model_response = order_notification_model.process_event(
-    #     body=body,
-    #     client=client,
-    # )
+    model_response = await order_notification_model.process_event(
+        body=body,
+        client=client,
+    )
 
-    # Раскомментить когда починится баг когда мы ставим заявку в "выполнено" без отписки
-    # response_status = status.HTTP_200_OK
-    # if model_response.is_error:
-    #     response_status = status.HTTP_400_BAD_REQUEST
-    # response.status_code = response_status
-
-    # Удалить когда починится баг когда мы ставим заявку в "выполнено" без отписки
-    logger.debug("Логика обработки ивента 'order_status_updated' временно закоменчена, чтобы не ставить клининг заявки в 'выполнено'")
-
-    model_response = {
-        "order_id": None,
-        "order_status_id": None
-    }
-    response.status_code = status.HTTP_200_OK
+    response_status = status.HTTP_200_OK
+    if model_response.is_error:
+        response_status = status.HTTP_400_BAD_REQUEST
+    response.status_code = response_status
 
     return model_response
