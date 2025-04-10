@@ -4,4 +4,5 @@ def find_in_text(
 ) -> None | bool:
     if text is None:
         return None
+
     return to_find.lower() in text.lower()

@@ -51,19 +51,24 @@ async def _get_auth_token_async(
     password: str,
     tenant_name: str,
 ) -> str:
+    # Clear prev auth token
+    Domyland.auth_token = None
+
     req_body = {
         "email": username,
         "password": password,
         "tenantName": tenant_name,
     }
 
+    # Get new auth token in Domyland
     response_data = await Domyland.request(
         method=METH_POST,
         endpoint="auth",
         json=req_body,
     )
-
     auth_token: str = response_data.get("token")
+
+    # Set new auth token
     Domyland.auth_token = auth_token
 
     return Domyland.auth_token
@@ -99,6 +104,18 @@ def get_public_account_auth_token() -> str:
     """
 
     return _get_auth_token(
+        username=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_EMAIL,
+        password=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_PASSWORD,
+        tenant_name=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_TENANT_NAME,
+    )
+
+
+async def get_public_account_auth_token_async() -> str:
+    """
+    Kind of Public Account for communication with residents.
+    """
+
+    return await _get_auth_token_async(
         username=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_EMAIL,
         password=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_PASSWORD,
         tenant_name=env.DOMYLAND_AUTH_PUBLIC_ACCOUNT_TENANT_NAME,

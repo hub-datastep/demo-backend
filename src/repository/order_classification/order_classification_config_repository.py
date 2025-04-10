@@ -44,12 +44,21 @@ def get_config_by_user_id(
 
 
 class OrderClassificationConfigRepository(BaseRepository[OrderClassificationConfig]):
-    """
-    Repository for OrderClassificationConfig DB table.
-    """
-
     def __init__(self) -> None:
         super().__init__(schema=OrderClassificationConfig)
+
+    async def get_default(
+        self,
+        client: str | None = None,
+    ) -> OrderClassificationConfig | None:
+        async with self.get_session() as session:
+            st = select(self.schema)
+            st = st.where(self.schema.id == DEFAULT_CONFIG_ID)
+            st = st.where(self.schema.client == client)
+
+            result = await session.exec(st)
+
+            return result.first()
 
 
 order_classification_config_repository = OrderClassificationConfigRepository()

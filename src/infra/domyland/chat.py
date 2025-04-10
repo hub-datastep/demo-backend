@@ -1,11 +1,14 @@
 import requests
+from aiohttp.hdrs import METH_POST
 from fastapi import HTTPException, status
 
 from infra.domyland.auth import (
     get_ai_account_auth_token,
     get_domyland_headers,
     get_public_account_auth_token,
+    get_public_account_auth_token_async,
 )
+from infra.domyland.base import Domyland
 from infra.domyland.constants import (
     DOMYLAND_API_BASE_URL,
     ORDER_CLIENT_CHAT_TARGET_TYPE_ID,
@@ -13,7 +16,6 @@ from infra.domyland.constants import (
 from infra.env import env
 from infra.kafka.brokers import kafka_broker
 from infra.kafka.helpers import send_message_to_kafka
-from middleware.kafka_middleware import with_kafka_broker_connection
 from scheme.kafka.send_message_consumer_scheme import MessageSendRequest
 from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
@@ -97,6 +99,39 @@ def send_message_to_resident_chat(
     return response_data, req_body
 
 
+async def send_message_to_resident_chat_async(
+    order_id: int,
+    text: str | None = None,
+    files: list[MessageFileToSend] | None = None,
+) -> tuple[dict, dict, dict]:
+    """
+    Send message to chat with resident in order.
+    Sender account - Public Account.
+    """
+
+    # Authorize in Domyland API
+    await get_public_account_auth_token_async()
+
+    req_params = {
+        "targetId": order_id,
+        "targetTypeId": ORDER_CLIENT_CHAT_TARGET_TYPE_ID,
+    }
+    req_body = {
+        "text": text,
+        "files": serialize_objs_list(files),
+    }
+
+    # Send message to internal chat
+    response_data = await Domyland.request(
+        method=METH_POST,
+        endpoint=f"chat",
+        json=req_body,
+        params=req_params,
+    )
+
+    return response_data, req_body, req_params
+
+
 def get_message_template(
     templates_list: list[MessageTemplate],
     template_name: str,
@@ -130,23 +165,34 @@ def get_message_template(
     return found_template
 
 
-@with_kafka_broker_connection(kafka_broker)
 async def request_send_message_to_resident(
     order_id: int,
     message_text: str,
     files: list[MessageFileToSend] | None = None,
-):
-    body = MessageSendRequest(
+) -> MessageSendRequest:
+    """
+    Sends Order Chat message to resident by publishing it to Kafka topic.
+
+    Args:
+        order_id (int): ID of Order with chat.
+        message_text (str): Text content of message to be sent.
+        files (list[MessageFileToSend] | None): Optional list of files to be sent with the message.
+
+    Returns:
+        MessageSendRequest: Kafka message that was sent.
+    """
+    message_body = MessageSendRequest(
         order_id=order_id,
         message_text=message_text,
         files=files,
     )
     await send_message_to_kafka(
         broker=kafka_broker,
-        message_body=body,
-        topic=env.KAFKA_ORDER_CHAT_MESSAGE_SENDING_TOPIC,
+        message_body=message_body,
+        topic=env.KAFKA_ORDER_NOTIFICATIONS_TOPIC,
         key=str(order_id),
     )
+    return message_body
 
 
 if __name__ == "__main__":

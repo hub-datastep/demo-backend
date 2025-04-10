@@ -1,10 +1,12 @@
-import asyncio
 import traceback
 
 from fastapi import HTTPException, status
 from loguru import logger
 
-from infra.domyland.chat import get_message_template, request_send_message_to_resident
+from infra.domyland.chat import (
+    get_message_template,
+    send_message_to_resident_chat_async,
+)
 from infra.domyland.constants import (
     AI_USER_ID,
     CLEANING_RESULT_KEYPHRASE,
@@ -14,8 +16,11 @@ from infra.domyland.constants import (
     MessageTemplateName,
     OrderStatusID,
 )
-from infra.domyland.order import get_order_details_by_id, get_query_from_order_details
-from infra.domyland.order_status import update_order_status_details
+from infra.domyland.order import (
+    get_order_details_by_id_async,
+    get_query_from_order_details,
+)
+from infra.domyland.order_status import update_order_status_details_async
 from infra.llm_clients_credentials import Service, get_llm_by_client_credentials
 from infra.order_notification import ActionLogName
 from llm.chain.cleaning_result_comment.cleaning_result_message_chain import (
@@ -23,12 +28,11 @@ from llm.chain.cleaning_result_comment.cleaning_result_message_chain import (
     get_cleaning_results_message_chain,
 )
 from model.order_classification.order_classification_config_model import (
-    get_order_classification_default_config,
+    order_classification_config_model,
 )
 from model.order_notification.order_notification_logs_model import (
     check_if_action_was_unsuccessful,
-    get_saved_log_record_by_order_id,
-    save_order_notification_log_record,
+    order_notification_log_model,
 )
 from scheme.order_classification.order_classification_config_scheme import (
     MessageTemplate,
@@ -43,6 +47,7 @@ from scheme.order_notification.order_notification_scheme import (
 )
 from util.json_serializing import serialize_obj, serialize_objs_list
 from util.order_messages import find_in_text
+from util.validation import is_exists_and_not_empty
 
 
 def _get_responsible_users_by_order_class(
@@ -62,7 +67,7 @@ def _get_responsible_users_by_order_class(
     return filtered_users
 
 
-def process_event(
+async def process_event(
     body: OrderNotificationRequestBody,
     client: str | None = None,
 ) -> OrderNotificationLog:
@@ -79,8 +84,8 @@ def process_event(
     )
 
     try:
-        # Check if order was already classified
-        saved_log_record = get_saved_log_record_by_order_id(
+        # * Check if Order was already classified
+        saved_log_record = await order_notification_log_model.get_by_order_id(
             order_id=order_id,
             client=client,
         )
@@ -100,7 +105,7 @@ def process_event(
                     ),
                 )
 
-        # Check if event type is "order status updated"
+        # * Check if event type is "order status updated"
         if alert_type_id != AlertTypeID.ORDER_STATUS_UPDATED:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -110,25 +115,23 @@ def process_event(
                 ),
             )
 
-        config = get_order_classification_default_config(
-            client=client,
-        )
+        config = await order_classification_config_model.get_default(client=client)
         config_id = config.id
         skipped_action_text = f"skipped by config with ID {config_id}"
 
-        # Get order details
-        order_details = get_order_details_by_id(order_id=order_id)
+        # * Get Order details
+        order_details = await get_order_details_by_id_async(order_id=order_id)
         log_record.order_details = serialize_obj(order_details)
 
-        # Get resident order query
+        # * Get resident query
         order_query = get_query_from_order_details(order_details=order_details)
         log_record.order_query = order_query
 
-        # Check if order status is "pending" ("Ожидание")
+        # * Check if status is "pending" ("Ожидание")
         is_order_in_pending_status = order_status_id == OrderStatusID.PENDING
 
-        # Check if order responsible users include "Александр Специалист"
-        # or include cleaning account
+        # * Check if Responsible Users include "Александр Специалист"
+        # * or include cleaning account
         is_transfer_account_in_responsible_users = False
         is_cleaning_account_in_responsible_users = False
         order_responsible_users = order_details.order.responsibleUsers
@@ -140,19 +143,17 @@ def process_event(
                 is_cleaning_account_in_responsible_users = True
                 break
 
-        # Check if order status comment exists
+        # * Check if status comment exists
         order_status_comment = order_details.order.orderStatusComment
-        is_status_comment_exists = (
-            order_status_comment is not None and order_status_comment.strip() != ""
-        )
+        is_status_comment_exists = is_exists_and_not_empty(order_status_comment)
         log_record.order_status_comment = order_status_comment
 
-        # Check in order history if cleaning account was in responsible users
+        # * Check in order history if cleaning account was in responsible users
         is_cleaning_account_was_in_responsible_users = False
         order_history = order_details.order.statusHistory
         for record in order_history:
             for user in record.responsibleUsers:
-                if user.fullName and "клининг" in user.fullName.lower():
+                if find_in_text(to_find="клининг", text=user.fullName):
                     is_cleaning_account_was_in_responsible_users = True
                     break
 
@@ -193,16 +194,14 @@ def process_event(
         chain = get_cleaning_results_message_chain(llm=llm)
 
         # Generate message with LLM for resident about cleaning results
-        llm_response = get_cleaning_results_message(
+        llm_response = await get_cleaning_results_message(
             chain=chain,
             order_query=order_query,
             order_status_comment=order_status_comment,
         )
         log_record.message_llm_response = serialize_obj(llm_response)
         cleaning_results_text = llm_response.message
-        is_results_text_exists = (
-            cleaning_results_text is not None and cleaning_results_text.strip() != ""
-        )
+        is_results_text_exists = is_exists_and_not_empty(cleaning_results_text)
 
         # Check if text from LLM exists and can be sent
         if not is_results_text_exists:
@@ -241,13 +240,15 @@ def process_event(
         is_use_send_message = config.is_use_send_message
         if is_use_send_message:
             # Get Order Chat and Messages in it
-            order_chat = order_details.order.chat
+            order_chat = order_details.chat
             is_chat_exists = order_chat is not None
 
             order_chat_messages = order_chat.items if is_chat_exists else None
             is_messages_exists_in_chat = (
                 order_chat_messages is not None and len(order_chat_messages) > 0
             )
+            logger.debug(f"order_chat_messages: {order_chat_messages}")
+            logger.debug(f"is_messages_exists_in_chat: {is_messages_exists_in_chat}")
 
             # Check if operators not answered yet
             is_operator_answered: bool | None = None
@@ -255,8 +256,8 @@ def process_event(
                 for message in order_chat_messages:
                     # Find answer-message by keyphrase
                     is_message_answer = find_in_text(
-                        text=message.text,
                         to_find=CLEANING_RESULT_KEYPHRASE,
+                        text=message.text,
                     )
                     if is_message_answer:
                         is_operator_answered = True
@@ -265,24 +266,27 @@ def process_event(
             # If not answered to resident, send message
             if not is_operator_answered:
                 # Send message to resident to show that order is processing
-                asyncio.run(
-                    request_send_message_to_resident(
-                        order_id=order_id,
-                        message_text=message_text,
-                        files=files_to_send,
-                    )
+                (
+                    send_message_to_resident_response,
+                    send_message_to_resident_request_body,
+                    send_message_to_resident_request_params,
+                ) = await send_message_to_resident_chat_async(
+                    order_id=order_id,
+                    text=message_text,
+                    files=files_to_send,
                 )
+
                 # Fill logs just to save any logs from action
-                logs_text = "request to send message successfully sent to kafka"
-                send_message_to_resident_response = logs_text
-                send_message_to_resident_request_body = logs_text
                 log_record.actions_logs.append(
                     {
                         "action": ActionLogName.SEND_MESSAGE_TO_RESIDENT,
                         "metadata": {
+                            "is_messages_exists_in_chat": is_messages_exists_in_chat,
+                            "is_operator_answered": is_operator_answered,
                             "message_text": message_text,
                             "message_files": serialize_objs_list(files_to_send),
                             "request_body": send_message_to_resident_request_body,
+                            "request_params": send_message_to_resident_request_params,
                             "response": send_message_to_resident_response,
                         },
                     }
@@ -296,6 +300,8 @@ def process_event(
                     {
                         "action": ActionLogName.SEND_MESSAGE_TO_RESIDENT,
                         "metadata": {
+                            "is_messages_exists_in_chat": is_messages_exists_in_chat,
+                            "is_operator_answered": is_operator_answered,
                             "message_text": message_text,
                             "request_body": action_comment,
                             "response": action_comment,
@@ -319,14 +325,14 @@ def process_event(
         if is_use_order_updating:
             responsible_users_ids_list = [user.id for user in order_responsible_users]
             update_order_status_response, update_order_status_request_body = (
-                update_order_status_details(
+                await update_order_status_details_async(
                     order_id=order_id,
                     responsible_dept_id=RESPONSIBLE_DEPT_ID,
                     # Set status to "Выполнено"
                     order_status_id=OrderStatusID.COMPLETED,
-                    # Set responsible user to UDS
+                    # Set responsible users
                     responsible_users_ids=responsible_users_ids_list,
-                    # Update order inspector to AI Account
+                    # Update inspector to AI Account
                     inspector_users_ids=[AI_USER_ID],
                 )
             )
@@ -358,7 +364,7 @@ def process_event(
             comment = error.detail
         # Для других исключений используем str(error)
         else:
-            logger.error(traceback.format_exc())
+            logger.error(f"{traceback.format_exc()}")
             comment = str(error)
         log_record.comment = comment
 
@@ -366,7 +372,7 @@ def process_event(
         logger.error(comment)
 
     # logger.debug(f"Order Notification Log:\n{log_record}")
-    log_record = save_order_notification_log_record(
+    log_record = await order_notification_log_model.create(
         log_record=log_record,
         client=client,
     )
