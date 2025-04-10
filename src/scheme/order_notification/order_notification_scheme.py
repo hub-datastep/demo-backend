@@ -13,8 +13,8 @@ class OrderNotificationRequestBody(SQLModel):
     alertTypeId: int
     timestamp: int | None = None
     data: NotificationData
-    crm: str | None = None,
-    client: str | None = None,
+    crm: str | None = None
+    client: str | None = None
 
 
 class OrderStatusDetails(SQLModel):
