@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column
+from sqlalchemy import Column, DateTime
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -23,10 +23,13 @@ class OrderNotificationLogBase(SQLModel):
     message_llm_response: dict | None = Field(default=None, sa_column=Column(JSONB))
     # Just for errors messages or our comments
     comment: str | None = None
+    created_at: datetime | None = Field(
+        default_factory=get_now_utc,
+        sa_column=Column(DateTime(timezone=True)),
+    )
 
 
 class OrderNotificationLog(OrderNotificationLogBase, table=True):
     __tablename__ = "order_notification_logs"
 
     id: int | None = Field(default=None, primary_key=True)
-    created_at: datetime | None = Field(default_factory=get_now_utc)
