@@ -1,8 +1,9 @@
 from typing import Generic, TypeVar
 
+from sqlalchemy.sql.ddl import CreateSchema
 from sqlmodel import SQLModel, select
 
-from infra.async_database import get_session
+from infra.async_database import engine, get_session
 from middleware.error_handle_middleware import handle_errors
 
 SchemaType = TypeVar("SchemaType", bound=SQLModel)
@@ -29,6 +30,7 @@ class BaseRepository(Generic[SchemaType]):
 
         self.schema = schema
         self.get_session = get_session
+        self.engine = engine
 
     @handle_errors
     async def get_all(self) -> list[SchemaType]:
@@ -110,3 +112,24 @@ class BaseRepository(Generic[SchemaType]):
         async with self.get_session() as session:
             await session.delete(obj)
             await session.commit()
+
+    @handle_errors
+    async def create_schema_and_table(
+        self,
+        schema: str | None = None,
+    ):
+        # Set table schema
+        SchemaType.__table__.schema = schema
+
+        # Create schema for history table if not exists
+        with self.get_session() as session:
+            session.exec(
+                CreateSchema(
+                    name=schema,
+                    if_not_exists=True,
+                )
+            )
+            session.commit()
+
+        # Create table if not exists
+        SchemaType.metadata.create_all(self.engine)
