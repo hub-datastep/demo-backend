@@ -103,7 +103,7 @@ async def send_message_to_resident_chat_async(
     order_id: int,
     text: str | None = None,
     files: list[MessageFileToSend] | None = None,
-) -> tuple[dict, dict]:
+) -> tuple[dict, dict, dict]:
     """
     Send message to chat with resident in order.
     Sender account - Public Account.
@@ -124,12 +124,12 @@ async def send_message_to_resident_chat_async(
     # Send message to internal chat
     response_data = await Domyland.request(
         method=METH_POST,
-        endpoint=f"{DOMYLAND_API_BASE_URL}/chat",
+        endpoint=f"chat",
         json=req_body,
         params=req_params,
     )
 
-    return response_data, req_body
+    return response_data, req_body, req_params
 
 
 def get_message_template(
