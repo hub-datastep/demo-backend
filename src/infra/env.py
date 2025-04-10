@@ -71,7 +71,7 @@ class Env(BaseSettings):
     KAFKA_PASSWORD: str
     # Consumers & Topics
     KAFKA_ORDERS_CONSUMERS_GROUP: str
-    KAFKA_ORDER_CHAT_MESSAGE_SENDING_TOPIC: str
+    KAFKA_ORDER_NOTIFICATIONS_TOPIC: str
     KAFKA_ORDER_TELEGRAM_MESSAGE_TOPIC: str
 
     # Domyland Credentials

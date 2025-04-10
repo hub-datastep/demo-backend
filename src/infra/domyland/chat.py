@@ -189,7 +189,7 @@ async def request_send_message_to_resident(
     await send_message_to_kafka(
         broker=kafka_broker,
         message_body=message_body,
-        topic=env.KAFKA_ORDER_CHAT_MESSAGE_SENDING_TOPIC,
+        topic=env.KAFKA_ORDER_NOTIFICATIONS_TOPIC,
         key=str(order_id),
     )
     return message_body

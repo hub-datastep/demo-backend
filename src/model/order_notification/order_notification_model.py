@@ -264,7 +264,7 @@ async def process_event(
                         break
 
             # If not answered to resident, send message
-            if not is_operator_answered or True:
+            if not is_operator_answered:
                 # Send message to resident to show that order is processing
                 (
                     send_message_to_resident_response,
