@@ -1,27 +1,14 @@
-from model.order_classification.order_classification_history_model import (
-    check_client_validation,
-)
+from model.base import BaseModel
 from repository.order_notification.order_notification_logs_repository import (
-    get_log_record_by_order_id,
+    OrderNotificationLogRepository,
+    order_notification_log_repository,
     save_log_record,
     update_log_record,
 )
 from scheme.order_notification.order_notification_logs_scheme import (
     OrderNotificationLog,
 )
-
-
-def get_saved_log_record_by_order_id(
-    order_id: int,
-    client: str | None = None,
-) -> OrderNotificationLog | None:
-    client = check_client_validation(client)
-
-    saved_record = get_log_record_by_order_id(
-        order_id=order_id,
-        client=client,
-    )
-    return saved_record
+from util.client_db_schema import get_db_schema_by_client
 
 
 def check_if_action_was_unsuccessful(
@@ -57,7 +44,7 @@ def save_order_notification_log_record(
     log_record: OrderNotificationLog,
     client: str | None = None,
 ) -> OrderNotificationLog:
-    client = check_client_validation(client)
+    client = get_db_schema_by_client(client)
 
     db_log_record = save_log_record(
         log_record=log_record,
@@ -70,10 +57,52 @@ def update_order_notification_log_record(
     log_record: OrderNotificationLog,
     client: str | None = None,
 ) -> OrderNotificationLog:
-    client = check_client_validation(client)
+    client = get_db_schema_by_client(client)
 
     db_log_record = update_log_record(
         log_record=log_record,
         client=client,
     )
     return db_log_record
+
+
+class OrderNotificationLogModel(
+    BaseModel[
+        OrderNotificationLog,
+        OrderNotificationLogRepository,
+    ]
+):
+    def __init__(self) -> None:
+        super().__init__(
+            schema=OrderNotificationLog,
+            repository=order_notification_log_repository,
+        )
+
+    async def get_by_order_id(
+        self,
+        order_id: int,
+        client: str | None = None,
+    ) -> OrderNotificationLog | None:
+        client = get_db_schema_by_client(client=client)
+
+        saved_record = await self.repository.get_by_order_id(
+            order_id=order_id,
+            client=client,
+        )
+        return saved_record
+
+    async def create(
+        self,
+        log_record: OrderNotificationLog,
+        client: str | None = None,
+    ) -> OrderNotificationLog:
+        client = get_db_schema_by_client(client=client)
+
+        db_log_record = await self.repository.create(
+            log_record=log_record,
+            client=client,
+        )
+        return db_log_record
+
+
+order_notification_log_model = OrderNotificationLogModel()
