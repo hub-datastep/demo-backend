@@ -73,8 +73,6 @@ class Order(SQLModel):
     buildingId: int
     customerId: int
     placeId: int
-    # Chat with Resident
-    chat: OrderChat | None = None
     # Order Params from Resident
     summary: list[OrderSummary]
     # Files pinned to order from Responsible Users
@@ -130,6 +128,8 @@ class OrderDetails(SQLModel):
     order: Order
     # List of order params
     service: Service
+    # Chat with Resident
+    chat: OrderChat | None = None
     # customer: Resident
 
 

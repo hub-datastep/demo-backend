@@ -201,9 +201,7 @@ async def process_event(
         )
         log_record.message_llm_response = serialize_obj(llm_response)
         cleaning_results_text = llm_response.message
-        is_results_text_exists = (
-            cleaning_results_text is not None and cleaning_results_text.strip() != ""
-        )
+        is_results_text_exists = is_exists_and_not_empty(cleaning_results_text)
 
         # Check if text from LLM exists and can be sent
         if not is_results_text_exists:
@@ -242,13 +240,15 @@ async def process_event(
         is_use_send_message = config.is_use_send_message
         if is_use_send_message:
             # Get Order Chat and Messages in it
-            order_chat = order_details.order.chat
+            order_chat = order_details.chat
             is_chat_exists = order_chat is not None
 
             order_chat_messages = order_chat.items if is_chat_exists else None
             is_messages_exists_in_chat = (
                 order_chat_messages is not None and len(order_chat_messages) > 0
             )
+            logger.debug(f"order_chat_messages: {order_chat_messages}")
+            logger.debug(f"is_messages_exists_in_chat: {is_messages_exists_in_chat}")
 
             # Check if operators not answered yet
             is_operator_answered: bool | None = None
@@ -264,11 +264,12 @@ async def process_event(
                         break
 
             # If not answered to resident, send message
-            if not is_operator_answered:
+            if not is_operator_answered or True:
                 # Send message to resident to show that order is processing
                 (
                     send_message_to_resident_response,
                     send_message_to_resident_request_body,
+                    send_message_to_resident_request_params,
                 ) = await send_message_to_resident_chat_async(
                     order_id=order_id,
                     text=message_text,
@@ -280,9 +281,12 @@ async def process_event(
                     {
                         "action": ActionLogName.SEND_MESSAGE_TO_RESIDENT,
                         "metadata": {
+                            "is_messages_exists_in_chat": is_messages_exists_in_chat,
+                            "is_operator_answered": is_operator_answered,
                             "message_text": message_text,
                             "message_files": serialize_objs_list(files_to_send),
                             "request_body": send_message_to_resident_request_body,
+                            "request_params": send_message_to_resident_request_params,
                             "response": send_message_to_resident_response,
                         },
                     }
@@ -296,6 +300,8 @@ async def process_event(
                     {
                         "action": ActionLogName.SEND_MESSAGE_TO_RESIDENT,
                         "metadata": {
+                            "is_messages_exists_in_chat": is_messages_exists_in_chat,
+                            "is_operator_answered": is_operator_answered,
                             "message_text": message_text,
                             "request_body": action_comment,
                             "response": action_comment,
