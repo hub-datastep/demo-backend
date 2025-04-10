@@ -1,20 +1,19 @@
-import time
+import asyncio
 from datetime import datetime
 
-from infra.llm_clients_credentials import get_llm_by_client_credentials
-from infra.order_classification import WAIT_TIME_IN_SEC
-
 from langchain.chains.llm import LLMChain
-
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import AzureChatOpenAI
 from loguru import logger
 from openai import RateLimitError
 
+from infra.llm_clients_credentials import get_llm_by_client_credentials
+from infra.order_classification import WAIT_TIME_IN_SEC
 from scheme.order_notification.order_notification_scheme import (
     CleaningResultMessageLLMResponse,
 )
+from util.dates import get_now_utc
 
 _PROMPT_TEMPLATE = """
 # Твоя задача
@@ -140,18 +139,19 @@ def get_cleaning_results_message_chain(
     return chain
 
 
-def get_cleaning_results_message(
+async def get_cleaning_results_message(
     chain: LLMChain,
     order_query: str,
     order_status_comment: str,
     client: str | None = None,
 ) -> CleaningResultMessageLLMResponse:
     try:
-        current_date = datetime.now().date().strftime("%d.%m.%Y")
+        current_date = get_now_utc().date()
+        current_date_str = current_date.strftime("%d.%m.%Y")
         order_class = "Клининг"
 
-        response: str = chain.run(
-            current_date=current_date,
+        response: str = await chain.arun(
+            current_date=current_date_str,
             order_class=order_class,
             order_query=order_query,
             order_status_comment=order_status_comment,
@@ -162,12 +162,12 @@ def get_cleaning_results_message(
     except RateLimitError as e:
         logger.error(f"RateLimit error occurred: {str(e)}")
         logger.info(f"Wait {WAIT_TIME_IN_SEC} seconds and try again")
-        time.sleep(WAIT_TIME_IN_SEC)
+        await asyncio.sleep(WAIT_TIME_IN_SEC)
         logger.info(
             f"Timeout passed, try to classify order '{order_query}' of client '{client}' again"
         )
 
-        return get_cleaning_results_message(
+        return await get_cleaning_results_message(
             chain=chain,
             order_query=order_query,
             order_status_comment=order_status_comment,
@@ -176,9 +176,10 @@ def get_cleaning_results_message(
 
 
 if __name__ == "__main__":
-    from infra.llm_clients_credentials import Service
     from pandas import read_excel
     from tqdm import tqdm
+
+    from infra.llm_clients_credentials import Service
 
     llm = get_llm_by_client_credentials(service=Service.ORDER_CLASSIFICATION)
     chain = get_cleaning_results_message_chain(llm=llm)
