@@ -1,6 +1,6 @@
 from typing import Generic, TypeVar
 
-from sqlalchemy.sql.ddl import CreateSchema
+from sqlalchemy.sql.ddl import CreateSchema, CreateTable
 from sqlmodel import SQLModel, select
 
 from infra.async_database import engine, get_session
@@ -119,17 +119,22 @@ class BaseRepository(Generic[SchemaType]):
         schema: str | None = None,
     ):
         # Set table schema
-        SchemaType.__table__.schema = schema
+        self.schema.__table__.schema = schema
 
-        # Create schema for history table if not exists
-        with self.get_session() as session:
-            session.exec(
+        # Create schema and table if not exists
+        async with self.get_session() as session:
+            # Create schema
+            await session.exec(
                 CreateSchema(
                     name=schema,
                     if_not_exists=True,
                 )
             )
-            session.commit()
-
-        # Create table if not exists
-        SchemaType.metadata.create_all(self.engine)
+            # Create table
+            await session.exec(
+                CreateTable(
+                    element=self.schema.__table__,
+                    if_not_exists=True,
+                )
+            )
+            await session.commit()

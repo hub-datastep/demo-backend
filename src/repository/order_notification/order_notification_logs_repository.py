@@ -66,9 +66,6 @@ class OrderNotificationLogRepository(BaseRepository[OrderNotificationLog]):
         client: str | None = None,
     ) -> OrderNotificationLog | None:
         async with self.get_session() as session:
-            # Create schema and table if not exists
-            self.create_schema_and_table(schema=client)
-
             # Set table schema
             OrderNotificationLog.__table__.schema = client
 
@@ -104,9 +101,6 @@ class OrderNotificationLogRepository(BaseRepository[OrderNotificationLog]):
         log_record.__table__.schema = client
 
         async with self.get_session() as session:
-            # Create schema and table if not exists
-            self.create_schema_and_table(schema=client)
-
             # Save history record
             session.add(log_record)
             await session.commit()

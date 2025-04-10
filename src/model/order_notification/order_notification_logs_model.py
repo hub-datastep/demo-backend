@@ -85,11 +85,14 @@ class OrderNotificationLogModel(
     ) -> OrderNotificationLog | None:
         client = get_db_schema_by_client(client=client)
 
-        saved_record = await self.repository.get_by_order_id(
+        # Create schema and table if not exists
+        await self.repository.create_schema_and_table(schema=client)
+
+        log_record = await self.repository.get_by_order_id(
             order_id=order_id,
             client=client,
         )
-        return saved_record
+        return log_record
 
     async def create(
         self,
@@ -97,6 +100,9 @@ class OrderNotificationLogModel(
         client: str | None = None,
     ) -> OrderNotificationLog:
         client = get_db_schema_by_client(client=client)
+
+        # Create schema and table if not exists
+        await self.repository.create_schema_and_table(schema=client)
 
         db_log_record = await self.repository.create(
             log_record=log_record,
