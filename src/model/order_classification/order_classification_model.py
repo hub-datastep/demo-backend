@@ -88,7 +88,7 @@ def _get_responsible_user_by_order_address(
 
         # Check if Responsible User addresses exist
         if not addresses_list:
-            return None
+            continue
 
         # Check if Responsible User addresses contains Order address
         for address in addresses_list:
