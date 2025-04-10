@@ -93,7 +93,7 @@ async def get_order_details_by_id_async(order_id: int) -> OrderDetails:
 def get_param_by_name_from_order_details(
     order_details: OrderDetails,
     param_name: str,
-    raise_error_if_not_found: bool | None = False,
+    raise_error_if_not_found: bool | None = True,
 ) -> OrderSummaryValue | None:
     """
     Extract param by name from Order details.
@@ -118,7 +118,7 @@ def get_param_by_name_from_order_details(
 
 def get_query_from_order_details(
     order_details: OrderDetails,
-    raise_error_if_not_found: bool | None = False,
+    raise_error_if_not_found: bool | None = True,
 ) -> str | None:
     """
     Extract Resident query from Order details.
@@ -136,7 +136,7 @@ def get_query_from_order_details(
 
 def get_address_from_order_details(
     order_details: OrderDetails,
-    raise_error_if_not_found: bool | None = False,
+    raise_error_if_not_found: bool | None = True,
 ) -> str | None:
     """
     Extract Order address from Order details.
@@ -156,7 +156,7 @@ def get_address_from_order_details(
 
 def get_address_with_apartment_from_order_details(
     order_details: OrderDetails,
-    raise_error_if_not_found: bool | None = False,
+    raise_error_if_not_found: bool | None = True,
 ) -> str | None:
     """
     Extract Order address with apartment from Order details.
