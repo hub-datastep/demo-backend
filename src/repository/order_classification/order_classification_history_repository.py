@@ -1,11 +1,12 @@
+from sqlalchemy import func
+from sqlalchemy.sql.ddl import CreateSchema
+from sqlmodel import Session, and_, select
+
 from infra.database import engine
 from infra.domyland.constants import OrderStatusID
 from scheme.order_classification.order_classification_history_scheme import (
     OrderClassificationRecord,
 )
-from sqlalchemy import func
-from sqlalchemy.sql.ddl import CreateSchema
-from sqlmodel import and_, select, Session
 
 
 def create_schema_and_table(

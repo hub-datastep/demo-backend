@@ -1,13 +1,12 @@
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, status
 from fastapi.requests import Request
 from fastapi_versioning import version
-from loguru import logger
 
+from infra.env import env
+from infra.kafka.brokers import kafka_broker
+from infra.kafka.helpers import send_message_to_kafka
+from middleware.kafka_middleware import with_kafka_broker_connection
 from model.order_classification import order_get_info
-from model.order_notification import order_notification_model
-from scheme.order_notification.order_notification_logs_scheme import (
-    OrderNotificationLog,
-)
 from scheme.order_notification.order_notification_scheme import (
     OrderNotificationRequestBody,
 )
@@ -35,42 +34,27 @@ def order_notifications(
     order_get_info.get_order_details(body=body, url=url)
     return status.HTTP_200_OK
 
-# Раскомментить когда починится баг когда мы ставим заявку в "выполнено" без отписки
-@router.post("/order_status_updated")  # response_model=OrderNotificationLog временно закомментировано
+
+@router.post("/order_status_updated")
 @version(1)
-def classify_order(
+@with_kafka_broker_connection(kafka_broker)
+async def process_order_status_updated_event(
     body: OrderNotificationRequestBody,
-    # Init response to return object and change status code if needed
-    response: Response,
     crm: str | None = None,
     client: str | None = None,
 ):
     """
     Вебхук для ивента "Статус Заявки Обновлён" в Домиленд.
+    Переотправляет запрос в Кафку для последующей обработки ивента.
     """
 
-    # Раскомментить когда починится баг когда мы ставим заявку в "выполнено" без отписки
-    # logger.debug(f"OrderStatus Updated request body:\n{body}")
+    body.crm = crm
+    body.client = client
+    order_id = body.data.orderId
 
-    # Раскомментить когда починится баг когда мы ставим заявку в "выполнено" без отписки
-    # model_response = order_notification_model.process_event(
-    #     body=body,
-    #     client=client,
-    # )
-
-    # Раскомментить когда починится баг когда мы ставим заявку в "выполнено" без отписки
-    # response_status = status.HTTP_200_OK
-    # if model_response.is_error:
-    #     response_status = status.HTTP_400_BAD_REQUEST
-    # response.status_code = response_status
-
-    # Удалить когда починится баг когда мы ставим заявку в "выполнено" без отписки
-    logger.debug("Логика обработки ивента 'order_status_updated' временно закоменчена, чтобы не ставить клининг заявки в 'выполнено'")
-
-    model_response = {
-        "order_id": None,
-        "order_status_id": None
-    }
-    response.status_code = status.HTTP_200_OK
-
-    return model_response
+    await send_message_to_kafka(
+        broker=kafka_broker,
+        message_body=body,
+        topic=env.KAFKA_ORDER_NOTIFICATIONS_TOPIC,
+        key=str(order_id),
+    )

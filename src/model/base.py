@@ -6,25 +6,31 @@ from sqlmodel import SQLModel
 from repository.base import BaseRepository
 
 ModelType = TypeVar("ModelType", bound=SQLModel)
+RepositoryType = TypeVar("RepositoryType", bound=BaseRepository)
 
 
-class BaseModel(Generic[ModelType]):
+class BaseModel(Generic[ModelType, RepositoryType]):
     """
     A base model class for interacting with the database using a repository pattern.
 
-    This class serves as a wrapper around the BaseRepository, providing higher-level
+    This class serves as a wrapper around a provided repository, allowing higher-level
     methods for CRUD operations and additional functionality such as error handling.
     """
 
-    def __init__(self, schema: type[ModelType]) -> None:
+    def __init__(
+        self,
+        schema: type[ModelType],
+        repository: RepositoryType,
+    ) -> None:
         """
         Initialize the BaseModel instance.
 
         :param schema: The SQLModel schema representing the database table.
+        :param repository: A custom repository instance for database operations.
         """
 
         self.schema = schema
-        self.repository = BaseRepository(schema=schema)
+        self.repository = repository
 
     async def create(self, obj: ModelType) -> ModelType:
         """

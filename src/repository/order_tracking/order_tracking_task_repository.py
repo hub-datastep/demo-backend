@@ -71,10 +71,6 @@ from repository.base import BaseRepository
 
 
 class OrderTrackingTaskRepository(BaseRepository[OrderTrackingTask]):
-    """
-    Repository for OrderTrackingTask DB table.
-    """
-
     def __init__(self) -> None:
         super().__init__(schema=OrderTrackingTask)
 

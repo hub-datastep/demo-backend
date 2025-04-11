@@ -42,10 +42,9 @@ async def send_sla_ping_message(
     ) = get_order_params_for_message(order_details=order_details)
 
     # * Get template for SLA ping-message
-    template_name = MessageTemplateName.SLA_PING
     message_template = get_message_template(
         templates_list=messages_templates,
-        template_name=template_name,
+        template_name=MessageTemplateName.SLA_PING,
     )
     message_text = message_template.text
 

@@ -38,10 +38,10 @@ services:
     depends_on:
       - db
 
-  order-chat-message-sending-consumer:
+  order-notifications-consumer:
     image: datastep-backend
     restart: always
-    command: python3 /app/src/kafka/consumer/order_chat_message_sending.py
+    command: python3 /app/src/kafka/consumer/order_notifications.py
     volumes:
       - ./src:/app/src
       - ./.env:/app/.env
