@@ -247,8 +247,6 @@ async def process_event(
             is_messages_exists_in_chat = (
                 order_chat_messages is not None and len(order_chat_messages) > 0
             )
-            logger.debug(f"order_chat_messages: {order_chat_messages}")
-            logger.debug(f"is_messages_exists_in_chat: {is_messages_exists_in_chat}")
 
             # Check if operators not answered yet
             is_operator_answered: bool | None = None
